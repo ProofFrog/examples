@@ -1,0 +1,26 @@
+import 'examples/Primitives/KEM.primitive';
+
+// A Diffie-Hellman KEM primitive model.
+
+Scheme DHKEM(DH D, KDF K) extends KEM {
+    
+    ByteString<?> ExtractAndExpand(D.SharedSecret dh, ByteString<2 * ?> kem_context) {
+        eae_rk = K.LabeledExtract("", "eae_rk", dh);
+        shared_secret = K.LabeledExpand(eae_pr, "shared_secret", kem_context, Nsecret);
+        return shared_secret;
+    }
+
+    SharedSecret * EncapKey Encap(PublicKey pkR) {
+        DecapKey * EncapKey k = D.KeyGen();
+        DecapKey skE = k[0];
+        EncapKey pkE = k[1];
+        D.SharedSecret dhss = D.GetSharedSecret(skE, pkR);
+        ByteString<?> enc = SerializePublicKey(pkE);
+
+        ByteString<?> pkRm = SerializePublicKey(pkR);
+        ByteString<2 * ?> kem_context = enc || pkRm;
+
+        ByteString<?> shared_secret = ExtractAndExpand(dhss, kem_context);
+        return [shared_secret, enc];
+    }
+}
