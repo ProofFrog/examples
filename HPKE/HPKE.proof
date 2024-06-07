@@ -1,0 +1,20 @@
+import '';
+
+Reduction R1() compose ... against ....Adversary {
+    
+}
+
+proof:
+
+let:
+    
+
+assume:
+    // AuthDHKEM is secure
+    // SymEnc is secure
+
+theorem:
+    // HPKE is IND-CCA
+
+games:
+    

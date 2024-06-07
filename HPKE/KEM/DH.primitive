@@ -1,0 +1,16 @@
+// Should picking Generator and creating the group be part of this primitive?
+
+Primitive DH(Int Generator, Int Prime, Set CyclicGroup, Set ExponentSpace) {
+    // g generates the public key space.
+    // All operations done in mod p.
+    
+    Int g = Generator;
+    Int p = Prime;
+    Set PublicKey = CyclicGroup;
+    Set PrivateKey = ExponentSpace;
+    Set SharedSecret = CyclicGroup;
+
+    PrivateKey * PublicKey KeyGen();
+    PublicKey GetPublicKey(PrivateKey sk);
+    SharedSecret GetSharedSecret(PrivateKey skE, PublicKey pkR);
+}

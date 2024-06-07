@@ -1,0 +1,62 @@
+import 'examples/Primitives/KEM.primitive';
+
+// A Diffie-Hellman KEM primitive model.
+
+Scheme AuthDHKEM(DH D, KDF K, MAC M) extends KEM {
+    Set PublicKey = D.PublicKey;
+    Set EncapKey = D.PublicKey;
+    Set PrivateKey = D.PrivateKey;
+
+    // TODO: how to set bytestring lengths?
+    
+    SharedSecret ExtractAndExpand(D.SharedSecret dh, ByteString<2 * ?> kem_context) {
+        eae_rk = K.LabeledExtract("", "eae_rk", dh);
+        shared_secret = K.LabeledExpand(eae_pr, "shared_secret", kem_context, Nsecret);
+        return shared_secret;
+    }
+
+    PrivateKey * PublicKey GenerateKeyPair() {
+        return D.KeyGen();
+    }
+
+    PrivateKey * PublicKey DeriveKeyPair(ByteString<Nsk> ikm) {
+        // TODO: decide if derive key pair is needed
+    }
+
+    Bytestring<Npk> SerializePublicKey(PublicKey pkX) {
+        // TODO: decide if serialize is needed
+    }
+
+    PublicKey? DeserializePublicKey(Bytestring<Npk> pkXm) {
+        // TODO: decide if deserialize is needed
+    }
+
+    SharedSecret * ByteString<Nenc> Encap(PublicKey pkR) {
+        PrivateKey * PublicKey ephemeral_key_pair = D.GenerateKeyPair();
+        PrivateKey skE = ephemeral_key_pair[0];
+        EncapKey pkE = ephemeral_key_pair[1];
+        D.SharedSecret dh = D.GetSharedSecret(skE, pkR);
+        ByteString<Nenc> enc = SerializePublicKey(pkE);
+
+        ByteString<Npk> pkRm = SerializePublicKey(pkR);
+        ByteString<Nenc + Npk> kem_context = enc || pkRm;
+
+        ByteString<Nsecret> shared_secret = ExtractAndExpand(dh, kem_context);
+        return [shared_secret, enc];
+        
+        // TODO: Add MAC or some kind of auth
+        //Tag mt = M.MAC(M.KeyGen(), shared_secret); // How to send over the MAC key?
+        //return [shared_secret || mt, enc];
+    }
+
+    SharedSecret Decap(ByteString<Nenc> enc, PrivateKey skR) {
+        PublicKey pkE = DeserializePublicKey(enc);
+        D.SharedSecret dh = D.GetSharedSecret(skR, pkE);
+
+        ByteString<PublicKeyLength> pkRm = SerializePublicKey(D.GetPublicKey(skR));
+        ByteString<Nenc + Npk> kem_context = enc || pkRm;
+
+        ByteString<Nsecret> shared_secret = ExtractAndExpand(dh, kem_context);
+        return shared_secret;
+    }
+}

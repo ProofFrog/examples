@@ -1,0 +1,17 @@
+// An AEAD encryption algorithm primitive based on RFC5116.
+// Excludes associated data parameter aad.
+
+Primitive AEAD(Set MessageSpace, Set CiphertextSpace, Set KeySpace, Set NonceSpace, Set TagSpace, int KeyLength, int NonceLength, int TagLength) {
+    Set Message = MessageSpace;
+    Set Ciphertext = CiphertextSpace;
+    Set Key = KeySpace;
+    Set Nonce = NonceSpace;
+    Set Tag = TagSpace;
+    
+    int Nk = KeyLength;
+    int Nn = NonceLength;
+    int Nt = TagLength;
+
+    Ciphertext? * Tag? Seal(Key key, Nonce nonce, Message pt);
+    Message? Open(Key key, Nonce nonce, Ciphertext * Tag ct);
+}

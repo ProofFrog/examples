@@ -1,0 +1,27 @@
+// Based on the PRF and PRG definitions for security.
+
+import 'examples\HPKE\KDF\KDF.primitive';
+
+Game Real(KDF F) {
+    BitString<F.lambda> k;
+    Void Initialize() {
+        k <- BitString<F.lambda>;
+    }
+
+    BitString<F.out> Lookup(BitString<F.in> x) {
+        return F.evaluate(k, x);
+    }
+}
+
+Game Random(KDF F) {
+    Map<BitString<F.in>, BitString<F.out>> T;
+
+    BitString<F.out> Lookup(BitString<F.in> x) {
+        if (!(x in T)) {
+            T[x] <- BitString<F.out>;
+        }
+        return T[x];
+    }
+}
+
+export as Security;

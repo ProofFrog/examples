@@ -1,0 +1,28 @@
+import 'examples\HPKE\DH.primitive';
+
+Reduction R1() compose ... against ....Adversary {
+    
+}
+
+proof:
+
+let:
+    // Diffie-Hellman key exchange
+    Int g;
+    Int p;
+    Set G;
+    Set Z_q;
+    DH D = DH(g, p, G, Z_q);
+
+    
+
+assume:
+    DDH(D);
+    // KDF is secure
+    // MAC is secure
+
+theorem:
+    // AuthDHKEM is secure
+
+games:
+    
