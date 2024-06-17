@@ -1,16 +1,13 @@
-// Decisional Diffie-Hellman problem.
-
 import 'examples/HPKE/DH.primitive';
+
+// Decisional Diffie-Hellman problem.
 
 Game Real(DH D) {
     D.PublicKey * D.PublicKey * D.SharedSecret Query() {
         D.SecretKey a <- D.SecretKey;
         D.PublicKey g_a = D.GetPublicKey(a);
-
         D.PublicKey g_b <- D.PublicKey;
-        
         D.SharedSecret g_ab = D.GetSharedSecret(a, g_b);
-        
         return [g_a, g_b, g_ab];
     }
 }
@@ -18,11 +15,8 @@ Game Real(DH D) {
 Game Random(DH D) {
     D.PublicKey * D.PublicKey * D.SharedSecret Query() {
         D.PublicKey g_a <- D.PublicKey;
-
         D.PublicKey g_b <- D.PublicKey;
-        
         D.SharedSecret g_c <- D.SharedSecret;
-        
         return [g_a, g_b, g_c];
     }
 }
