@@ -1,0 +1,51 @@
+import 'examples/Primitives/AKEM.primitive';
+import 'examples/HPKE/KDF/KDF.primitive';
+import 'examples/HPKE/KEM/DH.primitive';
+import 'examples/HPKE/Encoder.primitive';
+
+// A Diffie-Hellman AKEM primitive model.
+
+Scheme DHAKEM(DH D, KDF F, int SharedSecretLength) extends AKEM {
+    Set SecretKey = D.SecretKey;
+    Set PublicKey = D.PublicKey;
+    Set Ciphertext = D.PublicKey;
+
+    int Nsecret = SharedSecretLength;
+    Set SharedSecret = BitString<Nsecret>;
+
+    // A simplified ExtractAndExpand method
+    SharedSecret ExtractAndExpand(D.SharedSecret * D.SharedSecret dh, PublicKey * PublicKey * PublicKey kemContext) {
+        BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
+        BitString info = D.Encode(Nsecret) || D.Encode(kemContext[0]) || D.Encode(kemContext[1]) || D.Encode(kemContext[2]);
+        return F.evaluate(ikm, info);
+    }
+
+    SecretKey * PublicKey GenerateKeyPair() {
+        return D.KeyGen();
+    }
+
+    SharedSecret * Ciphertext AuthEncap(PublicKey pkR, SecretKey skS) {
+        SecretKey * PublicKey ephemeralKeys = D.GenerateKeyPair();
+        SecretKey skE = ephemeralKeys[0];
+        PublicKey pkE = ephemeralKeys[1];
+        D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skE, pkR), D.GetSharedSecret(skS, pkR)];
+        Ciphertext enc = pkE;
+
+        PublicKey pkS = D.GetPublicKey(skS);
+        PublicKey * PublicKey * PublicKey kemContext = [pkE, pkR, pkS];
+
+        SharedSecret k = ExtractAndExpand(dh, kemContext);
+        return [k, enc];
+    }
+
+    SharedSecret AuthDecap(Ciphertext enc, SecretKey skR, PublicKey pkS) {
+        PublicKey pkE = enc;
+        D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skR, pkE), D.GetSharedSecret(skR, pkS)];
+
+        PublicKey pkR = D.GetPublicKey(skR);
+        PublicKey * PublicKey * PublicKey kemContext = [pkE, pkR, pkS];
+
+        SharedSecret k = ExtractAndExpand(dh, kemContext);
+        return k;
+    }
+}

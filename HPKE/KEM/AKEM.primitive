@@ -1,0 +1,13 @@
+// An authenticated key encapulation mechanism (AKEM) primitive.
+// Based on https://github.com/dconnolly/ProofFrog-KEMs/blob/main/Primitives/KEM.primitive
+
+Primitive AKEM(Set SecretKeySpace, Set PublicKeySpace, Set CiphertextSpace, Set SharedSecretSpace) {
+    Set SecretKey = SecretKeySpace;
+    Set PublicKey = PublicKeySpace;
+    Set Ciphertext = CiphertextSpace;
+    Set SharedSecret = SharedSecretSpace;
+
+    SecretKey * PublicKey KeyGen();
+    Ciphertext * SharedSecret AuthEncap(PublicKey pkR, SecretKey skS);
+    SharedSecret AuthDecap(Ciphertext c, SecretKey skR, PublicKey pkS); // Never fails - implicit rejection
+}
