@@ -1,13 +1,9 @@
 // A key derivation function primitive.
 
-Primitive KDF(int KeyLength) {
-    int Nh = KeyLength;
-
-    ByteString<Nh> Extract(ByteString<Nsalt>? salt, ByteString<Nikm> ikm);
-    ByteString<length> Expand(ByteString<Nprk> prk, ByteString<Ninfo>? info, int length);
-
-    // Methods used to pass context-specific information to the basic Extract and Expand methods.
-    // TODO: Decide if labeled extract/expand are needed
-    ByteString<Nh> LabeledExtract(ByteString<Nsalt>? salt, ByteString<Nlabel> label, ByteString<Nikm> ikm);
-    ByteString<length> LabeledExpand(ByteString<Nprk> prk, ByteString<Nlabel> label, ByteString<Ninfo> info, int length);
+Primitive KDF(int lambda, int in, int out) {
+    int lambda = lambda;
+    int in = in;
+    int out = out;
+    
+    BitString<out> evaluate(BitString<lambda> seed, BitString<in> input);
 }

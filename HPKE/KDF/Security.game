@@ -1,15 +1,39 @@
-// Based on the PRF and PRG definitions for security.
+// Based on Krawczyk's security definition for KDFs.
 
 import 'examples\HPKE\KDF\KDF.primitive';
 
 Game Real(KDF F) {
-    BitString<F.lambda> k;
-    Void Initialize() {
-        k <- BitString<F.lambda>;
+    BitString ikm;
+    ? aux_knowledge;
+    K.Salt r;
+    
+    Set<K.Context> C;
+    Set<K.Context> CPrime;
+
+    Int count;
+
+    ? Initialize() {
+        ikm <- BitString;
+        r <- K.Salt;
+        return aux_knowledge;
     }
 
-    BitString<F.out> Lookup(BitString<F.in> x) {
-        return F.evaluate(k, x);
+    BitString? GetChallenge(K.Context c, Int length) {
+        if (c in CPrime) { return None; }
+
+        BitString? result = None;
+        count = count + 1;
+        if (count == 1) { 
+            C = C union c;
+            result = F.evaluate(ikm, r, c, length); 
+        }
+        return result;
+    }
+
+    BitString? Query(K.Context c, Int length) {
+        if (c in C) { return None; }
+        CPrime = CPrime union c;
+        return F.evaluate(ikm, r, c, length);
     }
 }
 

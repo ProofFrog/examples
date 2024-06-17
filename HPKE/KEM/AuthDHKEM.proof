@@ -14,7 +14,9 @@ let:
     Set Z_q;
     DH D = DH(g, p, G, Z_q);
 
-    
+    // KDF
+    Int Nsecret;
+    KDF K(..., ..., Nsecret); // outputs shared secret of lengths Nsecret
 
 assume:
     DDH(D);
