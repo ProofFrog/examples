@@ -1,9 +1,7 @@
-// A key derivation function primitive.
+// A simple key derivation function (KDF) primitive.
 
-Primitive KDF(int lambda, int in, int out) {
-    int lambda = lambda;
-    int in = in;
+Primitive KDF(int out) {
     int out = out;
     
-    BitString<out> evaluate(BitString<lambda> seed, BitString<in> input);
+    BitString<out> evaluate(BitString seed, BitString input);
 }
