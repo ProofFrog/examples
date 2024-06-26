@@ -1,76 +1,86 @@
-import 'examples/Primitives/SymEnc.primitive';
+import 'examples/HPKE/KEM/AKEM.primitive';
 
-// Indistinguishability game for outsider CCA with two users.
+// Indistinguishability game for AKEM outsider CCA with two users.
 
 Game Left(AKEM K) {
     K.PublicKey * K.PublicKey pk;
-    K.PublicKey * K.PublicKey sk;
+    K.SecretKey * K.SecretKey sk;
 
     Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // [pkS, pkR, context] -> AKEM shared secret
+    
+    Map<BitString * BitString, K.SharedSecret> T; // KDF storage
 
     K.PublicKey * K.PublicKey Initialize() {
-        SecretKey * PublicKey k1 = K.KeyGen();
-        SecretKey * PublicKey k2 = K.KeyGen();
+        K.SecretKey * K.PublicKey k1 = K.KeyGen();
+        K.SecretKey * K.PublicKey k2 = K.KeyGen();
         sk = [k1[0], k2[0]];
         pk = [k1[1], k2[1]];
         return pk;
     }
 
     // Takes as input a sender index and receiver index
-    K.Ciphertext? * K.SharedSecret? Chall(int i, int j) {
+    K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
         if ((i != 1 && i != 2) || (j != 1 && j != 2)) { return [None, None]; }
-        Ciphertext * SharedSecret result = K.AuthEncap(pk[j-1], sk[i-1]);
-        C[[pk[i], pk[j], result[0]]] = result[1];
+        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
+        C[[pk[i-1], pk[j-1], result[1]]] = result[0];
         return result;
     }
 
-    K.Ciphertext? * K.SharedSecret? AEncap(int i, K.PublicKey pkR) {
+    K.Ciphertext? * K.SharedSecret? AEncap(Int i, K.PublicKey pkR) {
         if (i != 1 && i != 2) { return [None, None]; }
-        Ciphertext * SharedSecret result = K.AuthEncap(pkR, sk[i-1]);
+        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pkR, sk[i-1]);
         return result;
     }
 
-    K.SharedSecret? ADecap(int j, K.PublicKey pkS, K.Ciphertext c) {
+    K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
         if (j != 1 && j != 2) { return None; }
         if ([pkS, pk[j-1], c] in C) { return None; }
-        K.SharedSecret result = AuthDecap(Ciphertext c, SecretKey sk[j-1], PublicKey pkS);
+        K.SharedSecret result = K.AuthDecap(c, sk[j-1], pkS);
         return result;
+    }
+
+    // KDF is modelled as a random oracle
+    K.SharedSecret KDF(BitString ikm, BitString info) {
+        if (!([ikm, info] in T)) {
+            T[[ikm, info]] <- K.SharedSecret;
+        }
+        return T[[ikm, info]];
     }
 }
 
 Game Right(AKEM K) {
-        K.PublicKey * K.PublicKey pk;
-    K.PublicKey * K.PublicKey sk;
+    K.PublicKey * K.PublicKey pk;
+    K.SecretKey * K.SecretKey sk;
 
     Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // [pkS, pkR, context] -> AKEM shared secret
 
     K.PublicKey * K.PublicKey Initialize() {
-        SecretKey * PublicKey k1 = K.KeyGen();
-        SecretKey * PublicKey k2 = K.KeyGen();
+        K.SecretKey * K.PublicKey k1 = K.KeyGen();
+        K.SecretKey * K.PublicKey k2 = K.KeyGen();
         sk = [k1[0], k2[0]];
         pk = [k1[1], k2[1]];
         return pk;
     }
 
     // Takes as input a sender index and receiver index
-    K.Ciphertext? * K.SharedSecret? Chall(int i, int j) {
+    K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
         if ((i != 1 && i != 2) || (j != 1 && j != 2)) { return [None, None]; }
-        Ciphertext * SharedSecret result = K.AuthEncap(pk[j-1], sk[i-1]);
+        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
         result[1] <- K.SharedSecret;
-        C[[pk[i], pk[j], result[0]]] = result[1];
+        C[[pk[i], pk[j], result[1]]] = result[0];
         return result;
     }
 
-    K.Ciphertext? * K.SharedSecret? AEncap(int i, K.PublicKey pkR) {
+    K.Ciphertext? * K.SharedSecret? AEncap(Int i, K.PublicKey pkR) {
         if (i != 1 && i != 2) { return [None, None]; }
-        Ciphertext * SharedSecret result = K.AuthEncap(pkR, sk[i-1]);
+        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pkR, sk[i-1]);
         return result;
     }
 
-    K.SharedSecret? ADecap(int j, K.PublicKey pkS, K.Ciphertext c) {
+    K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
         if (j != 1 && j != 2) { return None; }
         if ([pkS, pk[j-1], c] in C) { return None; }
-        K.SharedSecret result = AuthDecap(Ciphertext c, SecretKey sk[j-1], PublicKey pkS);
+        K.SharedSecret result = AuthDecap(Ciphertext c, K.SecretKey sk[j-1], K.PublicKey pkS);
         return result;
     }
 }

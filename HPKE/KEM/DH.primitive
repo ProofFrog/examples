@@ -8,6 +8,7 @@ Primitive DH(int generator, int prime, Set CyclicGroup, Set ExponentSpace) {
     SecretKey * PublicKey KeyGen();
     PublicKey GetPublicKey(SecretKey sk);
     SharedSecret GetSharedSecret(SecretKey sk, PublicKey pk);
+    SharedSecret GetSharedSecret(PublicKey pk1, PublicKey pk2);
 
     // Methods to transform DH objects into bitstrings and vice-versa.
     BitString Encode(PublicKey pk);

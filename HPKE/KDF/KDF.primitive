@@ -1,7 +1,8 @@
-// A simple key derivation function (KDF) primitive.
+// A general key derivation function (KDF) primitive.
 
 Primitive KDF(int out) {
     int out = out;
-    
-    BitString<out> evaluate(BitString seed, BitString input);
+
+    // TODO: Add the salt parameter?
+    BitString<out> evaluate(BitString ikm, BitString info);
 }

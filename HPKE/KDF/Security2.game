@@ -1,0 +1,29 @@
+import 'examples/HPKE/KDF/KDF.primitive';
+
+Game Real(KDF F) {
+    BitString r;
+    BitString k;
+
+    BitString Initialize() {
+        r <- BitString;
+        k <- BitString;
+        return r;
+    }
+
+    BitString<F.out> Lookup(BitString c) {
+        return F.evaluate(r, k, c);
+    }
+}
+
+Game Random(KDF F) {
+    Map<BitString, BitString<F.out>> T;
+
+    BitString<F.out> Lookup(BitString c) {
+        if (!([c] in T)) {
+            T[c] <- BitString<F.out>;
+        }
+        return T[c];
+    }
+}
+
+export as Security2;

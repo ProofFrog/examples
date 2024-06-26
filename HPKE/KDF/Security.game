@@ -1,9 +1,12 @@
-// Based on Krawczyk's security definition for KDFs.
+import 'examples/HPKE/KDF/KDF.primitive';
 
-import 'examples\HPKE\KDF\KDF.primitive';
+// A simplified KDF security definition 
+// based on Krawczyk's security definition for KDFs in 
+// "Cryptographic Extraction and Key Derivation: The HKDF Scheme".
+// https://eprint.iacr.org/2010/264.pdf
 
 Game Real(KDF F) {
-    BitString ikm;
+    BitString seed;
     ? aux_knowledge;
     K.Salt r;
     

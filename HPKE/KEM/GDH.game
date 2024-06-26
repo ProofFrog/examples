@@ -1,0 +1,49 @@
+import 'examples/HPKE/DH.primitive';
+
+// Gap Diffie-Hellman problem:
+// Given two public keys, the adversary must find the shared secret to differentiate between the real and random games.
+
+Game Real(DH D) {
+    // Store last call to Query()
+    D.PublicKey g_x;
+    D.PublicKey g_y;
+    D.SharedSecret g_xy;
+
+    D.PublicKey * D.PublicKey Query() {
+        D.SecretKey x <- D.SecretKey;
+        g_x = D.GetPublicKey(x);
+        g_y <- D.PublicKey;
+        g_xy = D.GetSharedSecret(x, g_y);
+        return [g_x, g_y];
+    }
+
+    Bool CheckSharedSecret(D.SharedSecret g_c) {
+        return g_c == g_xy;
+    }
+
+    Bool CheckTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
+        return g_c == GetSharedSecret(g_a, g_b);
+    }
+}
+
+Game Random(DH D) {
+    // Store last call to Query()
+    D.PublicKey g_x;
+    D.PublicKey g_y;
+
+    D.PublicKey * D.PublicKey Query() {
+        g_x <- D.PublicKey;
+        g_y <- D.PublicKey;
+        return [g_x, g_y];
+    }
+
+    Bool CheckSharedSecret(D.SharedSecret g_c) {
+        return false;
+    }
+
+    Bool CheckTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
+        return g_c == GetSharedSecret(g_a, g_b);
+    }
+}
+
+export as GDH;
