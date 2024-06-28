@@ -21,7 +21,7 @@ Game Real(DH D) {
         return g_c == g_xy;
     }
 
-    Bool CheckTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
+    Bool IsTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
         return g_c == GetSharedSecret(g_a, g_b);
     }
 }
@@ -41,7 +41,7 @@ Game Random(DH D) {
         return false;
     }
 
-    Bool CheckTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
+    Bool IsTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
         return g_c == GetSharedSecret(g_a, g_b);
     }
 }
