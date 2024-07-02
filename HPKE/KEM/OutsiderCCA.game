@@ -22,7 +22,7 @@ Game Left(AKEM K) {
     K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
         if ((i != 1 && i != 2) || (j != 1 && j != 2)) { return [None, None]; }
         K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
-        C[[pk[i-1], pk[j-1], result[1]]] = result[0];
+        //C[[pk[i-1], pk[j-1], result[1]]] = result[0];
         return result;
     }
 
@@ -41,10 +41,13 @@ Game Left(AKEM K) {
 
     // KDF is modelled as a random oracle
     K.SharedSecret KDF(BitString ikm, BitString info) {
+        K.SharedSecret k;
         if (!([ikm, info] in T)) {
-            T[[ikm, info]] <- K.SharedSecret;
+            //T[[ikm, info]] <- K.SharedSecret;
+            k <- K.SharedSecret;
         }
-        return T[[ikm, info]];
+        //return T[[ikm, info]];
+        return k;
     }
 }
 
@@ -67,7 +70,7 @@ Game Right(AKEM K) {
         if ((i != 1 && i != 2) || (j != 1 && j != 2)) { return [None, None]; }
         K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
         result[1] <- K.SharedSecret;
-        C[[pk[i], pk[j], result[1]]] = result[0];
+        //C[[pk[i], pk[j], result[1]]] = result[0];
         return result;
     }
 
@@ -80,7 +83,7 @@ Game Right(AKEM K) {
     K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
         if (j != 1 && j != 2) { return None; }
         if ([pkS, pk[j-1], c] in C) { return None; }
-        K.SharedSecret result = AuthDecap(Ciphertext c, K.SecretKey sk[j-1], K.PublicKey pkS);
+        K.SharedSecret result = AuthDecap(c, sk[j-1], pkS);
         return result;
     }
 }

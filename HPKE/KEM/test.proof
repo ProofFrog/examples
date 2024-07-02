@@ -1,0 +1,25 @@
+import 'examples/HPKE/KEM/DH.primitive';
+import 'examples/HPKE/KEM/GDH.game';
+
+proof:
+
+let:
+    // Diffie-Hellman key exchange
+    Int g;
+    Int p;
+    Set G;
+    Set Z_q;
+    // Lengths for key serialization
+    Int Npk;
+    Int Nss;
+    DH D = DH(g, p, G, Z_q, Npk, Nss);
+
+assume:
+    GDH(D);
+
+theorem:
+    GDH(D);
+
+games:
+    GDH(D).Real compose against GDH(D).Adversary;
+    GDH(D).Random compose against GDH(D).Adversary;
