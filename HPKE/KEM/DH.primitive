@@ -1,6 +1,6 @@
 Primitive DH(Int generator, Int prime, Set CyclicGroup, Set ExponentSpace, Int Npk, Int Nss) {    
-    Int g = Generator;
-    Int p = Prime;
+    Int g = generator;
+    Int p = prime;
     Set PublicKey = CyclicGroup;
     Set SecretKey = ExponentSpace;
     Set SharedSecret = CyclicGroup;
@@ -8,7 +8,7 @@ Primitive DH(Int generator, Int prime, Set CyclicGroup, Set ExponentSpace, Int N
     SecretKey * PublicKey KeyGen();
     PublicKey GetPublicKey(SecretKey sk);
     SharedSecret GetSharedSecret(SecretKey sk, PublicKey pk);
-    SharedSecret GetSharedSecret(PublicKey pk1, PublicKey pk2);
+    SharedSecret SharedSecretOracle(PublicKey pk1, PublicKey pk2);
 
     // Methods to transform DH objects into bitstrings and vice-versa.
     Int Npk = Npk;

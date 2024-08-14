@@ -22,7 +22,7 @@ Game Real(DH D) {
     }
 
     Bool IsTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
-        return g_c == GetSharedSecret(g_a, g_b);
+        return g_c == D.SharedSecretOracle(g_a, g_b);
     }
 }
 
@@ -42,7 +42,7 @@ Game Random(DH D) {
     }
 
     Bool IsTriple(D.PublicKey g_a, D.PublicKey g_b, D.SharedSecret g_c) {
-        return g_c == GetSharedSecret(g_a, g_b);
+        return g_c == D.SharedSecretOracle(g_a, g_b);
     }
 }
 

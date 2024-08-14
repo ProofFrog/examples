@@ -1,0 +1,18 @@
+import 'examples/HPKE/KDF/KDF.primitive';
+
+// KDF is modelled as a random oracle
+
+Scheme RandomKDF(Int out) extends KDF {
+    Int out = out;
+    Map<BitString * BitString, K.SharedSecret> L;
+
+    BitString<out> evaluate(BitString ikm, BitString info) {
+        K.SharedSecret k;
+        if ([ikm, info] in L) {
+            return L[[ikm, info]];
+        }
+        K.SharedSecret k <- K.SharedSecret;
+        L[[ikm, info]] <- k;
+        return k;
+    }
+}

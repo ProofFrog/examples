@@ -1,147 +1,59 @@
 import 'examples/HPKE/KEM/DH.primitive';
 import 'examples/HPKE/KEM/GDH.game';
 import 'examples/HPKE/KDF/KDF.primitive';
-import 'examples/HPKE/KEM/DHAKEM.scheme'
+import 'examples/HPKE/KEM/DHAKEM.scheme';
 import 'examples/HPKE/KEM/OutsiderCCA.game';
 
-Reduction R1(DHAKEM K, DH D) compose GDH(D) against OutsiderCCA(K).Adversary {
-    K.PublicKey pk1;
-    K.SecretKey sk1;
-    
-    K.PublicKey pk2;
-    K.PublicKey pkE;
-    D.SharedSecret ss2E; // fake shared secret
+Game Intermediate1(AKEM K, DH D, KDF F) {
+    K.PublicKey * K.PublicKey pk;
+    K.SecretKey * K.SecretKey sk;
 
-    Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // [pkS, pkR, pkE] -> AKEM shared secret
+    Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // challenge
     
-    Map<BitString * BitString, K.SharedSecret> T; // [DH shared secrets, context] -> K.SharedSecret
-    Map<BitString, K.SharedSecret> FakeT; // info -> K.SharedSecret
+    Map<BitString * BitString, K.SharedSecret> L; // KDF storage
 
     K.PublicKey * K.PublicKey Initialize() {
-        // k1 is honestly generated
-        K.SecretKey * K.PublicKey k1 = K.KeyGen();
-        sk1 = k1[0];
-        pk1 = k1[1];
-
-        // pk2 and pkE are challenger-generated
-        K.PublicKey * K.PublicKey k = challenger.Query();
-        pk2 = k[0];
-        pkE = k[1];
-        ss2E <- K.SharedSecret;
-
-        return [pk1, pk2];
+        K.SecretKey * K.PublicKey k1 = D.KeyGen();
+        K.SecretKey * K.PublicKey k2 = D.KeyGen();
+        sk = [k1[0], k2[0]];
+        pk = [k1[1], k2[1]];
+        return pk;
     }
 
     // Takes as input a sender index and receiver index
-    // TODO: For now, assume i = 1, j = 2, and Chall is only called once
     K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
         if ((i != 1 && i != 2) || (j != 1 && j != 2)) { return [None, None]; }
 
-        // K.AuthEncap(pk2, sk1)
-        D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skE, pk2), D.GetSharedSecret(pk1, pk2)];
+        // K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
+        K.PublicKey pkR = pk[j-1];
+        K.SecretKey skS = sk[i-1];
+
+        K.SecretKey * K.PublicKey ephemeralKey = D.KeyGen();
+        K.SecretKey skE = ephemeralKey[0];
+        K.PublicKey pkE = ephemeralKey[1];
+        D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skE, pkR), D.GetSharedSecret(skS, pkR)];
         K.Ciphertext enc = pkE;
 
-        K.PublicKey pkS = D.GetPublicKey(pk1);
-        K.PublicKey * K.PublicKey * K.PublicKey kemContext = [pkE, pk2, pkS];
+        K.PublicKey pkS = D.GetPublicKey(skS);
+        K.PublicKey * K.PublicKey * K.PublicKey kemContext = [pkE, pkR, pkS];
 
-        // K.ExtractAndExpand(dh, kemContext);
+        // SharedSecret k = ExtractAndExpand(dh, kemContext);
         BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
         BitString info = D.Encode(K.Nsecret) || D.Encode(kemContext[0]) || D.Encode(kemContext[1]) || D.Encode(kemContext[2]);
-        K.SharedSecret k = KDF(ikm, info);
-
-        // Store and return result
-        C[[pk1, pk2, enc]] = k;
-        return result;
-    }
-
-    
-    K.Ciphertext? * K.SharedSecret? AEncap(Int i, K.PublicKey pkR) {
-        if (i != 1 && i != 2) { return [None, None]; }
-
-        // K.AuthEncap(pkR, sk[i-1])
-        K.SecretKey * K.PublicKey ephemeralKeys = D.GenerateKeyPair();
-        K.SecretKey skE = ephemeralKeys[0];
-        K.PublicKey pkE = ephemeralKeys[1];
-
-        K.Ciphertext * K.SharedSecret result;
-
-        if (i == 1) {
-            K.PublicKey pkR = pk2;
-            D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skE, pkR), D.GetSharedSecret(sk1, pkR)];
-            K.Ciphertext enc = pkE;
-
-            K.PublicKey pkS = D.GetPublicKey(sk1);
-            K.PublicKey * K.PublicKey * K.PublicKey kemContext = [pkE, pkR, pkS];
-
-            // ExtractAndExpand(dh, kemContext);
-            BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
-            BitString info = D.Encode(K.Nsecret) || D.Encode(kemContext[0]) || D.Encode(kemContext[1]) || D.Encode(kemContext[2]);
-            K.SharedSecret k = KDF(ikm, info);
-
-            result = [k, enc];
-        } 
+        K.SharedSecret k = F.evaluate(ikm, info);
         
-        else { // When i == 2, generate a fake DH shared secret
-            K.PublicKey pkR = pk1;
-            D.SharedSecret fakeAuthSecret <- D.SharedSecret;
-            D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skE, pkR), fakeAuthSecret];
-            K.Ciphertext enc = pkE;
+        K.Ciphertext * K.SharedSecret result = [enc, k];
+        // end of AuthEncap
 
-            K.PublicKey pkS = pk2;
-            K.PublicKey * K.PublicKey * K.PublicKey kemContext = [pkE, pkR, pkS];
-
-            // ExtractAndExpand(dh, kemContext);
-            BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
-            BitString info = D.Encode(K.Nsecret) || D.Encode(kemContext[0]) || D.Encode(kemContext[1]) || D.Encode(kemContext[2]);
-            K.SharedSecret k = KDF(ikm, info);
-            
-            result = [k, enc];
-        }
-
-        FakeT[kemContext] = result[0]; // store keys for DH triples we generate, real or fake
+        C[[pk[i-1], pk[j-1], result[0]]] = result[1];
         return result;
-    }
-
-    // TODO
-    K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
-        if (j != 1 && j != 2) { return None; }
-        if ([pkS, pk[j-1], c] in C) { return None; }
-        K.SharedSecret result = K.AuthDecap(c, sk[j-1], pkS);
-        return result;
-    }
-
-    // KDF is modelled as a random oracle
-    // Assume all inputs by the adversary are parseable
-    K.SharedSecret KDF(BitString ikm, BitString info) {
-        // Recover the DH values
-        D.SharedSecret ephemeralSecret = D.Decode(ikm[0 : D.Nss]);
-        D.SharedSecret authSecret = D.Decode(ikm[D.Nss : 2*D.Nss]);
-        K.PublicKey pkE = D.Decode(info[0 : D.Npk]);
-        K.PublicKey pkR = D.Decode(info[D.Npk : 2*D.Npk]);
-        K.PublicKey pkS = D.Decode(info[2*D.Npk : 3*D.Npk]);
-
-        // TODO: What happens if the adversary guesses the fake secret i.e. finds a "collision"?
-        // If DH shared secrets are correct, fetch the (potentially fake) key based on the context
-        if (challenger.IsTriple(pkE, pkR, ephemeralSecret) && challenger.IsTriple(pkR, pkS, authSecret)) {
-            if (!(info in FakeT)) {
-                FakeT[info] <- K.SharedSecret;
-            }
-            return FakeT[info];
-        }
-
-        // All other inputs
-        if (!([ikm, info] in T)) {
-            T[[ikm, info]] <- K.SharedSecret;
-            k <- K.SharedSecret;
-        }
-        return T[[ikm, info]];
     }
 }
 
 proof:
 
 let:
-    // Diffie-Hellman key exchange
+    // Diffie-Hellman
     Int g;
     Int p;
     Set G;
@@ -152,10 +64,10 @@ let:
     DH D = DH(g, p, G, Z_q, Npk, Nss);
 
     // KDF
-    Int Nsecret; // length of shared secret generated by AuthDHKEM
+    Int Nsecret; // length of shared secret generated by DHAKEM
     KDF F = KDF(Nsecret);
 
-    // Authorized KEM
+    // AKEM
     DHAKEM K = DHAKEM(D, F, Nsecret);
 
 assume:
@@ -166,7 +78,9 @@ theorem:
 
 games:
     OutsiderCCA(K).Left against OutsiderCCA(K).Adversary;
-    GDH(D).Real compose R1(K, D) against OutsiderCCA(K).Adversary;
-    GDH(D).Random compose R1(K, D) against OutsiderCCA(K).Adversary;
+    Intermediate1(K, D, F) against OutsiderCCA(K).Adversary;
+
+    //GDH(D).Real compose R1(K, D) against OutsiderCCA(K).Adversary;
+    //GDH(D).Random compose R1(K, D) against OutsiderCCA(K).Adversary;
 
     OutsiderCCA(K).Right against OutsiderCCA(K).Adversary;
