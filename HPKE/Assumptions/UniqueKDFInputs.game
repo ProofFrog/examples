@@ -1,0 +1,30 @@
+import 'examples/HPKE/KDF/KDF.primitive';
+
+// This assumption is used when there's a negligible probability of ikm and info being
+// the same across multiple calls, so k is always a new random value.
+
+Game Real(RandomKDF F) {
+    Map<BitString * BitString, BitString<F.out>> L; // This is okay because ProofFrog doesn't track map states
+
+    BitString<F.out> evaluate(BitString ikm, BitString info) {
+        BitString<F.out> k <- BitString<F.out>;
+        if ([ikm, info] in L) {
+            k = L[[ikm, info]];
+        } else {
+            L[[ikm, info]] = k;
+        }
+        return k;
+    }
+}
+
+Game Unique(RandomKDF F) {
+    Map<BitString * BitString, BitString<F.out>> L;
+
+    BitString<F.out> evaluate(BitString ikm, BitString info) {
+        BitString<F.out> k <- BitString<F.out>;
+        L[[ikm, info]] = k; // Technically not needed
+        return k;
+    }
+}
+
+export as KDFInputs;

@@ -1,6 +1,6 @@
 import 'examples/Primitives/AKEM.primitive';
 import 'examples/HPKE/KDF/KDF.primitive';
-import 'examples/HPKE/KEM/DH.primitive';
+import 'examples/HPKE/DH/DH.primitive';
 
 // A Diffie-Hellman AKEM scheme.
 
@@ -13,28 +13,30 @@ Scheme DHAKEM(DH D, KDF F, Int SharedSecretLength) extends AKEM {
     Set SharedSecret = BitString<Nsecret>;
 
     // A simplified ExtractAndExpand method
-    //SharedSecret ExtractAndExpand(D.SharedSecret * D.SharedSecret dh, PublicKey * PublicKey * PublicKey kemContext) {
-    //    BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
-    //    BitString info = D.Encode(Nsecret) || D.Encode(kemContext[0]) || D.Encode(kemContext[1]) || D.Encode(kemContext[2]);
-    //    return F.evaluate(ikm, info);
-    //}
+    SharedSecret ExtractAndExpand(D.SharedSecret * D.SharedSecret dh, PublicKey * PublicKey * PublicKey context) {
+        BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
+        BitString info = D.Encode(Nsecret) || D.Encode(context[0]) || D.Encode(context[1]) || D.Encode(context[2]);
+        return F.evaluate(ikm, info);
+    }
 
     SecretKey * PublicKey KeyGen() {
-        return D.KeyGen();
+        SecretKey x <- SecretKey;
+        PublicKey g_x = D.GetPublicKey(x);
+        return [x, g_x];
     }
 
     Ciphertext * SharedSecret AuthEncap(PublicKey pkR, SecretKey skS) {
-        SecretKey * PublicKey ephemeralKey = D.KeyGen();
-        SecretKey skE = ephemeralKey[0];
-        PublicKey pkE = ephemeralKey[1];
+        SecretKey skE <- SecretKey;
+        PublicKey pkE = D.GetPublicKey(x);
+        
         D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skE, pkR), D.GetSharedSecret(skS, pkR)];
         Ciphertext enc = pkE;
 
         PublicKey pkS = D.GetPublicKey(skS);
-        PublicKey * PublicKey * PublicKey kemContext = [pkE, pkR, pkS];
+        PublicKey * PublicKey * PublicKey context = [pkE, pkR, pkS];
 
         BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
-        BitString info = D.Encode(Nsecret) || D.Encode(kemContext[0]) || D.Encode(kemContext[1]) || D.Encode(kemContext[2]);
+        BitString info = D.Encode(Nsecret) || D.Encode(context[0]) || D.Encode(context[1]) || D.Encode(context[2]);
         SharedSecret k = F.evaluate(ikm, info);
 
         return [enc, k];
@@ -45,10 +47,10 @@ Scheme DHAKEM(DH D, KDF F, Int SharedSecretLength) extends AKEM {
         D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skR, pkE), D.GetSharedSecret(skR, pkS)];
 
         PublicKey pkR = D.GetPublicKey(skR);
-        PublicKey * PublicKey * PublicKey kemContext = [pkE, pkR, pkS];
+        PublicKey * PublicKey * PublicKey context = [pkE, pkR, pkS];
 
         BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
-        BitString info = D.Encode(Nsecret) || D.Encode(kemContext[0]) || D.Encode(kemContext[1]) || D.Encode(kemContext[2]);
+        BitString info = D.Encode(Nsecret) || D.Encode(context[0]) || D.Encode(context[1]) || D.Encode(context[2]);
         SharedSecret k = F.evaluate(ikm, info);
 
         return k;

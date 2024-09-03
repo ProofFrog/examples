@@ -1,4 +1,4 @@
-import 'examples/HPKE/KEM/AKEM.primitive';
+import 'examples/HPKE/AKEM/AKEM.primitive';
 
 // Indistinguishability game for AKEM outsider CCA with two users.
 
@@ -7,6 +7,7 @@ Game Left(AKEM K) {
     K.SecretKey * K.SecretKey sk;
 
     Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // challenge
+    Int count; // Count number of times Chall is called
     
     Map<BitString * BitString, K.SharedSecret> L; // KDF storage
 
@@ -15,15 +16,30 @@ Game Left(AKEM K) {
         K.SecretKey * K.PublicKey k2 = K.KeyGen();
         sk = [k1[0], k2[0]];
         pk = [k1[1], k2[1]];
+        count = 0;
         return pk;
     }
 
     // Takes as input a sender index and receiver index
+    // Simplification: Can only be called once
     K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
-        if ((i != 1 && i != 2) || (j != 1 && j != 2)) { return [None, None]; }
+        if ((i != 1 && i != 2) || (j != 1 && j != 2) || count >= 1) { return [None, None]; }
+        count = count + 1;
         K.Ciphertext * K.SharedSecret result = K.AuthEncap(pk[j-1], sk[i-1]);
         C[[pk[i-1], pk[j-1], result[0]]] = result[1];
         return result;
+    }
+
+    // TODO: AEncap and ADecap are in SpareParts.txt
+
+    K.SharedSecret KDF(BitString ikm, BitString info) {
+        K.SharedSecret k;
+        if ([ikm, info] in L) {
+            return L[[ikm, info]];
+        }
+        K.SharedSecret k <- K.SharedSecret;
+        L[[ikm, info]] = k;
+        return k;
     }
 }
 
@@ -31,39 +47,34 @@ Game Right(AKEM K) {
     K.PublicKey * K.PublicKey pk;
     K.SecretKey * K.SecretKey sk;
 
-    Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // [pkS, pkR, context] -> AKEM shared secret
+    Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // challenge
+    Int count; // Count number of times Chall is called
+    
+    Map<BitString * BitString, K.SharedSecret> L; // KDF storage
 
     K.PublicKey * K.PublicKey Initialize() {
         K.SecretKey * K.PublicKey k1 = K.KeyGen();
         K.SecretKey * K.PublicKey k2 = K.KeyGen();
         sk = [k1[0], k2[0]];
         pk = [k1[1], k2[1]];
+        count = 0;
         return pk;
     }
 
     // Takes as input a sender index and receiver index
+    // Simplification: Can only be called once
     K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
-        if ((i != 1 && i != 2) || (j != 1 && j != 2)) { return [None, None]; }
-        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
-        result[1] <- K.SharedSecret;
-        C[[pk[i-1], pk[j-1], result[1]]] = result[0];
-        return result;
-    }
-
-    K.Ciphertext? * K.SharedSecret? AEncap(Int i, K.PublicKey pkR) {
-        if (i != 1 && i != 2) { return [None, None]; }
-        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pkR, sk[i-1]);
-        return result;
-    }
-
-    K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
-        if (j != 1 && j != 2) { return None; }
-        if ([pkS, pk[j-1], c] in C) { return None; }
-        K.SharedSecret result = K.AuthDecap(c, sk[j-1], pkS);
+        if ((i != 1 && i != 2) || (j != 1 && j != 2) || count >= 1) { return [None, None]; }
+        count = count + 1;
+        K.Ciphertext * K.SharedSecret result = K.AuthEncap(pk[j-1], sk[i-1]);
+        K.SharedSecret newK <- K.SharedSecret;
+        result[1] = newK;
+        C[[pk[i-1], pk[j-1], result[0]]] = result[1];
         return result;
     }
     
-    // KDF is modelled as a random oracle
+    // TODO: AEncap and ADecap are in SpareParts.txt
+
     K.SharedSecret KDF(BitString ikm, BitString info) {
         K.SharedSecret k;
         if ([ikm, info] in L) {

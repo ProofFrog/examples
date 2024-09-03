@@ -1,0 +1,188 @@
+// Outsider-CCA.Left
+    K.Ciphertext? * K.SharedSecret? AEncap(Int i, K.PublicKey pkR) {
+        if (i != 1 && i != 2) { return [None, None]; }
+        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pkR, sk[i-1]);
+        return result;
+    }
+
+    K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
+        if (j != 1 && j != 2) { return None; }
+        if ([pkS, pk[j-1], c] in C) { return None; }
+        K.SharedSecret result = K.AuthDecap(c, sk[j-1], pkS);
+        return result;
+    }
+
+    // KDF is modelled as a random oracle
+    K.SharedSecret KDF(BitString ikm, BitString info) {
+        K.SharedSecret k;
+        if ([ikm, info] in L) {
+            return L[[ikm, info]];
+        }
+        K.SharedSecret k <- K.SharedSecret;
+        L[[ikm, info]] = k;
+        return k;
+    }
+
+
+// Outsider-CCA.Right
+    K.Ciphertext? * K.SharedSecret? AEncap(Int i, K.PublicKey pkR) {
+        if (i != 1 && i != 2) { return [None, None]; }
+        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pkR, sk[i-1]);
+        return result;
+    }
+
+    K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
+        if (j != 1 && j != 2) { return None; }
+        if ([pkS, pk[j-1], c] in C) { return None; }
+        K.SharedSecret result = K.AuthDecap(c, sk[j-1], pkS);
+        return result;
+    }
+
+    // KDF is modelled as a random oracle
+    K.SharedSecret KDF(BitString ikm, BitString info) {
+        K.SharedSecret k;
+        if ([ikm, info] in L) {
+            return L[[ikm, info]];
+        }
+        K.SharedSecret k <- K.SharedSecret;
+        L[[ikm, info]] = k;
+        return k;
+    }
+
+
+
+// Intermediate1 from DHAKEM.proof
+    K.Ciphertext? * K.SharedSecret? AEncap(Int i, K.PublicKey pkR) {
+        if (i != 1 && i != 2) { return [None, None]; }
+        
+        K.SharedSecret * K.Ciphertext result = K.AuthEncap(pkR, sk[i-1]);
+
+        return result;
+    }
+
+    K.SharedSecret? ADecap(Int j, K.PublicKey pkS, K.Ciphertext c) {
+        if (j != 1 && j != 2) { return None; }
+        if ([pkS, pk[j-1], c] in C) { return None; }
+        K.SharedSecret result = K.AuthDecap(c, sk[j-1], pkS);
+        return result;
+    }
+
+    // Move KDF from scheme file to here for future transforms
+    K.SharedSecret KDF(BitString ikm, BitString info) {
+        K.SharedSecret k;
+        if ([ikm, info] in L) {
+            return L[[ikm, info]];
+        }
+        K.SharedSecret k <- K.SharedSecret;
+        L[[ikm, info]] = k;
+        return k;
+    }
+
+
+
+// R2 from DHAKEM.proof
+Reduction R2(AKEM K, DH D) compose GDH(D) against OutsiderCCA(K).Adversary {
+    K.PublicKey * K.PublicKey pk;
+    K.PublicKey * K.PublicKey gdhKeys;
+
+    Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // challenge
+    Int count;
+    
+    Map<BitString * BitString, K.SharedSecret> L; // KDF storage
+
+    K.PublicKey * K.PublicKey Initialize() {
+        K.SecretKey * K.PublicKey k1 = D.KeyGen();
+        gdhKeys = challenger.Query();
+        pk = [k1[1], gdhKeys[0]];
+        count = 0;
+        return pk;
+    }
+
+    // Takes as input a sender index and receiver index
+    K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
+        if ((i != 1 && i != 2) || (j != 1 && j != 2) || count >= 1) { return [None, None]; }
+        count = count + 1;
+
+        // K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
+        K.PublicKey pkE = gdhKeys[1];
+        K.Ciphertext enc = pkE;
+
+        K.PublicKey pkS = D.GetPublicKey(sk[i-1]);
+        K.PublicKey * K.PublicKey * K.PublicKey context = [pkE, pk[j-1], pkS];
+
+        // K.SharedSecret k = K.ExtractAndExpand(dh, context);
+        BitString ikm = 0b0 || 0b1; // Secret, hard-coded dummy values to replace DH shared secrets 
+        BitString info = D.Encode(Nsecret) || D.Encode(context[0]) || D.Encode(context[1]) || D.Encode(context[2]);
+        
+        // RandomKDF.evaluate
+        K.SharedSecret k <- K.SharedSecret;
+        L[[ikm, info]] = k;
+        // end of evaluate
+
+        // end of ExtractAndExpand
+
+        K.Ciphertext * K.SharedSecret result = [enc, k];
+        // end of AuthEncap
+
+        C[[pk[i-1], pk[j-1], result[0]]] = result[1];
+        return result;
+    }
+}
+
+// working copy
+Reduction R2(AKEM K, DH D) compose GDH(D) against OutsiderCCA(K).Adversary {
+    K.PublicKey * K.PublicKey pk;
+    K.SecretKey * K.SecretKey sk;
+    K.PublicKey * K.PublicKey gdhKeys;
+
+    Map<K.PublicKey * K.PublicKey * K.Ciphertext, K.SharedSecret> C; // challenge
+    Int count;
+    
+    Map<BitString * BitString, K.SharedSecret> L; // KDF storage
+
+    K.PublicKey * K.PublicKey Initialize() {
+        K.SecretKey * K.PublicKey k1 = D.KeyGen();
+        K.SecretKey * K.PublicKey k2 = D.KeyGen();
+        sk = [k1[0], k2[0]];
+        pk = [k1[1], k2[1]];
+        
+        gdhKeys = challenger.Query();
+ 
+        pk = [k1[1], gdhKeys[0]];
+        count = 0;
+        return pk;
+    }
+    
+    // Takes as input a sender index and receiver index
+    K.Ciphertext? * K.SharedSecret? Chall(Int i, Int j) {
+        if ((i != 1 && i != 2) || (j != 1 && j != 2) || count >= 1) { return [None, None]; }
+        count = count + 1;
+
+        // K.SharedSecret * K.Ciphertext result = K.AuthEncap(pk[j-1], sk[i-1]);
+        K.SecretKey * K.PublicKey ephemeralKey = D.KeyGen();
+        K.SecretKey skE = ephemeralKey[0];
+        K.PublicKey pkE = ephemeralKey[1];
+        D.SharedSecret * D.SharedSecret dh = [D.GetSharedSecret(skE, pk[j-1]), D.GetSharedSecret(sk[i-1], pk[j-1])];
+        K.Ciphertext enc = pkE;
+
+        K.PublicKey pkS = D.GetPublicKey(sk[i-1]);
+        K.PublicKey * K.PublicKey * K.PublicKey context = [pkE, pk[j-1], pkS];
+
+        // K.SharedSecret k = K.ExtractAndExpand(dh, context);
+        BitString ikm = D.Encode(dh[0]) || D.Encode(dh[1]);
+        BitString info = D.Encode(Nsecret) || D.Encode(context[0]) || D.Encode(context[1]) || D.Encode(context[2]);
+        
+        // RandomKDF.evaluate
+        K.SharedSecret k <- K.SharedSecret;
+        L[[ikm, info]] = k;
+        // end of evaluate
+
+        // end of ExtractAndExpand
+
+        K.Ciphertext * K.SharedSecret result = [enc, k];
+        // end of AuthEncap
+
+        C[[pk[i-1], pk[j-1], result[0]]] = result[1];
+        return result;
+    }
+}

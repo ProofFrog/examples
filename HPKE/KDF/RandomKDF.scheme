@@ -4,15 +4,15 @@ import 'examples/HPKE/KDF/KDF.primitive';
 
 Scheme RandomKDF(Int out) extends KDF {
     Int out = out;
-    Map<BitString * BitString, K.SharedSecret> L;
+    Map<BitString * BitString, BitString<out>> L;
 
     BitString<out> evaluate(BitString ikm, BitString info) {
-        K.SharedSecret k;
+        BitString<out> k <- BitString<out>;
         if ([ikm, info] in L) {
-            return L[[ikm, info]];
+            k = L[[ikm, info]];
+        } else {
+            L[[ikm, info]] = k;
         }
-        K.SharedSecret k <- K.SharedSecret;
-        L[[ikm, info]] <- k;
         return k;
     }
 }
