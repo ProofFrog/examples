@@ -1,3 +1,12 @@
+// The hybrid public key encryption scheme constructed following the 
+// KEM-DEM paradigm uses a KEM to establish a shared secret which is
+// then used as the symmetric key to encrypt the main message.
+
+// Based on Exercise 11.9 of Boneh and Shoup's "Graduate Course in 
+// Applied Cryptography" (https://toc.cryptobook.us/).
+// Note that this example assumes that KEM decapsulation and symmetric
+// decryption always succeed.
+
 import 'examples/Primitives/KEM.primitive';
 import 'examples/Primitives/NonNullableSymEnc.primitive';
 import 'examples/Primitives/PubKeyEnc.primitive';
