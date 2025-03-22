@@ -1,0 +1,45 @@
+import 'examples/Primitives/SymEnc.primitive';
+
+Game Real(SymEnc E) {
+    E.Key k;
+
+    Void Initialize() {
+        k = E.KeyGen();
+    }
+
+    E.Ciphertext Enc(E.Message m) {
+        E.Ciphertext c = E.Enc(k, m);
+        return c;
+    }
+    Bool Test(E.Ciphertext c) {
+        E.Message? m = E.Dec(k, c);
+        return m != None;
+    }
+}
+
+Game Checked(SymEnc E) {
+    E.Key k;
+    Set<E.Ciphertext> S;
+
+    Void Initialize() {
+        k = E.KeyGen();
+    }
+
+    E.Ciphertext Enc(E.Message m) {
+        E.Ciphertext c = E.Enc(k, m);
+        S = S union c;
+        return c;
+    }
+    Bool Test(E.Ciphertext c) {
+        Bool b = false;
+        if (c in S) {
+            b = true;
+        } else {
+            E.Message? m = E.Dec(k, c);
+            b = m != None;
+        }
+        return b;
+    }
+}
+
+export as Decryptability;

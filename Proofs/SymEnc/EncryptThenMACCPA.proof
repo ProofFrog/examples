@@ -1,0 +1,39 @@
+import 'examples/Primitives/SymEnc.primitive';
+import 'examples/Primitives/MAC.primitive';
+import 'examples/Games/SymEnc/CPA.game';
+import 'examples/Schemes/SymEnc/EncryptThenMAC.scheme';
+
+Reduction R1(SymEnc E, MAC M, EncryptThenMAC EtM) compose CPA(E) against CPA(EtM).Adversary {
+    M.Key km;
+    Void Initialize() {
+        km = M.KeyGen();
+    }
+    EtM.Ciphertext Eavesdrop(EtM.Message mL, EtM.Message mR) {
+        E.Ciphertext c = challenger.Eavesdrop(mL, mR);
+        M.Tag t = M.MAC(km, c);
+        return [c, t];
+    }
+}
+
+proof:
+    let:
+        Set SymEncKeySpace;
+        Set MACKeySpace;
+        Set MessageSpace;
+        Set CiphertextSpace;
+        Set TagSpace;
+        SymEnc E = SymEnc(MessageSpace, CiphertextSpace, SymEncKeySpace);
+        MAC M = MAC(CiphertextSpace, TagSpace, MACKeySpace);
+        EncryptThenMAC EtM = EncryptThenMAC(E, M);
+
+    assume:
+        CPA(E);
+
+    theorem:
+        CPA(EtM);
+
+    games:
+        CPA(EtM).Left against CPA(EtM).Adversary;
+        CPA(E).Left compose R1(E, M, EtM) against CPA(EtM).Adversary;
+        CPA(E).Right compose R1(E, M, EtM) against CPA(EtM).Adversary;
+        CPA(EtM).Right against CPA(EtM).Adversary;

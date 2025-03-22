@@ -1,0 +1,72 @@
+import 'examples/Primitives/SymEnc.primitive';
+import 'examples/Primitives/MAC.primitive';
+import 'examples/Games/MAC/Security.game';
+import 'examples/Games/SymEnc/INTCTXT.game';
+import 'examples/Schemes/SymEnc/EncryptThenMAC.scheme';
+import 'examples/Games/SymEnc/Decryptability.game';
+
+Reduction R1(SymEnc E, MAC M, EncryptThenMAC EtM) compose Security(M) against INTCTXT(EtM).Adversary {
+    E.Key ke;
+    Void Initialize() {
+        ke = E.KeyGen();
+    }
+    EtM.Ciphertext Encrypt(EtM.Message m) {
+        E.Ciphertext c = E.Enc(ke, m);
+        M.Tag t = challenger.GetTag(c);
+        return [c, t];
+    }
+    Bool Check(EtM.Ciphertext c) {
+        E.Message? m = None;
+        if (challenger.CheckTag(c[0], c[1])) {
+            m = E.Dec(ke, c[0]);
+        }
+        return m != None;
+    }
+}
+
+Reduction R2(SymEnc E, MAC M, EncryptThenMAC EtM) compose Decryptability(EtM) against INTCTXT(EtM).Adversary {
+    M.Key km;
+    Set<E.Ciphertext * M.Tag> S;
+    Void Initialize() {
+        km = M.KeyGen();
+    }
+    EtM.Ciphertext Encrypt(EtM.Message m) {
+        E.Ciphertext csym = challenger.Enc(m);
+        M.Tag t = M.MAC(km, csym);
+        S = S union [csym, t];
+        return [csym, t];
+    }
+    Bool Check(EtM.Ciphertext c) {
+        Bool b = false;
+        if (c in S) {
+            b = challenger.Test(c[0]);
+        }
+        return b;
+    }
+}
+
+proof:
+    let:
+        Set SymEncKeySpace;
+        Set MACKeySpace;
+        Set MessageSpace;
+        Set CiphertextSpace;
+        Set TagSpace;
+        SymEnc E = SymEnc(MessageSpace, CiphertextSpace, SymEncKeySpace);
+        MAC M = MAC(CiphertextSpace, TagSpace, MACKeySpace);
+        EncryptThenMAC EtM = EncryptThenMAC(E, M);
+
+    assume:
+        Security(M);
+        Decryptability(EtM);
+
+    theorem:
+        INTCTXT(EtM);
+
+    games:
+        INTCTXT(EtM).AcceptAllValid against INTCTXT(EtM).Adversary;
+        Security(M).Real compose R1(E, M, EtM) against INTCTXT(EtM).Adversary;
+        Security(M).Random compose R1(E, M, EtM) against INTCTXT(EtM).Adversary;
+        Decryptability(E).Real compose R2(E, M, EtM) against INTCTXT(EtM).Adversary;
+        Decryptability(E).Checked compose R2(E, M, EtM) against INTCTXT(EtM).Adversary;
+        INTCTXT(EtM).AcceptOnlyGenerated against INTCTXT(EtM).Adversary;

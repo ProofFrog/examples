@@ -22,9 +22,10 @@ Scheme EncryptThenMAC(SymEnc E, MAC M) extends SymEnc {
     }
 
     Message? Dec(Key k, Ciphertext c) {
-        if (c[1] != M.MAC(k[1], c[0])) {
-            return None;
+        Message? m = None;
+        if (c[1] == M.MAC(k[1], c[0])) {
+            m = E.Dec(k[0], c[0]);
         }
-        return E.Dec(k[0], c[0]);
+        return m;
     }
 }

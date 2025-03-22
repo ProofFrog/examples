@@ -1,0 +1,40 @@
+import 'examples/Primitives/SymEnc.primitive';
+
+Game AcceptAllValid(SymEnc E) {
+    E.Key k;
+
+    Void Initialize() {
+        k = E.KeyGen();
+    }
+
+    E.Ciphertext Encrypt(E.Message m) {
+        E.Ciphertext c = E.Enc(k, m);
+        return c;
+    }
+
+    Bool Check(E.Ciphertext c) {
+        E.Message? m = E.Dec(k, c);
+        return m != None;
+    }
+}
+
+Game AcceptOnlyGenerated(SymEnc E) {
+    E.Key k;
+    Set<E.Ciphertext> S;
+
+    Void Initialize() {
+        k = E.KeyGen();
+    }
+
+    E.Ciphertext Encrypt(E.Message m) {
+        E.Ciphertext c = E.Enc(k, m);
+        S = S union c;
+        return c;
+    }
+
+    Bool Check(E.Ciphertext c) {
+        return c in S;
+    }
+}
+
+export as INTCTXT;
