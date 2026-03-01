@@ -1,6 +1,6 @@
-import 'examples/Primitives/SymEnc.primitive';
-import 'examples/Book/2_Exercises/2_14.game';
-import 'examples/Games/SymEnc/OneTimeSecrecy.game';
+import '../../Primitives/SymEnc.primitive';
+import '../../Book/2_Exercises/2_14.game';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
 
 Reduction R(SymEnc E) compose OneTimeSecrecy(E) against Foo(E).Adversary {
     E.Ciphertext Foo(E.Message m) {

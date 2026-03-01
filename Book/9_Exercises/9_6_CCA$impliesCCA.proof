@@ -1,6 +1,6 @@
-import 'examples/Primitives/SymEnc.primitive';
-import 'examples/Games/SymEnc/CCABook.game';
-import 'examples/Games/SymEnc/CCA$.game';
+import '../../Primitives/SymEnc.primitive';
+import '../../Games/SymEnc/CCABook.game';
+import '../../Games/SymEnc/CCA$.game';
 
 Reduction R1(SymEnc E) compose CCA$(E) against CCA(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {

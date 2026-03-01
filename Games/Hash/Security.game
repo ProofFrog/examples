@@ -1,4 +1,4 @@
-import 'examples/Primitives/Hash.primitive';
+import '../../Primitives/Hash.primitive';
 
 Game Real(Hash H) {
     BitString<H.lambda> seed;

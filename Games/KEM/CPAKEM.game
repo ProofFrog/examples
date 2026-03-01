@@ -5,7 +5,7 @@
 //  - Random: The adversary receives a real KEM ciphertext and an 
 //            independent randomly sampled shared secret
 
-import 'examples/Primitives/KEM.primitive';
+import '../../Primitives/KEM.primitive';
 
 Game Real(KEM K) {
     K.PublicKey pk;

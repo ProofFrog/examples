@@ -1,8 +1,8 @@
-import 'examples/Primitives/PRG.primitive';
-import 'examples/Book/5/5_2_PseudoOTP.scheme';
-import 'examples/Games/SymEnc/OneTimeUniformCiphertexts.game';
-import 'examples/Games/PRG/Security.game';
-import 'examples/Schemes/SymEnc/OTP.scheme';
+import '../../Primitives/PRG.primitive';
+import '../../Book/5/5_2_PseudoOTP.scheme';
+import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
+import '../../Games/PRG/Security.game';
+import '../../Schemes/SymEnc/OTP.scheme';
 
 Reduction R1(OTP E, PRG G, PseudoOTP P) compose Security(G) against OneTimeUniformCiphertexts(P).Adversary {
     E.Ciphertext CTXT(E.Message m) {

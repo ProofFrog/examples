@@ -1,8 +1,8 @@
-import 'examples/Primitives/PRG.primitive';
-import 'examples/Book/5_Exercises/5_8_e.scheme';
-import 'examples/Book/5/5_2_PseudoOTP.scheme';
-import 'examples/Games/PRG/Security.game';
-import 'examples/Games/SymEnc/OneTimeUniformCiphertexts.game';
+import '../../Primitives/PRG.primitive';
+import '../../Book/5_Exercises/5_8_e.scheme';
+import '../../Book/5/5_2_PseudoOTP.scheme';
+import '../../Games/PRG/Security.game';
+import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
 Reduction R1(PRG G, PRG_5_8_e H) compose Security(G) against Security(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
@@ -27,7 +27,7 @@ let:
 
 assume:
     Security(G);
-    OneTimeUniformCiphertexts(P); // see 'examples/Book/5_Exercises/5_8_PseudoOTP_OTUC.proof'
+    OneTimeUniformCiphertexts(P); // see '../../Book/5_Exercises/5_8_PseudoOTP_OTUC.proof'
 
 theorem:
     Security(H);

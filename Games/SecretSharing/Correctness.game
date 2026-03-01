@@ -1,4 +1,4 @@
-import 'examples/Primitives/SecretSharing.primitive';
+import '../../Primitives/SecretSharing.primitive';
 
 Game Real(SecretSharing E) {
     Bool? Test(Set<Int> U, E.Message m) {

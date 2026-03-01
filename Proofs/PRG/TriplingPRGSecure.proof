@@ -1,7 +1,7 @@
-import 'examples/Primitives/PRG.primitive';
-import 'examples/Schemes/PRG/TriplingPRG.scheme';
-import 'examples/Games/Misc/BitStringSampling.game';
-import 'examples/Games/PRG/Security.game';
+import '../../Primitives/PRG.primitive';
+import '../../Schemes/PRG/TriplingPRG.scheme';
+import '../../Games/Misc/BitStringSampling.game';
+import '../../Games/PRG/Security.game';
 
 Reduction R1(PRG G, TriplingPRG T) compose Security(G) against Security(T).Adversary {
     BitString<T.lambda + T.stretch> Query() {

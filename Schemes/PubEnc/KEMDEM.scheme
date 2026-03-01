@@ -7,9 +7,9 @@
 // Note that this example assumes that KEM decapsulation and symmetric
 // decryption always succeed.
 
-import 'examples/Primitives/KEM.primitive';
-import 'examples/Primitives/NonNullableSymEnc.primitive';
-import 'examples/Primitives/PubKeyEnc.primitive';
+import '../../Primitives/KEM.primitive';
+import '../../Primitives/NonNullableSymEnc.primitive';
+import '../../Primitives/PubKeyEnc.primitive';
 
 Scheme KEMDEM(KEM K, SymEnc E) extends PubKeyEnc {
     requires K.SharedSecret subsets E.Key;

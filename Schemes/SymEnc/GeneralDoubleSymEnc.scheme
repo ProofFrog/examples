@@ -1,4 +1,4 @@
-import 'examples/Primitives/NonNullableSymEnc.primitive';
+import '../../Primitives/NonNullableSymEnc.primitive';
 
 Scheme GeneralDoubleSymEnc(SymEnc S, SymEnc T) extends SymEnc {
     requires S.Ciphertext == T.Message;

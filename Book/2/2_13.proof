@@ -1,6 +1,6 @@
-import 'examples/Book/2/2_12_DoubleOTP.scheme';
-import 'examples/Games/Misc/OTPUniform.game';
-import 'examples/Games/SymEnc/OneTimeUniformCiphertexts.game';
+import '../../Book/2/2_12_DoubleOTP.scheme';
+import '../../Games/Misc/OTPUniform.game';
+import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
 Reduction R1(DoubleOTP D, Int lambda) compose OTPUniform(lambda) against OneTimeUniformCiphertexts(D).Adversary {
     D.Ciphertext CTXT(D.Message m) {

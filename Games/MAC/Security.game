@@ -1,4 +1,4 @@
-import 'examples/Primitives/MAC.primitive';
+import '../../Primitives/MAC.primitive';
 
 Game Real(MAC E) {
     E.Key k;

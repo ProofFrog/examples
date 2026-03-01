@@ -1,4 +1,4 @@
-import 'examples/Primitives/PRF.primitive';
+import '../../Primitives/PRF.primitive';
 
 Scheme CounterPRG(PRF F) extends PRG {
     requires F.lambda == F.in;

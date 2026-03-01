@@ -1,4 +1,4 @@
-import 'examples/Primitives/KEM.primitive';
+import '../../Primitives/KEM.primitive';
 
 Game Real(KEM K) {
     K.PublicKey pk;

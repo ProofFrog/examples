@@ -1,4 +1,4 @@
-import 'examples/Primitives/PRG.primitive';
+import '../../Primitives/PRG.primitive';
 
 Scheme TriplingPRG(PRG G) extends PRG {
     requires G.lambda == G.stretch;

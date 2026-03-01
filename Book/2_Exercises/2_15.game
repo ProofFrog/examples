@@ -1,4 +1,4 @@
-import 'examples/Primitives/SymEnc.primitive';
+import '../../Primitives/SymEnc.primitive';
 
 Game Left(SymEnc E) {
     E.Ciphertext * E.Ciphertext Foo(E.Message mL, E.Message mR) {
