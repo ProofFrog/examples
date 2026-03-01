@@ -1,7 +1,7 @@
-import 'examples/Primitives/PubKeyEnc.primitive';
-import 'examples/Primitives/NonNullableSymEnc.primitive';
-import 'examples/Games/PubKeyEnc/CPA.game';
-import 'examples/Games/PubKeyEnc/OneTimeSecrecy.game';
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Primitives/NonNullableSymEnc.primitive';
+import '../../Games/PubKeyEnc/CPA.game';
+import '../../Games/PubKeyEnc/OneTimeSecrecy.game';
 
 Reduction R(PubKeyEnc E, Int h) compose OneTimeSecrecy(E) against CPA(E).Adversary {
     Int count;

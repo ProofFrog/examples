@@ -1,8 +1,8 @@
-import 'examples/Primitives/PRG.primitive';
-import 'examples/Games/Misc/BitStringSampling.game';
-import 'examples/Book/5_Exercises/5_8_a.scheme';
-import 'examples/Book/5_Exercises/5_8_ThreePartBitStringSampling.game';
-import 'examples/Games/PRG/Security.game';
+import '../../Primitives/PRG.primitive';
+import '../../Games/Misc/BitStringSampling.game';
+import '../../Book/5_Exercises/5_8_a.scheme';
+import '../../Book/5_Exercises/5_8_ThreePartBitStringSampling.game';
+import '../../Games/PRG/Security.game';
 
 Reduction R1(PRG G, PRG_5_8_a H) compose Security(G) against Security(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {

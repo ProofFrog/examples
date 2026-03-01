@@ -1,6 +1,6 @@
-import 'examples/Primitives/SymEnc.primitive';
-import 'examples/Book/7_Exercises/7_13.game';
-import 'examples/Games/SymEnc/CPA.game';
+import '../../Primitives/SymEnc.primitive';
+import '../../Book/7_Exercises/7_13.game';
+import '../../Games/SymEnc/CPA.game';
 
 Reduction R1(SymEnc E) compose Challenge(E) against CPA(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {

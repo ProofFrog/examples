@@ -34,14 +34,14 @@
 // - Game 5: The hybrid scheme encrypts the right message using the *real* symmetric key.
 // - Indistinguishability of Game 4 and Game 5 based on CPA-security of the KEM.
 
-import 'examples/Primitives/KEM.primitive';
-import 'examples/Primitives/PubKeyEnc.primitive';
-import 'examples/Primitives/NonNullableSymEnc.primitive';
-import 'examples/Schemes/PubEnc/KEMDEM.scheme';
-import 'examples/Games/KEM/CPAKEM.game';
-import 'examples/Games/SymEnc/OneTimeSecrecy.game';
-import 'examples/Games/SymEnc/KeyUniformity.game';
-import 'examples/Games/PubKeyEnc/CPA.game';
+import '../../Primitives/KEM.primitive';
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Primitives/NonNullableSymEnc.primitive';
+import '../../Schemes/PubEnc/KEMDEM.scheme';
+import '../../Games/KEM/CPAKEM.game';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
+import '../../Games/SymEnc/KeyUniformity.game';
+import '../../Games/PubKeyEnc/CPA.game';
 
 // Reduction for hop from Game 0 to Game 1
 // - Reduction to CPA security of the KEM. The reduction uses the shared secret

@@ -1,9 +1,9 @@
-import 'examples/Primitives/PRG.primitive';
-import 'examples/Book/5_Exercises/5_10.scheme';
-import 'examples/Schemes/SymEnc/OTP.scheme';
-import 'examples/Games/Misc/BitStringSampling.game';
-import 'examples/Games/PRG/Security.game';
-import 'examples/Games/SymEnc/OneTimeUniformCiphertexts.game';
+import '../../Primitives/PRG.primitive';
+import '../../Book/5_Exercises/5_10.scheme';
+import '../../Schemes/SymEnc/OTP.scheme';
+import '../../Games/Misc/BitStringSampling.game';
+import '../../Games/PRG/Security.game';
+import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
 Reduction R1(PRG G, PRG_5_10 H) compose Security(G) against Security(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {

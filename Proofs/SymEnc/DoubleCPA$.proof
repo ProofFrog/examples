@@ -1,6 +1,6 @@
-import 'examples/Primitives/NonNullableSymEnc.primitive';
-import 'examples/Schemes/SymEnc/GeneralDoubleSymEnc.scheme';
-import 'examples/Games/SymEnc/CPA$.game';
+import '../../Primitives/NonNullableSymEnc.primitive';
+import '../../Schemes/SymEnc/GeneralDoubleSymEnc.scheme';
+import '../../Games/SymEnc/CPA$.game';
 
 Reduction R1(SymEnc D, SymEnc E, GeneralDoubleSymEnc DSE) compose CPA$(E) against CPA$(DSE).Adversary {
     D.Key dKey;

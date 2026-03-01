@@ -1,4 +1,4 @@
-import 'examples/Primitives/PRG.primitive';
+import '../../Primitives/PRG.primitive';
 
 Scheme PRG_5_8_f(PRG G) extends PRG {
     requires G.stretch == 2 * G.lambda;

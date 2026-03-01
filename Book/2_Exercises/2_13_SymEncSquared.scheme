@@ -1,4 +1,4 @@
-import 'examples/Primitives/SymEnc.primitive';
+import '../../Primitives/SymEnc.primitive';
 
 Scheme SymEncSquared(SymEnc E) extends SymEnc {
     Set Message = E.Message;

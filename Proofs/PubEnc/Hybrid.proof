@@ -1,8 +1,8 @@
-import 'examples/Primitives/PubKeyEnc.primitive';
-import 'examples/Primitives/SymEnc.primitive';
-import 'examples/Schemes/PubEnc/Hybrid.scheme';
-import 'examples/Games/SymEnc/OneTimeSecrecy.game';
-import 'examples/Games/PubKeyEnc/CPA.game';
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Primitives/SymEnc.primitive';
+import '../../Schemes/PubEnc/Hybrid.scheme';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
+import '../../Games/PubKeyEnc/CPA.game';
 
 Reduction R1(SymEnc E, PubKeyEnc P, Hybrid H) compose CPA(P) against CPA(H).Adversary {
     H.Ciphertext Challenge(H.Message mL, H.Message mR) {

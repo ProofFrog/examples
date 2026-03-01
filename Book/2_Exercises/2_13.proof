@@ -1,6 +1,6 @@
-import 'examples/Primitives/SymEnc.primitive';
-import 'examples/Book/2_Exercises/2_13_SymEncSquared.scheme';
-import 'examples/Games/SymEnc/OneTimeSecrecy.game';
+import '../../Primitives/SymEnc.primitive';
+import '../../Book/2_Exercises/2_13_SymEncSquared.scheme';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
 
 Reduction R(SymEncSquared S, SymEnc E) 
 compose OneTimeSecrecy(E) against OneTimeSecrecy(S).Adversary {

@@ -1,5 +1,5 @@
-import 'examples/Primitives/SymEnc.primitive';
-import 'examples/Primitives/PRF.primitive';
+import '../../Primitives/SymEnc.primitive';
+import '../../Primitives/PRF.primitive';
 
 Scheme OFB(Int lambda, Int blocks, PRF F) extends SymEnc {
     requires F.lambda == lambda && F.in == lambda && F.out == lambda;

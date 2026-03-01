@@ -1,4 +1,4 @@
-import 'examples/Primitives/DigitalSignature.primitive';
+import '../../Primitives/DigitalSignature.primitive';
 
 Game Real(DigitalSignature E) {
     E.SigningKey sk;

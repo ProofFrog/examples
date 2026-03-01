@@ -1,6 +1,6 @@
-import 'examples/Primitives/NonNullableSymEnc.primitive';
-import 'examples/Schemes/SymEnc/DoubleSymEnc.scheme';
-import 'examples/Games/SymEnc/OneTimeUniformCiphertexts.game';
+import '../../Primitives/NonNullableSymEnc.primitive';
+import '../../Schemes/SymEnc/DoubleSymEnc.scheme';
+import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
 Reduction R1(DoubleSymEnc D, SymEnc E) compose OneTimeUniformCiphertexts(E) against OneTimeUniformCiphertexts(D).Adversary {
     D.Ciphertext CTXT(D.Message m) {

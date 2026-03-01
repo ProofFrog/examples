@@ -1,4 +1,4 @@
-import 'examples/Primitives/PRP.primitive';
+import '../../Primitives/PRP.primitive';
 
 Game Real(PRP F) {
     Bool test(BitString<F.lambda> seed, BitString<F.blen> input) {

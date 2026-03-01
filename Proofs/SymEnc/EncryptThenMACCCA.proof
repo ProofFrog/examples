@@ -1,9 +1,9 @@
-import 'examples/Primitives/SymEnc.primitive';
-import 'examples/Primitives/MAC.primitive';
-import 'examples/Games/SymEnc/CPA.game';
-import 'examples/Games/MAC/Security.game';
-import 'examples/Games/SymEnc/CCABook.game';
-import 'examples/Schemes/SymEnc/EncryptThenMAC.scheme';
+import '../../Primitives/SymEnc.primitive';
+import '../../Primitives/MAC.primitive';
+import '../../Games/SymEnc/CPA.game';
+import '../../Games/MAC/Security.game';
+import '../../Games/SymEnc/CCABook.game';
+import '../../Schemes/SymEnc/EncryptThenMAC.scheme';
 
 Reduction R1(SymEnc E, MAC M, EncryptThenMAC EtM) compose Security(M) against CCA(EtM).Adversary {
     E.Key ke;

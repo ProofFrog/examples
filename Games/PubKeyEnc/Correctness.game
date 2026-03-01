@@ -1,4 +1,4 @@
-import 'examples/Primitives/PubKeyEnc.primitive';
+import '../../Primitives/PubKeyEnc.primitive';
 
 Game Real(PubKeyEnc E) {
     E.PublicKey pk;
