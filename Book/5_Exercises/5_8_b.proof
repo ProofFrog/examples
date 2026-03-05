@@ -1,5 +1,4 @@
 import '../../Primitives/PRG.primitive';
-import '../../Games/Misc/BitStringSampling.game';
 import '../../Book/5_Exercises/5_8_b.scheme';
 import '../../Book/5_Exercises/5_8_ThreePartBitStringSampling.game';
 import '../../Games/PRG/Security.game';
@@ -7,7 +6,7 @@ import '../../Games/PRG/Security.game';
 Reduction R1(PRG G, PRG_5_8_b H) compose Security(G) against Security(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
         BitString<3 * H.lambda> result = challenger.Query();
-        
+
         BitString<H.lambda> x = result[0 : H.lambda];
         BitString<H.lambda> y = result[H.lambda : 2*H.lambda];
 
@@ -26,12 +25,6 @@ Reduction R2(PRG G, PRG_5_8_b H, Int lambda) compose ThreePartBitStringSampling(
     }
 }
 
-Reduction R3(PRG_5_8_b H, Int lambda) compose BitStringSampling(lambda, lambda) against Security(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        return challenger.Query();
-    }
-}
-
 proof:
 
 let:
@@ -42,7 +35,6 @@ let:
 assume:
     Security(G);
     ThreePartBitStringSampling(lambda);
-    BitStringSampling(lambda, lambda);
 
 theorem:
     Security(H);
@@ -57,9 +49,5 @@ games:
     ThreePartBitStringSampling(lambda).SampleDirectly compose R2(G, H, lambda) against Security(H).Adversary;
 
     ThreePartBitStringSampling(lambda).Concatenate compose R2(G, H, lambda) against Security(H).Adversary;
-
-    BitStringSampling(lambda, lambda).Concatenate compose R3(H, lambda) against Security(H).Adversary;
-
-    BitStringSampling(lambda, lambda).SampleDirectly compose R3(H, lambda) against Security(H).Adversary;
 
     Security(H).Random against Security(H).Adversary;

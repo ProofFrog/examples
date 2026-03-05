@@ -1,18 +1,8 @@
 import '../../Primitives/PRG.primitive';
 import '../../Book/5_Exercises/5_8_f.scheme';
 import '../../Book/5/5_2_PseudoOTP.scheme';
-import '../../Games/Misc/BitStringSampling.game';
 import '../../Games/PRG/Security.game';
 import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
-
-Reduction R1(PRG G, PRG_5_8_f H) compose BitStringSampling(G.lambda, G.lambda) against Security(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<H.lambda> s = challenger.Query();
-        BitString<G.lambda> sL = s[0 : G.lambda];
-        BitString<G.lambda> sR = s[G.lambda : H.lambda];
-        return G.evaluate(sL) + G.evaluate(sR);
-    }
-}
 
 Reduction R2(PRG G, PRG_5_8_f H) compose Security(G) against Security(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
@@ -38,7 +28,6 @@ let:
 
 assume:
     Security(G);
-    BitStringSampling(lambda, lambda);
     OneTimeUniformCiphertexts(P); // see '../../Book/5_Exercises/5_8_PseudoOTP_OTUC.proof'
 
 theorem:
@@ -46,10 +35,6 @@ theorem:
 
 games:
     Security(H).Real against Security(H).Adversary;
-
-    BitStringSampling(lambda, lambda).SampleDirectly compose R1(G, H) against Security(H).Adversary;
-
-    BitStringSampling(lambda, lambda).Concatenate compose R1(G, H) against Security(H).Adversary;
 
     Security(G).Real compose R2(G, H) against Security(H).Adversary;
 

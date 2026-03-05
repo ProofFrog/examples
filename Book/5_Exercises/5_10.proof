@@ -1,7 +1,6 @@
 import '../../Primitives/PRG.primitive';
 import '../../Book/5_Exercises/5_10.scheme';
 import '../../Schemes/SymEnc/OTP.scheme';
-import '../../Games/Misc/BitStringSampling.game';
 import '../../Games/PRG/Security.game';
 import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
@@ -10,17 +9,6 @@ Reduction R1(PRG G, PRG_5_10 H) compose Security(G) against Security(H).Adversar
         BitString<G.lambda + G.stretch> xy = challenger.Query();
         BitString<G.lambda> x = xy[0 : G.lambda];
         BitString<G.lambda> y = xy[G.lambda : 2 * G.lambda];
-        BitString<G.lambda> c = x + y;
-        BitString<G.lambda + G.stretch> uv = G.evaluate(y);
-        return c || uv;
-    }
-}
-
-Reduction R2(PRG G, PRG_5_10 H) compose BitStringSampling(G.lambda, G.stretch) against Security(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<G.lambda + G.stretch> xy = challenger.Query();
-        BitString<G.lambda> x = xy[0 : G.lambda];
-        BitString<G.stretch> y = xy[G.lambda : 2 * G.stretch];
         BitString<G.lambda> c = x + y;
         BitString<G.lambda + G.stretch> uv = G.evaluate(y);
         return c || uv;
@@ -44,13 +32,6 @@ Reduction R4(PRG G, PRG_5_10 H) compose Security(G) against Security(H).Adversar
     }
 }
 
-Reduction R5(PRG G, PRG_5_10 H) compose BitStringSampling(H.lambda, H.stretch) against Security(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<H.lambda + H.stretch> result = challenger.Query();
-        return result;
-    }
-}
-
 proof:
 
 let:
@@ -61,8 +42,6 @@ let:
 
 assume:
     Security(G);
-    BitStringSampling(G.lambda, G.stretch);
-    BitStringSampling(H.lambda, H.stretch);
     OneTimeUniformCiphertexts(P);
 
 theorem:
@@ -75,10 +54,6 @@ games:
 
     Security(G).Random compose R1(G, H) against Security(H).Adversary;
 
-    BitStringSampling(G.lambda, G.stretch).SampleDirectly compose R2(G, H) against Security(H).Adversary;
-
-    BitStringSampling(G.lambda, G.stretch).Concatenate compose R2(G, H) against Security(H).Adversary;
-
     OneTimeUniformCiphertexts(P).Real compose R3(P, G, H) against Security(H).Adversary;
 
     OneTimeUniformCiphertexts(P).Random compose R3(P, G, H) against Security(H).Adversary;
@@ -86,9 +61,5 @@ games:
     Security(G).Real compose R4(G, H) against Security(H).Adversary;
 
     Security(G).Random compose R4(G, H) against Security(H).Adversary;
-
-    BitStringSampling(H.lambda, H.stretch).Concatenate compose R5(G, H) against Security(H).Adversary;
-
-    BitStringSampling(H.lambda, H.stretch).SampleDirectly compose R5(G, H) against Security(H).Adversary;
 
     Security(H).Random against Security(H).Adversary;
