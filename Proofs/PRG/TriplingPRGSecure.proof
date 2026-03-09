@@ -1,20 +1,8 @@
 import '../../Primitives/PRG.primitive';
 import '../../Schemes/PRG/TriplingPRG.scheme';
-import '../../Games/Misc/BitStringSampling.game';
 import '../../Games/PRG/Security.game';
 
 Reduction R1(PRG G, TriplingPRG T) compose Security(G) against Security(T).Adversary {
-    BitString<T.lambda + T.stretch> Query() {
-        BitString<2 * T.lambda> result1 = challenger.Query();
-        BitString<T.lambda> x = result1[0 : T.lambda];
-        BitString<T.lambda> y = result1[T.lambda : 2*T.lambda];
-        BitString<2 * T.lambda> result2 = G.evaluate(y);
-
-        return x || result2;
-    }
-}
-
-Reduction R2(PRG G, TriplingPRG T, Int lambda) compose BitStringSampling(lambda, lambda) against Security(T).Adversary {
     BitString<T.lambda + T.stretch> Query() {
         BitString<2 * T.lambda> result1 = challenger.Query();
         BitString<T.lambda> x = result1[0 : T.lambda];
@@ -33,12 +21,6 @@ Reduction R3(PRG G, TriplingPRG T) compose Security(G) against Security(T).Adver
     }
 }
 
-Reduction R4(TriplingPRG T) compose BitStringSampling(T.lambda, 2 * T.lambda) against Security(T).Adversary {
-    BitString<T.lambda + T.stretch> Query() {
-        return challenger.Query();
-    }
-}
-
 proof:
 
 let:
@@ -48,8 +30,6 @@ let:
 
 assume:
     Security(G);
-    BitStringSampling(lambda, lambda);
-    BitStringSampling(lambda, 2 * lambda);
 
 theorem:
     Security(T);
@@ -61,16 +41,8 @@ games:
 
     Security(G).Random compose R1(G, T) against Security(T).Adversary;
 
-    BitStringSampling(lambda, lambda).SampleDirectly compose R2(G, T, lambda) against Security(T).Adversary;
-
-    BitStringSampling(lambda, lambda).Concatenate compose R2(G, T, lambda) against Security(T).Adversary;
-
     Security(G).Real compose R3(G, T) against Security(T).Adversary;
 
     Security(G).Random compose R3(G, T) against Security(T).Adversary;
-
-    BitStringSampling(lambda, 2 * lambda).Concatenate compose R4(T) against Security(T).Adversary;
-
-    BitStringSampling(lambda, 2 * lambda).SampleDirectly compose R4(T) against Security(T).Adversary;
 
     Security(T).Random against Security(T).Adversary;
