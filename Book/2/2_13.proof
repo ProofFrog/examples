@@ -1,15 +1,9 @@
-import '../../Book/2/2_12_DoubleOTP.scheme';
-import '../../Games/Misc/OTPUniform.game';
-import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
+// Simplified proof that DoubleOTP has OneTimeUniformCiphertexts.
+// The engine's uniform XOR simplification recognizes that
+// k[0] + k[1] + m (with k[0], k[1] uniform) canonicalizes to uniform
 
-Reduction R1(DoubleOTP D, Int lambda) compose OTPUniform(lambda) against OneTimeUniformCiphertexts(D).Adversary {
-    D.Ciphertext CTXT(D.Message m) {
-        BitString<lambda> k <- BitString<lambda>;
-        D.Ciphertext c1 = k + m;
-        BitString<lambda> c2 = challenger.CTXT(c1);
-        return c2;
-    }
-}
+import '../../Book/2/2_12_DoubleOTP.scheme';
+import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
 proof:
 
@@ -18,16 +12,11 @@ let:
     DoubleOTP D = DoubleOTP(lambda);
 
 assume:
-    OTPUniform(lambda);
 
 theorem:
     OneTimeUniformCiphertexts(D);
 
 games:
     OneTimeUniformCiphertexts(D).Real against OneTimeUniformCiphertexts(D).Adversary;
-
-    OTPUniform(lambda).Real compose R1(D, lambda) against OneTimeUniformCiphertexts(D).Adversary;
-
-    OTPUniform(lambda).Random compose R1(D, lambda) against OneTimeUniformCiphertexts(D).Adversary;
 
     OneTimeUniformCiphertexts(D).Random against OneTimeUniformCiphertexts(D).Adversary;

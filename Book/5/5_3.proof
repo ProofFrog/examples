@@ -1,35 +1,16 @@
+// Simplified proof that PseudoOTP satisfies OneTimeSecrecy.
+// The engine's uniform XOR simplification recognizes that after
+// replacing G.evaluate(k) with uniform z (via Security(G)),
+// z + mL and z + mR both canonicalize to z
+
 import '../../Book/5/5_2_PseudoOTP.scheme';
 import '../../Primitives/PRG.primitive';
 import '../../Games/SymEnc/OneTimeSecrecy.game';
 import '../../Games/PRG/Security.game';
-import '../../Games/Misc/OTPOTS.game';
 
 Reduction R1(PseudoOTP P, PRG G) compose Security(G) against OneTimeSecrecy(P).Adversary {
     P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
         P.Ciphertext c = challenger.Query() + mL;
-        return c;
-    }
-}
-
-Game Intermediate1(PseudoOTP P, PRG G) {
-    P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
-        P.Ciphertext z <- P.Ciphertext;
-        P.Ciphertext c = z + mL;
-        return c;
-    }
-}
-
-Reduction R2(PseudoOTP P, Int size) compose OTPOTS(size) against OneTimeSecrecy(P).Adversary {
-    P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
-        P.Ciphertext c = challenger.Eavesdrop(mL, mR);
-        return c;
-    }
-}
-
-Game Intermediate2(PseudoOTP P, PRG G) {
-    P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
-        P.Ciphertext z <- P.Ciphertext;
-        P.Ciphertext c = z + mR;
         return c;
     }
 }
@@ -51,7 +32,6 @@ let:
 
 assume:
     Security(G);
-    OTPOTS(lambda + stretch);
 
 theorem:
     OneTimeSecrecy(P);
@@ -62,14 +42,6 @@ games:
     Security(G).Real compose R1(P, G) against OneTimeSecrecy(P).Adversary;
 
     Security(G).Random compose R1(P, G) against OneTimeSecrecy(P).Adversary;
-
-    Intermediate1(P, G) against OneTimeSecrecy(P).Adversary;
-
-    OTPOTS(lambda + stretch).Left compose R2(P, lambda + stretch) against OneTimeSecrecy(P).Adversary;
-
-    OTPOTS(lambda + stretch).Right compose R2(P, lambda + stretch) against OneTimeSecrecy(P).Adversary;
-
-    Intermediate2(P, G) against OneTimeSecrecy(P).Adversary;
 
     Security(G).Random compose R3(P, G) against OneTimeSecrecy(P).Adversary;
 
