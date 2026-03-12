@@ -1,0 +1,40 @@
+// Main result: ModOTP satisfies one-time secrecy (unconditionally).
+//
+// ModOTP encrypts by adding a uniform key to the message in ModInt<q>.
+// Since a uniform ModInt plus any value is still uniform, the engine
+// canonicalizes both OTS.Left and OTS.Right to the same game (sample
+// and return a uniform ModInt<q>), proving security in a single hop.
+//
+// Game sequence:
+//   OTS.Left   -- inline ModOTP: return k + mL, simplify k + mL -> k
+//   Hyb        -- uniform ModInt<q>, independent of both messages
+//   OTS.Right  -- inline ModOTP: return k + mR, simplify k + mR -> k
+
+import '../../Primitives/SymEnc.primitive';
+import '../../Schemes/ModEnc/ModOTP.scheme';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
+
+// Both OTS.Left and OTS.Right canonicalize to this game:
+// a uniform ModInt<q> is returned, independent of either message.
+Game Hyb(Int q) {
+    ModInt<q> Eavesdrop(ModInt<q> mL, ModInt<q> mR) {
+        ModInt<q> r <- ModInt<q>;
+        return r;
+    }
+}
+
+proof:
+
+let:
+    Int q;
+    SymEnc E = ModOTP(q);
+
+assume:
+
+theorem:
+    OneTimeSecrecy(E);
+
+games:
+    OneTimeSecrecy(E).Left against OneTimeSecrecy(E).Adversary;
+    Hyb(q) against OneTimeSecrecy(E).Adversary;
+    OneTimeSecrecy(E).Right against OneTimeSecrecy(E).Adversary;

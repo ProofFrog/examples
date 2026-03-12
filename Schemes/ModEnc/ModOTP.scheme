@@ -1,0 +1,20 @@
+import '../../Primitives/SymEnc.primitive';
+
+Scheme ModOTP(Int q) extends SymEnc {
+    Set Key = ModInt<q>;
+    Set Message = ModInt<q>;
+    Set Ciphertext = ModInt<q>;
+
+    Key KeyGen() {
+        Key k <- Key;
+        return k;
+    }
+
+    Ciphertext Enc(Key k, Message m) {
+        return k + m;
+    }
+
+    Message Dec(Key k, Ciphertext c) {
+        return c - k;
+    }
+}
