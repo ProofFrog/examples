@@ -48,7 +48,7 @@ Reduction R2(SymEnc E, PubKeyEnc P, Hybrid H) compose OneTimeSecrecy(E) against 
     H.Ciphertext Challenge(H.Message mL, H.Message mR) {
         E.Key tkPrime = E.KeyGen();
         P.Ciphertext cpub = P.Enc(pk, tkPrime);
-        P.Ciphertext csym = challenger.Eavesdrop(mL, mR);
+        E.Ciphertext csym = challenger.Eavesdrop(mL, mR);
         return [cpub, csym];
     }
 }
