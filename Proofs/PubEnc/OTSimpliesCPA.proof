@@ -18,7 +18,11 @@ Reduction R(PubKeyEnc E, Int h) compose OneTimeSecrecy(E) against CPA(E).Adversa
         if (count < h) {
             return E.Enc(pk, mR);
         } else if (count == h) {
-            return challenger.Challenge(mL, mR);
+            E.Ciphertext? result = challenger.Challenge(mL, mR);
+            if (result == None) {
+                return E.Enc(pk, mL);
+            }
+            return result;
         } else {
             return E.Enc(pk, mL);
         }
