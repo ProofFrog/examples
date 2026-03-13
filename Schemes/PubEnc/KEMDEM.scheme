@@ -31,7 +31,7 @@ Scheme KEMDEM(KEM K, SymEnc E) extends PubKeyEnc {
         return [c_kem, c_sym];
     }
 
-    Message Dec(SecretKey sk, Ciphertext c) {
+    Message? Dec(SecretKey sk, Ciphertext c) {
         K.Ciphertext c_kem = c[0];
         E.Ciphertext c_sym = c[1];
         K.SharedSecret k_sym = K.Decaps(sk, c_kem);

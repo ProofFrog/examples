@@ -13,7 +13,7 @@ Game Real(PubKeyEnc E) {
 
     Bool Test(E.Message m) {
         E.Ciphertext c = E.Enc(pk, m);
-        E.Message mPrime = E.Dec(sk, c);
+        E.Message? mPrime = E.Dec(sk, c);
         return m == mPrime;
     }
 }
