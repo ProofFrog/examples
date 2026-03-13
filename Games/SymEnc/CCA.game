@@ -8,7 +8,7 @@ Game Left(SymEnc E) {
         return E.Enc(k, m);
     }
 
-    E.Message Dec(E.Ciphertext c) {
+    E.Message? Dec(E.Ciphertext c) {
         return E.Dec(k, c);
     }
 
@@ -43,7 +43,7 @@ Game Right(SymEnc E) {
         return E.Enc(k, m);
     }
 
-    E.Message Dec(E.Ciphertext c) {
+    E.Message? Dec(E.Ciphertext c) {
         return E.Dec(k, c);
     }
 

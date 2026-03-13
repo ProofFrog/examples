@@ -22,6 +22,9 @@ Scheme Hybrid(SymEnc E, PubKeyEnc P) extends PubKeyEnc {
 
     Message? Dec(SecretKey sk, Ciphertext c) {
         E.Key? tk = P.Dec(sk, c[0]);
+        if (tk == None) {
+            return None;
+        }
         return E.Dec(tk, c[1]);
     }
 }
