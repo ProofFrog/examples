@@ -27,8 +27,8 @@ Game Left(SymEnc E) {
     }
 
     Phase {
-        E.Ciphertext Initialize(E.Message mL, E.message mR) {
-            cStar = E.Enc(mL);
+        E.Ciphertext Initialize(E.Message mL, E.Message mR) {
+            cStar = E.Enc(k, mL);
             return cStar;
         }
         oracles: [Enc, restrainedDec];
@@ -62,8 +62,8 @@ Game Right(SymEnc E) {
     }
 
     Phase {
-        E.Ciphertext Initialize(E.Message mL, E.message mR) {
-            cStar = E.Enc(mR);
+        E.Ciphertext Initialize(E.Message mL, E.Message mR) {
+            cStar = E.Enc(k, mR);
             return cStar;
         }
         oracles: [Enc, restrainedDec];

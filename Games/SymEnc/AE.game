@@ -24,6 +24,9 @@ Game Real(SymEnc E) {
 }
 
 Game Random(SymEnc E) {
+    Void Initialize() {
+    }
+
     E.Ciphertext CTXT(E.Message m) {
         E.Ciphertext c <- E.Ciphertext;
         return c;
