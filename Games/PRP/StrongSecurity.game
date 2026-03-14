@@ -20,6 +20,9 @@ Game Random(PRP F) {
     Map<BitString<F.blen>, BitString<F.blen>> T;
     Map<BitString<F.blen>, BitString<F.blen>> TInv;
 
+    Void Initialize() {
+    }
+
     BitString<F.blen> Lookup(BitString<F.blen> x) {
         if (!(x in T)) {
             BitString<F.blen> y <- BitString<F.blen> \ T.values;

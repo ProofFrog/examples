@@ -15,6 +15,9 @@ Game Real(PRP F) {
 Game Random(PRP F) {
     Map<F.blen, F.blen> T;
 
+    Void Initialize() {
+    }
+
     BitString<F.blen> Lookup(BitString<F.blen> x) {
         if (!(x in T)) {
             T[x] <- BitString<F.blen> \ T.values;

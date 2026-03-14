@@ -9,7 +9,7 @@ Game Real(Hash H) {
     }
 
     Bool Test(BitString x, BitString xPrime) {
-        return x != xPrime && H.evaluate(s, x) == H.evaluate(s, xPrime);
+        return x != xPrime && H.evaluate(seed, x) == H.evaluate(seed, xPrime);
     }
 }
 

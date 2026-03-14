@@ -14,6 +14,9 @@ Game Real(PRF F) {
 Game Random(PRF F) {
     Map<BitString<F.in>, BitString<F.out>> T;
 
+    Void Initialize() {
+    }
+
     BitString<F.out> Lookup(BitString<F.in> x) {
         if (!(x in T)) {
             T[x] <- BitString<F.out>;
