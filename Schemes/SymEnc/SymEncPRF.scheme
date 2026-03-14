@@ -6,7 +6,7 @@ import '../../Primitives/PRF.primitive';
 Scheme SymEncPRF(PRF F) extends SymEnc {
     Set Key = BitString<F.lambda>;
     Set Message = BitString<F.out>;
-    Set Ciphertext = BitString<F.lambda> * BitString<F.out>;
+    Set Ciphertext = [BitString<F.lambda>, BitString<F.out>];
 
     Key KeyGen() {
         Key k <- BitString<F.lambda>;

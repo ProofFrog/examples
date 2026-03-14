@@ -1,0 +1,22 @@
+// Example 2.5.4: OTP has one-time secrecy.
+// The ciphertext k + m is uniformly distributed when k is uniform,
+// so the Real and Random games are interchangeable in one step.
+
+import '../../Schemes/SymEnc/OTP.scheme';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
+
+proof:
+
+let:
+    Int lambda;
+    OTP E = OTP(lambda);
+
+assume:
+
+theorem:
+    OneTimeSecrecy(E);
+
+games:
+    OneTimeSecrecy(E).Real against OneTimeSecrecy(E).Adversary;
+
+    OneTimeSecrecy(E).Random against OneTimeSecrecy(E).Adversary;

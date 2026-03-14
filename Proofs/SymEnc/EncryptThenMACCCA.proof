@@ -7,7 +7,7 @@ import '../../Schemes/SymEnc/EncryptThenMAC.scheme';
 
 Reduction R1(SymEnc E, MAC M, EncryptThenMAC EtM) compose Security(M) against CCA(EtM).Adversary {
     E.Key ke;
-    Set<E.Ciphertext * M.Tag> S;
+    Set<[E.Ciphertext, M.Tag]> S;
     Void Initialize() {
         ke = E.KeyGen();
     }
@@ -30,7 +30,7 @@ Reduction R1(SymEnc E, MAC M, EncryptThenMAC EtM) compose Security(M) against CC
 
 Reduction R2(SymEnc E, MAC M, EncryptThenMAC EtM) compose CPA(E) against CCA(EtM).Adversary {
     M.Key km;
-    Set<E.Ciphertext * M.Tag> S;
+    Set<[E.Ciphertext, M.Tag]> S;
     Void Initialize() {
         km = M.KeyGen();
     }
@@ -52,7 +52,7 @@ Reduction R2(SymEnc E, MAC M, EncryptThenMAC EtM) compose CPA(E) against CCA(EtM
 
 Reduction R3(SymEnc E, MAC M, EncryptThenMAC EtM) compose Security(M) against CCA(EtM).Adversary {
     E.Key ke;
-    Set<E.Ciphertext * M.Tag> S;
+    Set<[E.Ciphertext, M.Tag]> S;
     Void Initialize() {
         ke = E.KeyGen();
     }

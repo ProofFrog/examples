@@ -2,8 +2,8 @@ import '../../Primitives/SymEnc.primitive';
 
 Scheme SymEncSquared(SymEnc E) extends SymEnc {
     Set Message = E.Message;
-    Set Ciphertext = E.Ciphertext * E.Ciphertext;
-    Set Key = E.Key * E.Key;
+    Set Ciphertext = [E.Ciphertext, E.Ciphertext];
+    Set Key = [E.Key, E.Key];
 
     Key KeyGen() {
         E.Key k1 = E.KeyGen();

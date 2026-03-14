@@ -1,0 +1,70 @@
+// Claim 2.6.2: If E1 and E2 both have one-time secrecy,
+// then ChainedEncryption(E1, E2) has one-time secrecy.
+//
+// Proof idea: First use one-time secrecy of E1 to replace c1 with random,
+// then use one-time secrecy of E2 to replace c2 with random.
+// The engine automatically recognizes that component-wise product sampling
+// is equivalent to joint product sampling.
+
+import '../../Primitives/SymEnc.primitive';
+import '../../Schemes/SymEnc/ChainedEncryption.scheme';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
+
+// R1: delegates E1 encryption to the challenger, handles E2 encryption itself
+Reduction R1(ChainedEncryption CE, SymEnc E1, SymEnc E2) compose OneTimeSecrecy(E1) against OneTimeSecrecy(CE).Adversary {
+    CE.Ciphertext ENC(CE.Message m) {
+        E2.Key kprime = E2.KeyGen();
+        E1.Ciphertext c1 = challenger.ENC(kprime);
+        E2.Ciphertext c2 = E2.Enc(kprime, m);
+        return [c1, c2];
+    }
+}
+
+// R2: c1 is already random; delegates E2 encryption to the challenger
+Reduction R2(ChainedEncryption CE, SymEnc E1, SymEnc E2) compose OneTimeSecrecy(E2) against OneTimeSecrecy(CE).Adversary {
+    CE.Ciphertext ENC(CE.Message m) {
+        E1.Ciphertext c1 <- E1.Ciphertext;
+        E2.Ciphertext c2 = challenger.ENC(m);
+        E2.Ciphertext c2prime <- E2.Ciphertext;
+        return [c1, c2];
+    }
+}
+
+proof:
+
+let:
+    Set MessageSpace;
+    Set KeySpace1;
+    Set KeySpace2;
+    Set IntermediateSpace;
+    Set CiphertextSpace1;
+    Set CiphertextSpace2;
+
+    SymEnc E1 = SymEnc(IntermediateSpace, CiphertextSpace1, KeySpace1);
+    SymEnc E2 = SymEnc(MessageSpace, CiphertextSpace2, KeySpace2);
+    ChainedEncryption CE = ChainedEncryption(E1, E2);
+
+assume:
+    OneTimeSecrecy(E1);
+    OneTimeSecrecy(E2);
+
+theorem:
+    OneTimeSecrecy(CE);
+
+games:
+    OneTimeSecrecy(CE).Real against OneTimeSecrecy(CE).Adversary;
+
+    // Factor out E1's encryption into reduction R1
+    OneTimeSecrecy(E1).Real compose R1(CE, E1, E2) against OneTimeSecrecy(CE).Adversary;
+
+    // By assumption: E1 has one-time secrecy
+    OneTimeSecrecy(E1).Random compose R1(CE, E1, E2) against OneTimeSecrecy(CE).Adversary;
+
+    // Factor out E2's encryption into reduction R2
+    OneTimeSecrecy(E2).Real compose R2(CE, E1, E2) against OneTimeSecrecy(CE).Adversary;
+
+    // By assumption: E2 has one-time secrecy
+    OneTimeSecrecy(E2).Random compose R2(CE, E1, E2) against OneTimeSecrecy(CE).Adversary;
+
+    // Both components now random
+    OneTimeSecrecy(CE).Random against OneTimeSecrecy(CE).Adversary;

@@ -5,7 +5,7 @@ Scheme DoubleSymEnc(SymEnc s) extends SymEnc {
 
     Set Message = s.Message;
     Set Ciphertext = s.Message;
-    Set Key = s.Key * s.Key;
+    Set Key = [s.Key, s.Key];
 
     Key KeyGen() {
         s.Key key1 = s.KeyGen();

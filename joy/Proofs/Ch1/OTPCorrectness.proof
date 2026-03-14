@@ -1,0 +1,23 @@
+// Claim 1.2.3: OTP Correctness
+// For all keys k and messages m, Dec(k, Enc(k, m)) = m.
+// Substituting the OTP definitions: k + (k + m) = m,
+// which holds by properties of XOR.
+
+import '../../Schemes/SymEnc/OTP.scheme';
+import '../../Games/SymEnc/Correctness.game';
+
+proof:
+
+let:
+    Int lambda;
+    OTP E = OTP(lambda);
+
+assume:
+
+theorem:
+    Correctness(E);
+
+games:
+    Correctness(E).EncDec against Correctness(E).Adversary;
+
+    Correctness(E).Identity against Correctness(E).Adversary;

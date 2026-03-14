@@ -1,7 +1,7 @@
 import '../../Primitives/SymEnc.primitive';
 
 Game Left(SymEnc E) {
-    E.Ciphertext * E.Ciphertext Foo(E.Message mL, E.Message mR) {
+    [E.Ciphertext, E.Ciphertext] Foo(E.Message mL, E.Message mR) {
         E.Key k1 = E.KeyGen();
         E.Ciphertext c1 = E.Enc(k1, mL);
         E.Key k2 = E.KeyGen();
@@ -11,7 +11,7 @@ Game Left(SymEnc E) {
 }
 
 Game Right(SymEnc E) {
-    E.Ciphertext * E.Ciphertext Foo(E.Message mL, E.Message mR) {
+    [E.Ciphertext, E.Ciphertext] Foo(E.Message mL, E.Message mR) {
         E.Key k1 = E.KeyGen();
         E.Ciphertext c1 = E.Enc(k1, mR);
         E.Key k2 = E.KeyGen();

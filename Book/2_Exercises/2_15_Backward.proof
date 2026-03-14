@@ -4,7 +4,7 @@ import '../../Games/SymEnc/OneTimeSecrecy.game';
 
 Reduction R(SymEnc E) compose Foo(E) against OneTimeSecrecy(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
-        E.Ciphertext * E.Ciphertext c = challenger.Foo(mL, mR);
+        [E.Ciphertext, E.Ciphertext] c = challenger.Foo(mL, mR);
         return c[0];
     }
 }

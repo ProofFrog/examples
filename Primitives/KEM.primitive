@@ -4,7 +4,7 @@ Primitive KEM(Set SharedSecretSpace, Set CiphertextSpace, Set PKeySpace, Set SKe
     Set PublicKey = PKeySpace;
     Set SecretKey = SKeySpace;
 
-    PublicKey * SecretKey KeyGen();
-    SharedSecret * Ciphertext Encaps(PublicKey pk);
+    [PublicKey, SecretKey] KeyGen();
+    [SharedSecret, Ciphertext] Encaps(PublicKey pk);
     SharedSecret Decaps(SecretKey sk, Ciphertext m);
 }

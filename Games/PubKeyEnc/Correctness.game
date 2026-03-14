@@ -4,8 +4,8 @@ Game Real(PubKeyEnc E) {
     E.PublicKey pk;
     E.SecretKey sk;
 
-    E.PublicKey * E.SecretKey Initialize() {
-        E.PublicKey * E.SecretKey k = E.KeyGen();
+    [E.PublicKey, E.SecretKey] Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
         pk = k[0];
         sk = k[1];
         return k;
@@ -22,8 +22,8 @@ Game Fake(PubKeyEnc E) {
     E.PublicKey pk;
     E.SecretKey sk;
 
-    E.PublicKey * E.SecretKey Initialize() {
-        E.PublicKey * E.SecretKey k = E.KeyGen();
+    [E.PublicKey, E.SecretKey] Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
         pk = k[0];
         sk = k[1];
         return k;

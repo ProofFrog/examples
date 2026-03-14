@@ -1,0 +1,22 @@
+// Definition 2.5.3: One-time secrecy
+// A scheme has one-time secrecy if encrypting any message produces
+// a ciphertext indistinguishable from a uniformly random ciphertext.
+
+import '../../Primitives/SymEnc.primitive';
+
+Game Real(SymEnc E) {
+    E.Ciphertext ENC(E.Message m) {
+        E.Key k = E.KeyGen();
+        E.Ciphertext c = E.Enc(k, m);
+        return c;
+    }
+}
+
+Game Random(SymEnc E) {
+    E.Ciphertext ENC(E.Message m) {
+        E.Ciphertext c <- E.Ciphertext;
+        return c;
+    }
+}
+
+export as OneTimeSecrecy;

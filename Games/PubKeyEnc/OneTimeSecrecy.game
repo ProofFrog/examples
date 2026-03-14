@@ -6,7 +6,7 @@ Game Left(PubKeyEnc E) {
     Int count;
 
     E.PublicKey Initialize() {
-        E.PublicKey * E.SecretKey k = E.KeyGen();
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
         pk = k[0];
         sk = k[1];
         count = 0;
@@ -29,7 +29,7 @@ Game Right(PubKeyEnc E) {
     Int count;
 
     E.PublicKey Initialize() {
-        E.PublicKey * E.SecretKey k = E.KeyGen();
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
         pk = k[0];
         sk = k[1];
         count = 0;

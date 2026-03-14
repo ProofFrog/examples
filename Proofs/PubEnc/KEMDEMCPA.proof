@@ -48,7 +48,7 @@ import '../../Games/PubKeyEnc/CPA.game';
 //   from the KEM CPA challenger, which is either real (= Game 0) or random (= Game 1).
 Reduction R1(SymEnc E, KEM K, KEMDEM KD) compose CPAKEM(K) against CPA(KD).Adversary {
     KD.Ciphertext Challenge(KD.Message mL, KD.Message mR) {
-        K.SharedSecret * K.Ciphertext y = challenger.Challenge();
+        [K.SharedSecret, K.Ciphertext] y = challenger.Challenge();
         K.SharedSecret k_sym = y[0];
         K.Ciphertext c_kem = y[1];
         E.Ciphertext c_sym = E.Enc(k_sym, mL);
@@ -65,14 +65,14 @@ Reduction R2(SymEnc E, KEM K, KEMDEM KD) compose KeyUniformity(E) against CPA(KD
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        K.PublicKey * K.SecretKey k = K.KeyGen();
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
         pk = k[0];
         sk = k[1];
         return pk;
     }
 
     KD.Ciphertext Challenge(KD.Message mL, KD.Message mR) {
-        K.SharedSecret * K.Ciphertext x = K.Encaps(pk);
+        [K.SharedSecret, K.Ciphertext] x = K.Encaps(pk);
         K.SharedSecret k_sym = challenger.Challenge();
         K.Ciphertext c_kem = x[1];
         E.Ciphertext c_sym = E.Enc(k_sym, mL);
@@ -88,14 +88,14 @@ Reduction R3(SymEnc E, KEM K, KEMDEM KD) compose OneTimeSecrecy(E) against CPA(K
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        K.PublicKey * K.SecretKey k = K.KeyGen();
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
         pk = k[0];
         sk = k[1];
         return pk;
     }
 
     KD.Ciphertext Challenge(KD.Message mL, KD.Message mR) {
-        K.SharedSecret * K.Ciphertext x = K.Encaps(pk);
+        [K.SharedSecret, K.Ciphertext] x = K.Encaps(pk);
         K.Ciphertext c_kem = x[1];
         E.Ciphertext c_sym = challenger.Eavesdrop(mL, mR);
         return [c_kem, c_sym];
@@ -114,14 +114,14 @@ Reduction R4(SymEnc E, KEM K, KEMDEM KD) compose KeyUniformity(E) against CPA(KD
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        K.PublicKey * K.SecretKey k = K.KeyGen();
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
         pk = k[0];
         sk = k[1];
         return pk;
     }
 
     KD.Ciphertext Challenge(KD.Message mL, KD.Message mR) {
-        K.SharedSecret * K.Ciphertext x = K.Encaps(pk);
+        [K.SharedSecret, K.Ciphertext] x = K.Encaps(pk);
         K.SharedSecret k_sym = challenger.Challenge();
         K.Ciphertext c_kem = x[1];
         E.Ciphertext c_sym = E.Enc(k_sym, mR);
@@ -134,7 +134,7 @@ Reduction R4(SymEnc E, KEM K, KEMDEM KD) compose KeyUniformity(E) against CPA(KD
 //   from the KEM CPA challenger, which is either real (= Game 5) or random (= Game 4).
 Reduction R5(SymEnc E, KEM K, KEMDEM KD) compose CPAKEM(K) against CPA(KD).Adversary {
     KD.Ciphertext Challenge(KD.Message mL, KD.Message mR) {
-        K.SharedSecret * K.Ciphertext y = challenger.Challenge();
+        [K.SharedSecret, K.Ciphertext] y = challenger.Challenge();
         K.SharedSecret k_sym = y[0];
         K.Ciphertext c_kem = y[1];
         E.Ciphertext c_sym = E.Enc(k_sym, mR);

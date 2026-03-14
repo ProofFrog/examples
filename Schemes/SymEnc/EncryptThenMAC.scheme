@@ -5,9 +5,9 @@ import '../../Primitives/MAC.primitive';
 Scheme EncryptThenMAC(SymEnc E, MAC M) extends SymEnc {
     requires E.Ciphertext subsets M.Message;
 
-    Set Key = E.Key * M.Key;
+    Set Key = [E.Key, M.Key];
     Set Message = E.Message;
-    Set Ciphertext = E.Ciphertext * M.Tag;
+    Set Ciphertext = [E.Ciphertext, M.Tag];
 
     Key KeyGen() {
         E.Key ke = E.KeyGen();

@@ -1,0 +1,22 @@
+// Claim 1.2.3: OTP Correctness
+// For all keys and messages, Dec(k, Enc(k, m)) = m.
+// The Real game encrypts then decrypts and checks equality;
+// the Ideal game always returns true.
+
+import '../../Primitives/SymEnc.primitive';
+
+Game EncDec(SymEnc E) {
+    E.Message? Test(E.Key k, E.Message m) {
+        E.Ciphertext c = E.Enc(k, m);
+        E.Message? mPrime = E.Dec(k, c);
+        return mPrime;
+    }
+}
+
+Game Identity(SymEnc E) {
+    E.Message? Test(E.Key k, E.Message m) {
+        return m;
+    }
+}
+
+export as Correctness;

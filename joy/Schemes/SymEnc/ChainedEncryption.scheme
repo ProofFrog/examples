@@ -1,0 +1,34 @@
+// Construction 2.6.1: Chained encryption
+// Combines two encryption schemes E1, E2 by encrypting a fresh
+// key for E2 under E1, then encrypting the message under E2.
+// Requires E2's keys to be encryptable by E1.
+
+import '../../Primitives/SymEnc.primitive';
+
+Scheme ChainedEncryption(SymEnc E1, SymEnc E2) extends SymEnc {
+    requires E2.Key subsets E1.Message;
+
+    Set Key = E1.Key;
+    Set Message = E2.Message;
+    Set Ciphertext = [E1.Ciphertext, E2.Ciphertext];
+
+    Key KeyGen() {
+        E1.Key k = E1.KeyGen();
+        return k;
+    }
+
+    Ciphertext Enc(Key k, Message m) {
+        E2.Key kprime = E2.KeyGen();
+        E1.Ciphertext c1 = E1.Enc(k, kprime);
+        E2.Ciphertext c2 = E2.Enc(kprime, m);
+        return [c1, c2];
+    }
+
+    Message? Dec(Key k, Ciphertext c) {
+        E2.Key? kprime = E1.Dec(k, c[0]);
+        if (kprime == None) {
+            return None;
+        }
+        return E2.Dec(kprime, c[1]);
+    }
+}
