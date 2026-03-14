@@ -5,11 +5,11 @@ Scheme Hybrid(SymEnc E, PubKeyEnc P) extends PubKeyEnc {
     requires E.Key subsets P.Message;
 
     Set Message = E.Message;
-    Set Ciphertext = P.Ciphertext * E.Ciphertext;
+    Set Ciphertext = [P.Ciphertext, E.Ciphertext];
     Set PublicKey = P.PublicKey;
     Set SecretKey = P.SecretKey;
 
-    PublicKey * SecretKey KeyGen() {
+    [PublicKey, SecretKey] KeyGen() {
         return P.KeyGen();
     }
 

@@ -15,16 +15,16 @@ Scheme KEMDEM(KEM K, SymEnc E) extends PubKeyEnc {
     requires K.SharedSecret subsets E.Key;
 
     Set Message = E.Message;
-    Set Ciphertext = K.Ciphertext * E.Ciphertext;
+    Set Ciphertext = [K.Ciphertext, E.Ciphertext];
     Set PublicKey = K.PublicKey;
     Set SecretKey = K.SecretKey;
 
-    PublicKey * SecretKey KeyGen() {
+    [PublicKey, SecretKey] KeyGen() {
         return K.KeyGen();
     }
 
     Ciphertext Enc(PublicKey pk, Message m) {
-        K.SharedSecret * K.Ciphertext x = K.Encaps(pk);
+        [K.SharedSecret, K.Ciphertext] x = K.Encaps(pk);
         E.Key k_sym = x[0];
         K.Ciphertext c_kem = x[1];
         E.Ciphertext c_sym = E.Enc(k_sym, m);

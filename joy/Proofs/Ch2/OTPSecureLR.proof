@@ -1,0 +1,49 @@
+// OTP has one-time secrecy in the left-or-right formulation (Definition 2.7.1).
+// Follows from OTP having one-time secrecy (Definition 2.5.3):
+// real-or-random implies left-or-right.
+
+import '../../Schemes/SymEnc/OTP.scheme';
+import '../../Games/SymEnc/OneTimeSecrecyLR.game';
+import '../../Games/SymEnc/OneTimeSecrecy.game';
+
+Reduction R1(OTP E) compose OneTimeSecrecy(E) against OneTimeSecrecyLR(E).Adversary {
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        return challenger.ENC(mL);
+    }
+}
+
+Reduction R2(OTP E) compose OneTimeSecrecy(E) against OneTimeSecrecyLR(E).Adversary {
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        return challenger.ENC(mR);
+    }
+}
+
+proof:
+
+let:
+    Int lambda;
+    OTP E = OTP(lambda);
+
+assume:
+    OneTimeSecrecy(E);
+
+theorem:
+    OneTimeSecrecyLR(E);
+
+games:
+    OneTimeSecrecyLR(E).Left against OneTimeSecrecyLR(E).Adversary;
+
+    // Inline into reduction R1
+    OneTimeSecrecy(E).Real compose R1(E) against OneTimeSecrecyLR(E).Adversary;
+
+    // By assumption: one-time secrecy
+    OneTimeSecrecy(E).Random compose R1(E) against OneTimeSecrecyLR(E).Adversary;
+
+    // mL not used in Random; switch to R2
+    OneTimeSecrecy(E).Random compose R2(E) against OneTimeSecrecyLR(E).Adversary;
+
+    // By assumption (reverse direction)
+    OneTimeSecrecy(E).Real compose R2(E) against OneTimeSecrecyLR(E).Adversary;
+
+    // Inline back
+    OneTimeSecrecyLR(E).Right against OneTimeSecrecyLR(E).Adversary;

@@ -3,7 +3,7 @@ import '../../Primitives/SymEnc.primitive';
 Scheme DoubleOTP(Int lambda) extends SymEnc {
     Set Message = BitString<lambda>;
     Set Ciphertext = BitString<lambda>;
-    Set Key = BitString<lambda> * BitString<lambda>;
+    Set Key = [BitString<lambda>, BitString<lambda>];
 
     Key KeyGen() {
         BitString<lambda> key1 <- BitString<lambda>;

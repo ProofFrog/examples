@@ -18,7 +18,7 @@ Game Real(MAC E) {
 
 Game Random(MAC E) {
     E.Key k;
-    Set<E.Message * E.Tag> T;
+    Set<[E.Message, E.Tag]> T;
 
     Void Initialize() {
         k = E.KeyGen();

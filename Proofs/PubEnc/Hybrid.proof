@@ -19,7 +19,7 @@ Game Intermediate1(SymEnc E, PubKeyEnc P, Hybrid H) {
     P.SecretKey sk;
 
     P.PublicKey Initialize() {
-        P.PublicKey * P.SecretKey k = P.KeyGen();
+        [P.PublicKey, P.SecretKey] k = P.KeyGen();
         pk = k[0];
         sk = k[1];
         return pk;
@@ -39,7 +39,7 @@ Reduction R2(SymEnc E, PubKeyEnc P, Hybrid H) compose OneTimeSecrecy(E) against 
     P.SecretKey sk;
 
     P.PublicKey Initialize() {
-        P.PublicKey * P.SecretKey k = P.KeyGen();
+        [P.PublicKey, P.SecretKey] k = P.KeyGen();
         pk = k[0];
         sk = k[1];
         return pk;
@@ -58,7 +58,7 @@ Game Intermediate2(SymEnc E, PubKeyEnc P, Hybrid H) {
     P.SecretKey sk;
 
     P.PublicKey Initialize() {
-        P.PublicKey * P.SecretKey k = P.KeyGen();
+        [P.PublicKey, P.SecretKey] k = P.KeyGen();
         pk = k[0];
         sk = k[1];
         return pk;

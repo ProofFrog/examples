@@ -1,0 +1,23 @@
+// Definition 2.7.1: One-time secrecy (left-or-right formulation)
+// A scheme has one-time secrecy if encrypting the left plaintext
+// is indistinguishable from encrypting the right plaintext.
+
+import '../../Primitives/SymEnc.primitive';
+
+Game Left(SymEnc E) {
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        E.Key k = E.KeyGen();
+        E.Ciphertext c = E.Enc(k, mL);
+        return c;
+    }
+}
+
+Game Right(SymEnc E) {
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        E.Key k = E.KeyGen();
+        E.Ciphertext c = E.Enc(k, mR);
+        return c;
+    }
+}
+
+export as OneTimeSecrecyLR;

@@ -5,7 +5,7 @@ Game Real(DigitalSignature E) {
     E.VerificationKey vk;
 
     E.VerificationKey Initialize() {
-        E.SigningKey * E.VerificationKey k = E.KeyGen();
+        [E.SigningKey, E.VerificationKey] k = E.KeyGen();
         sk = k[0];
         vk = k[1];
         return k[1];
@@ -23,11 +23,11 @@ Game Real(DigitalSignature E) {
 Game Fake(DigitalSignature E) {
     E.SigningKey sk;
     E.VerificationKey vk;
-    Set<E.Message * E.Signature> S;
+    Set<[E.Message, E.Signature]> S;
 
     E.VerificationKey Initialize() {
         S = {};
-        E.SigningKey * E.VerificationKey k = E.KeyGen();
+        [E.SigningKey, E.VerificationKey] k = E.KeyGen();
         sk = k[0];
         vk = k[1];
         return k[1];

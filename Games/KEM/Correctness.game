@@ -4,15 +4,15 @@ Game Real(KEM K) {
     K.PublicKey pk;
     K.SecretKey sk;
 
-    K.PublicKey * K.SecretKey Initialize() {
-        K.PublicKey * K.SecretKey k = K.KeyGen();
+    [K.PublicKey, K.SecretKey] Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
         pk = k[0];
         sk = k[1];
         return k;
     }
 
     Bool Test() {
-        K.SharedSecret * K.Ciphertext x = K.Encaps(pk);
+        [K.SharedSecret, K.Ciphertext] x = K.Encaps(pk);
         K.SharedSecret ss_encaps = x[0];
         K.Ciphertext ctxt = x[1];
         K.SharedSecret ss_decaps = K.Decaps(sk, ctxt);
@@ -24,8 +24,8 @@ Game Fake(KEM K) {
     K.PublicKey pk;
     K.SecretKey sk;
 
-    K.PublicKey * K.SecretKey Initialize() {
-        K.PublicKey * K.SecretKey k = K.KeyGen();
+    [K.PublicKey, K.SecretKey] Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
         pk = k[0];
         sk = k[1];
         return k;
