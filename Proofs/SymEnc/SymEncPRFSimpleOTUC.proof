@@ -114,6 +114,7 @@ let:
 assume:
     PRFSecurity(F);
     Sample(F.in);
+    calls <= 1;
 
 theorem:
     OneTimeUniformCiphertexts(E);
