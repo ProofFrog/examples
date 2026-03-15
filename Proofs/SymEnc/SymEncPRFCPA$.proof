@@ -1,0 +1,181 @@
+import '../../Primitives/PRF.primitive';
+import '../../Primitives/SymEnc.primitive';
+import '../../Schemes/SymEnc/SymEncPRF.scheme';
+import '../../Games/Misc/UniqueSampling.game';
+import '../../Games/SymEnc/CPA$.game';
+import '../../Games/PRF/Security.game' as PRFSecurity;
+
+// Main result: SymEncPRF satisfies CPA$ security
+// assuming PRF security and the birthday-bound sampling assumption.
+//
+// The scheme encrypts as c = (r, m XOR PRF(k, r)) with random r.
+// The proof replaces the PRF with a random function, then argues
+// that sampling r without replacement (birthday bound) makes each
+// RF output an independent uniform value, which masks m via XOR.
+//
+// The UniqueSampling assumption (birthday bound) is used twice, in opposite
+// directions. The first hop (forward: Replacement -> NoReplacement)
+// switches r to unique sampling so that the UniqueRF simplification
+// can replace RF(r) with a fresh uniform value. The second hop
+// (reverse: NoReplacement -> Replacement) switches r back to ordinary
+// sampling so that the final game has two independent uniform samples
+// that can be merged into a single product sample matching CPA$.Random.
+//
+// Proof structure:
+//   CPA$.Real
+//   -> PRF.Real o R_PRF                   interchangeability
+//   -> PRF.Random o R_PRF                 by PRF assumption
+//   -> G_RF                               interchangeability (PRF replaced by RF)
+//   -> UniqueSampling.Repl o R_Uniq       interchangeability
+//   -> UniqueSampling.NoRepl o R_Uniq     by UniqueSampling assumption (birthday bound, forward)
+//   -> G_Uniq                             interchangeability (unique sampling with RF)
+//   -> G_UniqSimp                         interchangeability (RF(r)->uniform, m+z->z)
+//   -> UniqueSampling.NoRepl o R_Uniq2    interchangeability
+//   -> UniqueSampling.Repl o R_Uniq2      by UniqueSampling assumption (birthday bound, reverse)
+//   -> G_Uniform                          interchangeability
+//   -> CPA$.Random                        interchangeability (merge independent samples)
+
+// Reduction for the PRF hop: delegates PRF evaluation to challenger
+Reduction R_PRF(SymEnc E, PRF F) compose PRFSecurity(F) against CPA$(E).Adversary {
+    E.Ciphertext CTXT(E.Message m) {
+        BitString<F.in> r <- BitString<F.in>;
+        return [r, m + challenger.Lookup(r)];
+    }
+}
+
+// G_RF: PRF replaced by a random function
+Game G_RF(SymEnc E, PRF F) {
+    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+
+    Void Initialize() {
+        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+    }
+
+    E.Ciphertext CTXT(E.Message m) {
+        BitString<F.in> r <- BitString<F.in>;
+        return [r, m + RF(r)];
+    }
+}
+
+// Reduction for forward UniqueSampling hop: delegates r-sampling to challenger
+Reduction R_Uniq(SymEnc E, PRF F) compose UniqueSampling(F.in) against CPA$(E).Adversary {
+    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+
+    Void Initialize() {
+        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+    }
+
+    E.Ciphertext CTXT(E.Message m) {
+        BitString<F.in> r <- challenger.Samp(RF.domain);
+        return [r, m + RF(r)];
+    }
+}
+
+// G_Uniq: unique sampling guarantees distinct RF inputs
+Game G_Uniq(SymEnc E, PRF F) {
+    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+
+    Void Initialize() {
+        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+    }
+
+    E.Ciphertext CTXT(E.Message m) {
+        BitString<F.in> r <-uniq[RF.domain] BitString<F.in>;
+        return [r, m + RF(r)];
+    }
+}
+
+// G_UniqSimp: since r is unique, RF(r) is uniform; then m XOR uniform = uniform
+// This is the result of two engine simplifications:
+//   1. UniqueRF: RF(r) -> z <- BitString<F.out> (r uniquely sampled)
+//   2. UniformXOR: m + z -> z (z is uniform)
+Game G_UniqSimp(SymEnc E, PRF F) {
+    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+
+    Void Initialize() {
+        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+    }
+
+    E.Ciphertext CTXT(E.Message m) {
+        BitString<F.in> r <-uniq[RF.domain] BitString<F.in>;
+        BitString<F.out> z <- BitString<F.out>;
+        return [r, z];
+    }
+}
+
+// Reduction for reverse UniqueSampling hop: r from challenger, z sampled uniformly
+Reduction R_Uniq2(SymEnc E, PRF F) compose UniqueSampling(F.in) against CPA$(E).Adversary {
+    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+
+    Void Initialize() {
+        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+    }
+
+    E.Ciphertext CTXT(E.Message m) {
+        BitString<F.in> r <- challenger.Samp(RF.domain);
+        BitString<F.out> z <- BitString<F.out>;
+        return [r, z];
+    }
+}
+
+// G_Uniform: both components sampled uniformly and independently
+Game G_Uniform(SymEnc E, PRF F) {
+    E.Ciphertext CTXT(E.Message m) {
+        BitString<F.in> r <- BitString<F.in>;
+        BitString<F.out> z <- BitString<F.out>;
+        return [r, z];
+    }
+}
+
+proof:
+
+let:
+    Int lambda;
+    Int in;
+    Int out;
+    PRF F = PRF(lambda, in, out);
+    SymEnc E = SymEncPRF(F);
+
+assume:
+    PRFSecurity(F);
+    UniqueSampling(F.in);
+
+theorem:
+    CPA$(E);
+
+games:
+    // CPA$.Real with SymEncPRF inlined: return [r, m + PRF(k, r)]
+    CPA$(E).Real against CPA$(E).Adversary;
+
+    // Interchangeability with PRF.Real compose R_PRF
+    PRFSecurity(F).Real compose R_PRF(E, F) against CPA$(E).Adversary;
+
+    // By PRF assumption: replace PRF with random function
+    PRFSecurity(F).Random compose R_PRF(E, F) against CPA$(E).Adversary;
+
+    // Interchangeability: inline RF into game
+    G_RF(E, F) against CPA$(E).Adversary;
+
+    // Interchangeability: extract r-sampling to challenger
+    UniqueSampling(F.in).Replacement compose R_Uniq(E, F) against CPA$(E).Adversary;
+
+    // By UniqueSampling assumption (forward): sample r without replacement
+    UniqueSampling(F.in).NoReplacement compose R_Uniq(E, F) against CPA$(E).Adversary;
+
+    // Interchangeability: inline unique sampling
+    G_Uniq(E, F) against CPA$(E).Adversary;
+
+    // Interchangeability (engine: UniqueRF + UniformXOR simplification)
+    G_UniqSimp(E, F) against CPA$(E).Adversary;
+
+    // Interchangeability: extract r-sampling to challenger
+    UniqueSampling(F.in).NoReplacement compose R_Uniq2(E, F) against CPA$(E).Adversary;
+
+    // By UniqueSampling assumption (reverse): sample r with replacement
+    UniqueSampling(F.in).Replacement compose R_Uniq2(E, F) against CPA$(E).Adversary;
+
+    // Interchangeability: inline uniform sampling
+    G_Uniform(E, F) against CPA$(E).Adversary;
+
+    // Interchangeability: merge independent samples into product sample
+    CPA$(E).Random against CPA$(E).Adversary;

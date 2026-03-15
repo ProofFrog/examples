@@ -1,0 +1,15 @@
+Game Replacement(Int lambda) {
+    BitString<lambda> Samp(Set<BitString<lambda>> bookkeeping) {
+        BitString<lambda> r <- BitString<lambda>;
+        return r;
+    }
+}
+
+Game NoReplacement(Int lambda) {
+    BitString<lambda> Samp(Set<BitString<lambda>> bookkeeping) {
+        BitString<lambda> r <-uniq[bookkeeping] BitString<lambda>;
+        return r;
+    }
+}
+
+export as UniqueSampling;
