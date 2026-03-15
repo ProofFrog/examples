@@ -1,39 +1,30 @@
+// Correctness game for a KEM.
+// A correct KEM is one where Decaps recovers the same shared secret
+// that Encaps produced. Both games return the Encaps and Decaps shared
+// secrets together so the adversary can directly compare them; a
+// formulation that only returns one of the two would be weaker, as it
+// would be satisfied by a KEM where Decaps returns an independent value
+// from the same distribution.
+
 import '../../Primitives/KEM.primitive';
 
-Game Real(KEM K) {
-    K.PublicKey pk;
-    K.SecretKey sk;
-
-    [K.PublicKey, K.SecretKey] Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        sk = k[1];
-        return k;
-    }
-
-    Bool Test() {
-        [K.SharedSecret, K.Ciphertext] x = K.Encaps(pk);
-        K.SharedSecret ss_encaps = x[0];
-        K.Ciphertext ctxt = x[1];
-        K.SharedSecret ss_decaps = K.Decaps(sk, ctxt);
-        return ss_encaps == ss_decaps;
+Game FromDecaps(KEM K) {
+    [K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute(K.PublicKey pk, K.SecretKey sk) {
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(pk);
+        K.SharedSecret ss_e = encaps_result[0];
+        K.Ciphertext ct = encaps_result[1];
+        K.SharedSecret ss_d = K.Decaps(sk, ct);
+        return [ct, ss_e, ss_d];
     }
 }
 
-Game Fake(KEM K) {
-    K.PublicKey pk;
-    K.SecretKey sk;
-
-    [K.PublicKey, K.SecretKey] Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        sk = k[1];
-        return k;
-    }
-
-    Bool Test() {
-        return true;
+Game FromEncaps(KEM K) {
+    [K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute(K.PublicKey pk, K.SecretKey sk) {
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(pk);
+        K.Ciphertext ct = encaps_result[1];
+        K.SharedSecret ss = encaps_result[0];
+        return [ct, ss, ss];
     }
 }
 
-export as Correctness;
+export as KEMCorrectness;

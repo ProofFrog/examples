@@ -1,0 +1,30 @@
+import '../../Primitives/KEM.primitive';
+import '../../Primitives/PRF.primitive';
+
+Scheme KEMPRF(KEM K, PRF F) extends KEM {
+    requires K.SharedSecret subsets BitString<F.lambda>;
+    requires K.Ciphertext subsets BitString<F.in>;
+
+    Set Ciphertext = K.Ciphertext;
+    Set PublicKey = K.PublicKey;
+    Set SecretKey = K.SecretKey;
+    Set SharedSecret = BitString<F.out>;
+
+    [PublicKey, SecretKey] KeyGen() {
+        return K.KeyGen();
+    }
+
+    [SharedSecret, Ciphertext] Encaps(PublicKey pk) {
+        [K.SharedSecret, K.Ciphertext] x = K.Encaps(pk);
+        BitString<F.lambda> k = x[0];
+        K.Ciphertext c = x[1];
+        BitString<F.out> ss = F.evaluate(k, c);
+        return [ss, c];
+    }
+
+    SharedSecret Decaps(SecretKey sk, Ciphertext c) {
+        K.SharedSecret k = K.Decaps(sk, c);
+        BitString<F.out> ss = F.evaluate(k, c);
+        return ss;
+    }
+}
