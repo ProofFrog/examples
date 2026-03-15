@@ -1,0 +1,16 @@
+import '../../Primitives/PRF.primitive';
+
+Game TwoCalls(PRF F) {
+    [BitString<F.out>, BitString<F.out>] Call(BitString<F.lambda> k, BitString<F.in> x) {
+        return [F.evaluate(k, x), F.evaluate(k, x)];
+    }
+}
+
+Game OneCall(PRF F) {
+    [BitString<F.out>, BitString<F.out>] Call(BitString<F.lambda> k, BitString<F.in> x) {
+        BitString<F.out> y = F.evaluate(k, x);
+        return [y, y];
+    }
+}
+
+export as PRFIsDeterministic;

@@ -1,0 +1,130 @@
+// Proof that KEMPRF satisfies CPA security for KEMs,
+// assuming the underlying KEM is CPA-secure and the PRF is secure.
+//
+// Main idea:
+// 1. Replace real KEM shared secret k* with random k* (KEM CPA assumption)
+// 2. Replace PRF(k*, ct) with RF(ct) (PRF security, since k* is now random)
+// 3. Replace RF(ct) with a uniform random value (RF on a single input is uniform)
+
+import '../../Primitives/KEM.primitive';
+import '../../Primitives/PRF.primitive';
+import '../../Schemes/KEM/KEMPRF.scheme';
+import '../../Games/KEM/CPAKEM.game';
+import '../../Games/PRF/Security.game' as PRFSecurity;
+
+// Reduction for KEM CPA hop: receives (ss, ct) from KEM challenger,
+// applies F.evaluate(ss, ct) to produce the KEMPRF shared secret.
+Reduction R_KEM(KEM K, PRF F, KEMPRF KF) compose CPAKEM(K) against CPAKEM(KF).Adversary {
+    KF.PublicKey Initialize() {
+        return challenger.Initialize();
+    }
+
+    [KF.SharedSecret, KF.Ciphertext] Challenge() {
+        [K.SharedSecret, K.Ciphertext] rsp = challenger.Challenge();
+        K.SharedSecret ss = rsp[0];
+        K.Ciphertext ct = rsp[1];
+        return [F.evaluate(ss, ct), ct];
+    }
+}
+
+// Intermediate game: PRF with a random key applied to KEM ciphertext
+Game G_RandKey(KEM K, PRF F) {
+    K.PublicKey pk;
+
+    K.PublicKey Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
+        pk = k[0];
+        return pk;
+    }
+
+    [BitString<F.out>, K.Ciphertext] Challenge() {
+        BitString<F.lambda> key <- BitString<F.lambda>;
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pk);
+        K.Ciphertext ct = rsp[1];
+        return [F.evaluate(key, ct), ct];
+    }
+}
+
+// Reduction for PRF hop: delegates PRF/RF evaluation to challenger,
+// generates KEM ciphertext independently.
+Reduction R_PRF(KEM K, PRF F, KEMPRF KF) compose PRFSecurity(F) against CPAKEM(KF).Adversary {
+    K.PublicKey pk;
+
+    KF.PublicKey Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
+        pk = k[0];
+        return pk;
+    }
+
+    [KF.SharedSecret, KF.Ciphertext] Challenge() {
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pk);
+        K.Ciphertext ct = rsp[1];
+        BitString<F.out> ss = challenger.Lookup(ct);
+        return [ss, ct];
+    }
+}
+
+// Intermediate game: random function applied to KEM ciphertext
+Game G_RF(KEM K, PRF F) {
+    K.PublicKey pk;
+    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+
+    K.PublicKey Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
+        pk = k[0];
+        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        return pk;
+    }
+
+    [BitString<F.out>, K.Ciphertext] Challenge() {
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pk);
+        K.Ciphertext ct = rsp[1];
+        return [RF(ct), ct];
+    }
+}
+
+proof:
+
+let:
+    Int lambda;
+    Int in;
+    Int out;
+    Set SharedSecretSpace;
+    Set CiphertextSpace;
+    Set PKeySpace;
+    Set SKeySpace;
+    KEM K = KEM(SharedSecretSpace, CiphertextSpace, PKeySpace, SKeySpace);
+    PRF F = PRF(lambda, in, out);
+    KEMPRF KF = KEMPRF(K, F);
+
+assume:
+    CPAKEM(K);
+    PRFSecurity(F);
+
+theorem:
+    CPAKEM(KF);
+
+games:
+    // Real game: F.evaluate(k*, ct) with real k* from K.Encaps
+    CPAKEM(KF).Real against CPAKEM(KF).Adversary;
+
+    // Isolate KEM CPA
+    CPAKEM(K).Real compose R_KEM(K, F, KF) against CPAKEM(KF).Adversary;
+
+    // By KEM CPA assumption: k* now random
+    CPAKEM(K).Random compose R_KEM(K, F, KF) against CPAKEM(KF).Adversary;
+
+    // Interchangeability: inline to get PRF with random key
+    G_RandKey(K, F) against CPAKEM(KF).Adversary;
+
+    // Isolate PRF security
+    PRFSecurity(F).Real compose R_PRF(K, F, KF) against CPAKEM(KF).Adversary;
+
+    // By PRF assumption: PRF -> RF
+    PRFSecurity(F).Random compose R_PRF(K, F, KF) against CPAKEM(KF).Adversary;
+
+    // Interchangeability: inline RF
+    G_RF(K, F) against CPAKEM(KF).Adversary;
+
+    // RF(ct) is uniform -> random shared secret
+    CPAKEM(KF).Random against CPAKEM(KF).Adversary;
