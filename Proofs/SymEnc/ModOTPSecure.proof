@@ -11,7 +11,7 @@
 //   OTS.Right  -- inline ModOTP: return k + mR, simplify k + mR -> k
 
 import '../../Primitives/SymEnc.primitive';
-import '../../Schemes/ModEnc/ModOTP.scheme';
+import '../../Schemes/SymEnc/ModOTP.scheme';
 import '../../Games/SymEnc/OneTimeSecrecy.game';
 
 // Both OTS.Left and OTS.Right canonicalize to this game:
