@@ -12,16 +12,14 @@ Game Real(PRF F) {
 }
 
 Game Random(PRF F) {
-    Map<BitString<F.in>, BitString<F.out>> T;
+    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
+        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
     }
 
     BitString<F.out> Lookup(BitString<F.in> x) {
-        if (!(x in T)) {
-            T[x] <- BitString<F.out>;
-        }
-        return T[x];
+        return RF(x);
     }
 }
 

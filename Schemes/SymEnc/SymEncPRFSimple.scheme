@@ -1,0 +1,27 @@
+import '../../Primitives/SymEnc.primitive';
+import '../../Primitives/PRF.primitive';
+
+// PRF-based encryption: c = (r, m XOR PRF(k, r))
+// Simpler than SymEncPRF because it does not require F.in == F.lambda
+
+Scheme SymEncPRFSimple(PRF F) extends SymEnc {
+    Set Key = BitString<F.lambda>;
+    Set Message = BitString<F.out>;
+    Set Ciphertext = [BitString<F.in>, BitString<F.out>];
+
+    Key KeyGen() {
+        Key k <- BitString<F.lambda>;
+        return k;
+    }
+
+    Ciphertext Enc(Key k, Message m) {
+        BitString<F.in> r <- BitString<F.in>;
+        BitString<F.out> z = F.evaluate(k, r);
+        return [r, m + z];
+    }
+
+    Message Dec(Key k, Ciphertext c) {
+        Message m = F.evaluate(k, c[0]) + c[1];
+        return m;
+    }
+}
