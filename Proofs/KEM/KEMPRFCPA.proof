@@ -1,16 +1,15 @@
 // Proof that KEMPRF satisfies CPA security for KEMs,
-// assuming the underlying KEM is CPA-secure and the PRF is secure.
+// assuming the underlying KEM is CPA-secure and the PRF has multi-key security.
 //
 // Main idea:
 // 1. Replace real KEM shared secret k* with random k* (KEM CPA assumption)
-// 2. Replace PRF(k*, ct) with RF(ct) (PRF security, since k* is now random)
-// 3. Replace RF(ct) with a uniform random value (RF on a single input is uniform)
+// 2. Replace PRF(random_key, ct) with uniform random (multi-key PRF assumption)
 
 import '../../Primitives/KEM.primitive';
 import '../../Primitives/PRF.primitive';
 import '../../Schemes/KEM/KEMPRF.scheme';
 import '../../Games/KEM/CPAKEM.game';
-import '../../Games/PRF/Security.game' as PRFSecurity;
+import '../../Games/PRF/MultiKey.game';
 
 // Reduction for KEM CPA hop: receives (ss, ct) from KEM challenger,
 // applies F.evaluate(ss, ct) to produce the KEMPRF shared secret.
@@ -45,9 +44,9 @@ Game G_RandKey(KEM K, PRF F) {
     }
 }
 
-// Reduction for PRF hop: delegates PRF/RF evaluation to challenger,
+// Reduction for multi-key PRF hop: delegates PRF/random evaluation to challenger,
 // generates KEM ciphertext independently.
-Reduction R_PRF(KEM K, PRF F, KEMPRF KF) compose PRFSecurity(F) against CPAKEM(KF).Adversary {
+Reduction R_MultiPRF(KEM K, PRF F, KEMPRF KF) compose MultiKeyPRFSecurity(F) against CPAKEM(KF).Adversary {
     K.PublicKey pk;
 
     KF.PublicKey Initialize() {
@@ -61,25 +60,6 @@ Reduction R_PRF(KEM K, PRF F, KEMPRF KF) compose PRFSecurity(F) against CPAKEM(K
         K.Ciphertext ct = rsp[1];
         BitString<F.out> ss = challenger.Lookup(ct);
         return [ss, ct];
-    }
-}
-
-// Intermediate game: random function applied to KEM ciphertext
-Game G_RF(KEM K, PRF F) {
-    K.PublicKey pk;
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
-
-    K.PublicKey Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
-        return pk;
-    }
-
-    [BitString<F.out>, K.Ciphertext] Challenge() {
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pk);
-        K.Ciphertext ct = rsp[1];
-        return [RF(ct), ct];
     }
 }
 
@@ -99,7 +79,7 @@ let:
 
 assume:
     CPAKEM(K);
-    PRFSecurity(F);
+    MultiKeyPRFSecurity(F);
 
 theorem:
     CPAKEM(KF);
@@ -117,14 +97,11 @@ games:
     // Interchangeability: inline to get PRF with random key
     G_RandKey(K, F) against CPAKEM(KF).Adversary;
 
-    // Isolate PRF security
-    PRFSecurity(F).Real compose R_PRF(K, F, KF) against CPAKEM(KF).Adversary;
+    // Isolate multi-key PRF security
+    MultiKeyPRFSecurity(F).Real compose R_MultiPRF(K, F, KF) against CPAKEM(KF).Adversary;
 
-    // By PRF assumption: PRF -> RF
-    PRFSecurity(F).Random compose R_PRF(K, F, KF) against CPAKEM(KF).Adversary;
+    // By multi-key PRF assumption: fresh-key PRF -> uniform random
+    MultiKeyPRFSecurity(F).Random compose R_MultiPRF(K, F, KF) against CPAKEM(KF).Adversary;
 
-    // Interchangeability: inline RF
-    G_RF(K, F) against CPAKEM(KF).Adversary;
-
-    // RF(ct) is uniform -> random shared secret
+    // Interchangeability: uniform random shared secret = Random game
     CPAKEM(KF).Random against CPAKEM(KF).Adversary;
