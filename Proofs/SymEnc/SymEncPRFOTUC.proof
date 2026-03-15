@@ -10,18 +10,19 @@ import '../../Games/Misc/Sample.game';
 //
 // Proof structure:
 //   OTUC.Real
-//   -> G0            move key to Initialize
-//   -> PRF.Real o R_PRF   interchangeability
-//   -> PRF.Random o R_PRF   by PRF assumption
-//   -> G_RF            interchangeability
-//   -> Sample.Repl o R_Sample  interchangeability
-//   -> Sample.NoRepl o R_Sample  by Sample assumption (birthday bound, forward)
-//   -> G_Uniq          interchangeability
+//   -> G0                         move key to Initialize since calls <= 1
+//   -> PRF.Real o R_PRF           interchangeability
+//   -> PRF.Random o R_PRF         by PRF assumption
+//   -> G_RF                       interchangeability
+//   -> Sample.Repl o R_Sample     interchangeability
+//   -> Sample.NoRepl o R_Sample   by Sample assumption (birthday bound, forward)
+//   -> G_Uniq                     interchangeability
 //   -> Sample.NoRepl o R_Sample2  interchangeability (engine: RF(r)->uniform)
-//   -> Sample.Repl o R_Sample2  by Sample assumption (birthday bound, reverse)
-//   -> OTUC.Random        interchangeability
+//   -> Sample.Repl o R_Sample2    by Sample assumption (birthday bound, reverse)
+//   -> OTUC.Random                interchangeability
 
 // G0: OTUC.Real with key as a field instead of local variable
+// Relies on assume calls <= 1
 Game G0(SymEnc E, PRF F) {
     BitString<F.lambda> k;
 
