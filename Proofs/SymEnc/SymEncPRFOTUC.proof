@@ -1,11 +1,11 @@
 import '../../Primitives/PRF.primitive';
 import '../../Primitives/SymEnc.primitive';
-import '../../Schemes/SymEnc/SymEncPRFSimple.scheme';
+import '../../Schemes/SymEnc/SymEncPRF.scheme';
 import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 import '../../Games/PRF/Security.game' as PRFSecurity;
 import '../../Games/Misc/Sample.game';
 
-// Main result: SymEncPRFSimple satisfies OneTimeUniformCiphertexts
+// Main result: SymEncPRF satisfies OneTimeUniformCiphertexts
 // assuming PRF security and the birthday-bound sampling assumption.
 //
 // Proof structure:
@@ -116,7 +116,7 @@ let:
     Int in;
     Int out;
     PRF F = PRF(lambda, in, out);
-    SymEnc E = SymEncPRFSimple(F);
+    SymEnc E = SymEncPRF(F);
 
 assume:
     PRFSecurity(F);
@@ -127,7 +127,7 @@ theorem:
     OneTimeUniformCiphertexts(E);
 
 games:
-    // OTUC.Real composed with SymEncPRFSimple
+    // OTUC.Real composed with SymEncPRF
     OneTimeUniformCiphertexts(E).Real against OneTimeUniformCiphertexts(E).Adversary;
 
     // Move key sampling to Initialize

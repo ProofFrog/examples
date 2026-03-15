@@ -1,11 +1,11 @@
 import '../../Primitives/PRF.primitive';
 import '../../Primitives/SymEnc.primitive';
-import '../../Schemes/SymEnc/SymEncPRFSimple.scheme';
+import '../../Schemes/SymEnc/SymEncPRF.scheme';
 import '../../Games/Misc/Sample.game';
 import '../../Games/SymEnc/CPA$.game';
 import '../../Games/PRF/Security.game' as PRFSecurity;
 
-// Main result: SymEncPRFSimple satisfies CPA$ security
+// Main result: SymEncPRF satisfies CPA$ security
 // assuming PRF security and the birthday-bound sampling assumption.
 //
 // The scheme encrypts as c = (r, m XOR PRF(k, r)) with random r.
@@ -134,7 +134,7 @@ let:
     Int in;
     Int out;
     PRF F = PRF(lambda, in, out);
-    SymEnc E = SymEncPRFSimple(F);
+    SymEnc E = SymEncPRF(F);
 
 assume:
     PRFSecurity(F);
@@ -144,7 +144,7 @@ theorem:
     CPA$(E);
 
 games:
-    // CPA$.Real with SymEncPRFSimple inlined: return [r, m + PRF(k, r)]
+    // CPA$.Real with SymEncPRF inlined: return [r, m + PRF(k, r)]
     CPA$(E).Real against CPA$(E).Adversary;
 
     // Interchangeability with PRF.Real compose R_PRF
