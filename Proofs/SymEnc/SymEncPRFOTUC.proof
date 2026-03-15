@@ -3,23 +3,23 @@ import '../../Primitives/SymEnc.primitive';
 import '../../Schemes/SymEnc/SymEncPRF.scheme';
 import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 import '../../Games/PRF/Security.game' as PRFSecurity;
-import '../../Games/Misc/Sample.game';
+import '../../Games/Misc/UniqueSampling.game';
 
 // Main result: SymEncPRF satisfies OneTimeUniformCiphertexts
 // assuming PRF security and the birthday-bound sampling assumption.
 //
 // Proof structure:
 //   OTUC.Real
-//   -> G0                         move key to Initialize since calls <= 1
-//   -> PRF.Real o R_PRF           interchangeability
-//   -> PRF.Random o R_PRF         by PRF assumption
-//   -> G_RF                       interchangeability
-//   -> Sample.Repl o R_Sample     interchangeability
-//   -> Sample.NoRepl o R_Sample   by Sample assumption (birthday bound, forward)
-//   -> G_Uniq                     interchangeability
-//   -> Sample.NoRepl o R_Sample2  interchangeability (engine: RF(r)->uniform)
-//   -> Sample.Repl o R_Sample2    by Sample assumption (birthday bound, reverse)
-//   -> OTUC.Random                interchangeability
+//   -> G0                                 move key to Initialize since calls <= 1
+//   -> PRF.Real o R_PRF                   interchangeability
+//   -> PRF.Random o R_PRF                 by PRF assumption
+//   -> G_RF                               interchangeability
+//   -> UniqueSampling.Repl o R_Sample     interchangeability
+//   -> UniqueSampling.NoRepl o R_Sample   by UniqueSampling assumption (birthday bound, forward)
+//   -> G_Uniq                             interchangeability
+//   -> UniqueSampling.NoRepl o R_Sample2  interchangeability (engine: RF(r)->uniform)
+//   -> UniqueSampling.Repl o R_Sample2    by UniqueSampling assumption (birthday bound, reverse)
+//   -> OTUC.Random                        interchangeability
 
 // G0: OTUC.Real with key as a field instead of local variable
 // Relies on assume calls <= 1
@@ -61,8 +61,8 @@ Game G_RF(SymEnc E, PRF F) {
     }
 }
 
-// Reduction for forward Sample hop (Replacement -> NoReplacement on r)
-Reduction R_Sample(SymEnc E, PRF F) compose Sample(F.in) against OneTimeUniformCiphertexts(E).Adversary {
+// Reduction for forward UniqueSampling hop (Replacement -> NoReplacement on r)
+Reduction R_Sample(SymEnc E, PRF F) compose UniqueSampling(F.in) against OneTimeUniformCiphertexts(E).Adversary {
     RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
@@ -91,11 +91,11 @@ Game G_Uniq(SymEnc E, PRF F) {
     }
 }
 
-// Reduction for reverse Sample hop (NoReplacement -> Replacement on r)
+// Reduction for reverse UniqueSampling hop (NoReplacement -> Replacement on r)
 // After UniqueRFSimplification, z = RF(r) becomes z <- uniform,
 // so this reduction just samples z uniformly and delegates r to challenger.
 // RF field is retained for domain bookkeeping even though it is not called.
-Reduction R_Sample2(SymEnc E, PRF F) compose Sample(F.in) against OneTimeUniformCiphertexts(E).Adversary {
+Reduction R_Sample2(SymEnc E, PRF F) compose UniqueSampling(F.in) against OneTimeUniformCiphertexts(E).Adversary {
     RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
@@ -121,7 +121,7 @@ let:
 
 assume:
     PRFSecurity(F);
-    Sample(F.in);
+    UniqueSampling(F.in);
     calls <= 1;
 
 theorem:
@@ -144,19 +144,19 @@ games:
     G_RF(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability
-    Sample(F.in).Replacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    UniqueSampling(F.in).Replacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
-    // By Sample assumption (forward: Replacement -> NoReplacement)
-    Sample(F.in).NoReplacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    // By UniqueSampling assumption (forward: Replacement -> NoReplacement)
+    UniqueSampling(F.in).NoReplacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability
     G_Uniq(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability (engine: UniqueRF simplification, RF(r) -> z <- R)
-    Sample(F.in).NoReplacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    UniqueSampling(F.in).NoReplacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
-    // By Sample assumption (reverse: NoReplacement -> Replacement)
-    Sample(F.in).Replacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    // By UniqueSampling assumption (reverse: NoReplacement -> Replacement)
+    UniqueSampling(F.in).Replacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability: uniform r, uniform z, m + z -> uniform = OTUC.Random
     OneTimeUniformCiphertexts(E).Random against OneTimeUniformCiphertexts(E).Adversary;

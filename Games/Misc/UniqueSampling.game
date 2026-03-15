@@ -12,4 +12,4 @@ Game NoReplacement(Int lambda) {
     }
 }
 
-export as Sample;
+export as UniqueSampling;
