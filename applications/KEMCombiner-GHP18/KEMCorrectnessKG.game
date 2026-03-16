@@ -3,7 +3,7 @@
 // this game calls KeyGen internally so that the relationship between
 // pk and sk components is preserved during canonicalization.
 
-import '../Primitives/KEM.primitive';
+import '../../Primitives/KEM.primitive';
 
 Game FromDecaps(KEM K) {
     [K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute() {

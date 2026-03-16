@@ -1,17 +1,17 @@
-// Proof that KEMCombiner is one-time KEM-CPA secure,
-// assuming KEM2 is one-time KEM-CPA secure and F is a PRF in its second key.
+// Proof that KEMCombiner is IND-CPA secure,
+// assuming KEM2 is IND-CPA secure and F is a PRF in its second key.
 //
 // Main idea:
 // 1. Start with CPAKEM(KC).Real: F(ss1, ss2, label) with real ss1, ss2
 // 2. Replace ss2 with random via CPAKEM(KEM2) assumption
-// 3. Replace F(ss1, random_key, label) with random via SecondKeySecurity(F) assumption
+// 3. Replace F(ss1, random_key, label) with random via SecondKeyMultiKey(F) assumption
 // 4. End with CPAKEM(KC).Random: uniform random shared secret
 
-import '../Primitives/KEM.primitive';
+import '../../Primitives/KEM.primitive';
 import 'TwoKeyPRF.primitive';
 import 'KEMCombiner.scheme';
-import '../Games/KEM/CPAKEM.game';
-import 'TwoKeyPRFSecondKeySecurity.game';
+import '../../Games/KEM/CPAKEM.game';
+import 'TwoKeyPRFSecondKeyMultiKey.game';
 
 // Reduction for KEM2 CPA hop: receives (ss2, ct2) from KEM2 challenger,
 // generates KEM1 independently, applies F.evaluate(ss1, ss2, label).
@@ -75,7 +75,7 @@ Game G2_RandKey(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2
 
 // Reduction for second-key PRF hop: generates KEMs independently,
 // delegates PRF evaluation to challenger.
-Reduction R_PRF2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose TwoKeyPRFSecondKeySecurity(F) against CPAKEM(KC).Adversary {
+Reduction R_PRF2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose TwoKeyPRFSecondKeyMultiKey(F) against CPAKEM(KC).Adversary {
     KEM1.PublicKey pk1;
     KEM2.PublicKey pk2;
 
@@ -128,7 +128,7 @@ let:
 
 assume:
     CPAKEM(KEM2);
-    TwoKeyPRFSecondKeySecurity(F);
+    TwoKeyPRFSecondKeyMultiKey(F);
 
 theorem:
     CPAKEM(KC);
@@ -138,6 +138,6 @@ games:
     CPAKEM(KEM2).Real compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
     CPAKEM(KEM2).Random compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
     G2_RandKey(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CPAKEM(KC).Adversary;
-    TwoKeyPRFSecondKeySecurity(F).Real compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
-    TwoKeyPRFSecondKeySecurity(F).Random compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
+    TwoKeyPRFSecondKeyMultiKey(F).Real compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
+    TwoKeyPRFSecondKeyMultiKey(F).Random compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
     CPAKEM(KC).Random against CPAKEM(KC).Adversary;

@@ -14,10 +14,10 @@
 // 6: TwoKeyPRFIsDeterministic(F).OneCall compose R_PRF -- by PRF determinism
 // 7: KEMCorrectnessKG(KC).FromEncaps
 
-import '../Primitives/KEM.primitive';
+import '../../Primitives/KEM.primitive';
 import 'TwoKeyPRF.primitive';
 import 'KEMCombiner.scheme';
-import '../Games/KEM/Correctness.game';
+import '../../Games/KEM/Correctness.game';
 import 'KEMCorrectnessKG.game';
 import 'TwoKeyPRFIsDeterministic.game';
 

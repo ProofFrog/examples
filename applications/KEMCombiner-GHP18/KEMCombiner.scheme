@@ -3,7 +3,7 @@
 // Encaps: encapsulate with both KEMs, compute ss = F(ss1, ss2, pk1 || ct1 || pk2 || ct2).
 // Decaps: decapsulate with both KEMs, recompute the same label and PRF call.
 
-import '../Primitives/KEM.primitive';
+import '../../Primitives/KEM.primitive';
 import 'TwoKeyPRF.primitive';
 
 Scheme KEMCombiner(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) extends KEM {
