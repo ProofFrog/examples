@@ -1,0 +1,143 @@
+// Proof that KEMCombiner is IND-CPA secure,
+// assuming KEM1 is IND-CPA secure and F is a PRF in its first key.
+//
+// Main idea:
+// 1. Start with CPAKEM(KC).Real: F(ss1, ss2, label) with real ss1, ss2
+// 2. Replace ss1 with random via CPAKEM(KEM1) assumption
+// 3. Replace F(random_key, ss2, label) with random via FirstKeyMultiKey(F) assumption
+// 4. End with CPAKEM(KC).Random: uniform random shared secret
+
+import '../../Primitives/KEM.primitive';
+import 'TwoKeyPRF.primitive';
+import 'KEMCombiner.scheme';
+import '../../Games/KEM/CPAKEM.game';
+import 'TwoKeyPRFFirstKeyMultiKey.game';
+
+// Reduction for KEM1 CPA hop: receives (ss1, ct1) from KEM1 challenger,
+// generates KEM2 independently, applies F.evaluate(ss1, ss2, label).
+Reduction R_KEM1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose CPAKEM(KEM1) against CPAKEM(KC).Adversary {
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+
+    KC.PublicKey Initialize() {
+        pk1 = challenger.Initialize();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk2 = k2[0];
+        return [pk1, pk2];
+    }
+
+    [KC.SharedSecret, KC.Ciphertext] Challenge() {
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = challenger.Challenge();
+        KEM1.SharedSecret ss1 = rsp1[0];
+        KEM1.Ciphertext ct1 = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        KEM2.Ciphertext ct2 = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        KC.SharedSecret ss = F.evaluate(ss1, ss2, label);
+        return [ss, [ct1, ct2]];
+    }
+}
+
+// Intermediate game: KEM1 shared secret replaced with random key
+Game G1_RandKey(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) {
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+
+    [KEM1.PublicKey, KEM2.PublicKey] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        pk2 = k2[0];
+        return [pk1, pk2];
+    }
+
+    [BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Challenge() {
+        BitString<F.lambda1> key1 <- BitString<F.lambda1>;
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        KEM1.Ciphertext ct1 = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        KEM2.Ciphertext ct2 = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        BitString<F.out> ss = F.evaluate(key1, ss2, label);
+        return [ss, [ct1, ct2]];
+    }
+}
+
+// Reduction for first-key PRF hop: generates KEMs independently,
+// delegates PRF evaluation to challenger.
+Reduction R_PRF1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose TwoKeyPRFFirstKeyMultiKey(F) against CPAKEM(KC).Adversary {
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+
+    KC.PublicKey Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        pk2 = k2[0];
+        return [pk1, pk2];
+    }
+
+    [KC.SharedSecret, KC.Ciphertext] Challenge() {
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        KEM1.Ciphertext ct1 = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        KEM2.Ciphertext ct2 = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        KC.SharedSecret ss = challenger.Lookup(ss2, label);
+        return [ss, [ct1, ct2]];
+    }
+}
+
+proof:
+
+let:
+    Int ss1len;
+    Int ss2len;
+    Int ct1len;
+    Int ct2len;
+    Int pk1len;
+    Int pk2len;
+    Set SK1Space;
+    Set SK2Space;
+    Set SS1Space;
+    Set SS2Space;
+    Set CT1Space;
+    Set CT2Space;
+    Set PK1Space;
+    Set PK2Space;
+    Int outlen;
+    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
+    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
+    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
+    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
+
+assume:
+    CPAKEM(KEM1);
+    TwoKeyPRFFirstKeyMultiKey(F);
+
+theorem:
+    CPAKEM(KC);
+
+games:
+    CPAKEM(KC).Real against CPAKEM(KC).Adversary;
+    CPAKEM(KEM1).Real compose R_KEM1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
+    CPAKEM(KEM1).Random compose R_KEM1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
+    G1_RandKey(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CPAKEM(KC).Adversary;
+    TwoKeyPRFFirstKeyMultiKey(F).Real compose R_PRF1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
+    TwoKeyPRFFirstKeyMultiKey(F).Random compose R_PRF1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CPAKEM(KC).Adversary;
+    CPAKEM(KC).Random against CPAKEM(KC).Adversary;

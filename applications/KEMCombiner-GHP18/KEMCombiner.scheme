@@ -1,0 +1,63 @@
+// KEM combiner: combines two KEMs using a two-key PRF.
+// KeyGen: generate key pairs independently; SK includes PKs for label computation.
+// Encaps: encapsulate with both KEMs, compute ss = F(ss1, ss2, pk1 || ct1 || pk2 || ct2).
+// Decaps: decapsulate with both KEMs, recompute the same label and PRF call.
+
+import '../../Primitives/KEM.primitive';
+import 'TwoKeyPRF.primitive';
+
+Scheme KEMCombiner(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) extends KEM {
+    requires KEM1.SharedSecret subsets BitString<F.lambda1>;
+    requires KEM2.SharedSecret subsets BitString<F.lambda2>;
+    requires KEM1.PublicKey subsets BitString<pk1len>;
+    requires KEM1.Ciphertext subsets BitString<ct1len>;
+    requires KEM2.PublicKey subsets BitString<pk2len>;
+    requires KEM2.Ciphertext subsets BitString<ct2len>;
+    requires F.in == pk1len + ct1len + pk2len + ct2len;
+
+    Set PublicKey = [KEM1.PublicKey, KEM2.PublicKey];
+    Set SecretKey = [KEM1.SecretKey, KEM2.SecretKey, KEM1.PublicKey, KEM2.PublicKey];
+    Set Ciphertext = [KEM1.Ciphertext, KEM2.Ciphertext];
+    Set SharedSecret = BitString<F.out>;
+
+    [PublicKey, SecretKey] KeyGen() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        return [[k1[0], k2[0]], [k1[1], k2[1], k1[0], k2[0]]];
+    }
+
+    [SharedSecret, Ciphertext] Encaps(PublicKey pk) {
+        KEM1.PublicKey pk1 = pk[0];
+        KEM2.PublicKey pk2 = pk[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] r1 = KEM1.Encaps(pk1);
+        [KEM2.SharedSecret, KEM2.Ciphertext] r2 = KEM2.Encaps(pk2);
+        KEM1.SharedSecret ss1 = r1[0];
+        KEM1.Ciphertext ct1 = r1[1];
+        KEM2.SharedSecret ss2 = r2[0];
+        KEM2.Ciphertext ct2 = r2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        SharedSecret ss = F.evaluate(ss1, ss2, label);
+        return [ss, [ct1, ct2]];
+    }
+
+    SharedSecret Decaps(SecretKey sk, Ciphertext c) {
+        KEM1.SecretKey sk1 = sk[0];
+        KEM2.SecretKey sk2 = sk[1];
+        KEM1.PublicKey pk1 = sk[2];
+        KEM2.PublicKey pk2 = sk[3];
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        return F.evaluate(ss1, ss2, label);
+    }
+}

@@ -1,0 +1,31 @@
+// Standard PRF security in the second key argument.
+// Real: sample key2 once in Initialize, return F.evaluate(key1, key2, x).
+// Random: return output of a random function on (key1, x).
+
+import 'TwoKeyPRF.primitive';
+
+Game Real(TwoKeyPRF F) {
+    BitString<F.lambda2> k;
+
+    Void Initialize() {
+        k <- BitString<F.lambda2>;
+    }
+
+    BitString<F.out> Lookup(BitString<F.lambda1> key1, BitString<F.in> x) {
+        return F.evaluate(key1, k, x);
+    }
+}
+
+Game Random(TwoKeyPRF F) {
+    RandomFunctions<[BitString<F.lambda1>, BitString<F.in>], BitString<F.out>> RF;
+
+    Void Initialize() {
+        RF <- RandomFunctions<[BitString<F.lambda1>, BitString<F.in>], BitString<F.out>>;
+    }
+
+    BitString<F.out> Lookup(BitString<F.lambda1> key1, BitString<F.in> x) {
+        return RF([key1, x]);
+    }
+}
+
+export as TwoKeyPRFSecondKeySecurity;

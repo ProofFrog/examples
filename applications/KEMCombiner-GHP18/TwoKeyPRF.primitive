@@ -1,0 +1,8 @@
+Primitive TwoKeyPRF(Int lambda1, Int lambda2, Int in, Int out) {
+    Int lambda1 = lambda1;
+    Int lambda2 = lambda2;
+    Int in = in;
+    Int out = out;
+
+    BitString<out> evaluate(BitString<lambda1> key1, BitString<lambda2> key2, BitString<in> input);
+}

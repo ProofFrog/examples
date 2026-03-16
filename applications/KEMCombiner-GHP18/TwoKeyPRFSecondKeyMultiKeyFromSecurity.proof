@@ -1,0 +1,64 @@
+// Proof that TwoKeyPRFSecondKeyMultiKey follows from TwoKeyPRFSecondKeySecurity
+// via a hybrid argument over the number of oracle calls.
+//
+// Main idea: Use a hybrid reduction that, for the i-th call, delegates
+// to the single-key PRF challenger, while earlier calls return random and
+// later calls use fresh keys. Inducting over i from 1 to q replaces
+// each call one at a time.
+
+import 'TwoKeyPRF.primitive';
+import 'TwoKeyPRFSecondKeySecurity.game';
+import 'TwoKeyPRFSecondKeyMultiKey.game';
+
+Reduction R_Hybrid(TwoKeyPRF F, Int h) compose TwoKeyPRFSecondKeySecurity(F) against TwoKeyPRFSecondKeyMultiKey(F).Adversary {
+    Int count;
+
+    Void Initialize() {
+        count = 0;
+        challenger.Initialize();
+    }
+
+    BitString<F.out> Lookup(BitString<F.lambda1> key1, BitString<F.in> x) {
+        count = count + 1;
+        if (count < h) {
+            BitString<F.out> r <- BitString<F.out>;
+            return r;
+        } else if (count == h) {
+            return challenger.Lookup(key1, x);
+        } else {
+            BitString<F.lambda2> k <- BitString<F.lambda2>;
+            return F.evaluate(key1, k, x);
+        }
+    }
+}
+
+proof:
+
+let:
+    Int lambda1;
+    Int lambda2;
+    Int in;
+    Int out;
+    Int q;
+    TwoKeyPRF F = TwoKeyPRF(lambda1, lambda2, in, out);
+
+assume:
+    TwoKeyPRFSecondKeySecurity(F);
+    calls <= q;
+
+theorem:
+    TwoKeyPRFSecondKeyMultiKey(F);
+
+games:
+    TwoKeyPRFSecondKeyMultiKey(F).Real against TwoKeyPRFSecondKeyMultiKey(F).Adversary;
+
+    assume R_Hybrid(F, 1).count >= 1;
+
+    induction(i from 1 to q) {
+        TwoKeyPRFSecondKeySecurity(F).Real compose R_Hybrid(F, i) against TwoKeyPRFSecondKeyMultiKey(F).Adversary;
+        TwoKeyPRFSecondKeySecurity(F).Random compose R_Hybrid(F, i) against TwoKeyPRFSecondKeyMultiKey(F).Adversary;
+    }
+
+    assume R_Hybrid(F, q).count < q + 1;
+
+    TwoKeyPRFSecondKeyMultiKey(F).Random against TwoKeyPRFSecondKeyMultiKey(F).Adversary;
