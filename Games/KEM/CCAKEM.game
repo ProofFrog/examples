@@ -1,0 +1,51 @@
+// CCA security for a KEM is defined as indistinguishability between
+// two games:
+//  - Real:   The adversary receives a real shared secret from encapsulation
+//  - Random: The adversary receives a random shared secret
+// Both games provide a Decaps oracle that decapsulates any ciphertext
+// except the challenge ciphertext.
+
+import '../../Primitives/KEM.primitive';
+
+Game Real(KEM K) {
+    K.SecretKey sk;
+    K.Ciphertext ctStar;
+
+    [K.PublicKey, K.SharedSecret, K.Ciphertext] Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
+        sk = k[1];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        ctStar = rsp[1];
+        return [k[0], rsp[0], rsp[1]];
+    }
+
+    K.SharedSecret? Decaps(K.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return K.Decaps(sk, c);
+    }
+}
+
+Game Random(KEM K) {
+    K.SecretKey sk;
+    K.Ciphertext ctStar;
+
+    [K.PublicKey, K.SharedSecret, K.Ciphertext] Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
+        sk = k[1];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        K.SharedSecret ss <- K.SharedSecret;
+        ctStar = rsp[1];
+        return [k[0], ss, rsp[1]];
+    }
+
+    K.SharedSecret? Decaps(K.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return K.Decaps(sk, c);
+    }
+}
+
+export as CCAKEM;
