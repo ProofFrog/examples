@@ -1,0 +1,21 @@
+// Multi-key PRF security in the first key argument.
+// Real: sample a fresh key1 per call, return F.evaluate(key1, key2, x).
+// Random: return a uniformly random output.
+
+import 'TwoKeyPRF.primitive';
+
+Game Real(TwoKeyPRF F) {
+    BitString<F.out> Lookup(BitString<F.lambda2> key2, BitString<F.in> x) {
+        BitString<F.lambda1> k <- BitString<F.lambda1>;
+        return F.evaluate(k, key2, x);
+    }
+}
+
+Game Random(TwoKeyPRF F) {
+    BitString<F.out> Lookup(BitString<F.lambda2> key2, BitString<F.in> x) {
+        BitString<F.out> r <- BitString<F.out>;
+        return r;
+    }
+}
+
+export as TwoKeyPRFFirstKeySecurity;

@@ -1,0 +1,19 @@
+// Determinism game for TwoKeyPRF: two calls with the same inputs
+// produce the same output.
+
+import 'TwoKeyPRF.primitive';
+
+Game TwoCalls(TwoKeyPRF F) {
+    [BitString<F.out>, BitString<F.out>] Call(BitString<F.lambda1> key1, BitString<F.lambda2> key2, BitString<F.in> x) {
+        return [F.evaluate(key1, key2, x), F.evaluate(key1, key2, x)];
+    }
+}
+
+Game OneCall(TwoKeyPRF F) {
+    [BitString<F.out>, BitString<F.out>] Call(BitString<F.lambda1> key1, BitString<F.lambda2> key2, BitString<F.in> x) {
+        BitString<F.out> y = F.evaluate(key1, key2, x);
+        return [y, y];
+    }
+}
+
+export as TwoKeyPRFIsDeterministic;

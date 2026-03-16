@@ -1,0 +1,33 @@
+// KEM correctness game with KeyGen built in.
+// Unlike the standard KEMCorrectness game (where the adversary passes pk,sk),
+// this game calls KeyGen internally so that the relationship between
+// pk and sk components is preserved during canonicalization.
+
+import '../Primitives/KEM.primitive';
+
+Game FromDecaps(KEM K) {
+    [K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute() {
+        [K.PublicKey, K.SecretKey] keys = K.KeyGen();
+        K.PublicKey pk = keys[0];
+        K.SecretKey sk = keys[1];
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(pk);
+        K.SharedSecret ss_e = encaps_result[0];
+        K.Ciphertext ct = encaps_result[1];
+        K.SharedSecret ss_d = K.Decaps(sk, ct);
+        return [ct, ss_e, ss_d];
+    }
+}
+
+Game FromEncaps(KEM K) {
+    [K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute() {
+        [K.PublicKey, K.SecretKey] keys = K.KeyGen();
+        K.PublicKey pk = keys[0];
+        K.SecretKey sk = keys[1];
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(pk);
+        K.Ciphertext ct = encaps_result[1];
+        K.SharedSecret ss = encaps_result[0];
+        return [ct, ss, ss];
+    }
+}
+
+export as KEMCorrectnessKG;
