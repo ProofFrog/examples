@@ -14,7 +14,114 @@ import 'TwoKeyPRF.primitive';
 import 'KEMCombiner.scheme';
 import '../../Games/KEM/CCAKEM.game';
 import '../../Games/KEM/Correctness.game';
+import 'KEMDecapsIsDeterministic.game';
 import 'TwoKeyPRFFirstKeySecurity.game';
+
+// Determinism reduction (left half): delegates a pair of KEM1.Decaps
+// calls on the challenge ciphertext to the determinism challenger.
+// Initialize uses Encaps result for F.evaluate but stores the second
+// Decaps result for the Decaps oracle. With TwoCalls composition,
+// if-condition alias propagation collapses the conditional in Decaps.
+Reduction R_Determ_L(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMDecapsIsDeterministic(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1d;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        KEM1.SharedSecret ss1e = rsp1[0];
+        ct1Star = rsp1[1];
+        [KEM1.SharedSecret, KEM1.SharedSecret] dd = challenger.Call(sk1, ct1Star);
+        ss1d = dd[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        ct2Star = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1Star;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2Star;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        KC.SharedSecret ss = F.evaluate(ss1e, ss2, label);
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1d, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Determinism reduction (right half): same Decaps as left half, but
+// Initialize returns an independent random shared secret.
+Reduction R_Determ_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMDecapsIsDeterministic(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1d;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ct1Star = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        ct2Star = rsp2[1];
+        [KEM1.SharedSecret, KEM1.SharedSecret] dd = challenger.Call(sk1, ct1Star);
+        ss1d = dd[1];
+        KC.SharedSecret ss <- KC.SharedSecret;
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1d, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
 
 // Correctness reduction (left half): delegates KEM1 Encaps+Decaps pair
 // to the correctness challenger. Uses ss_e for the challenge and ss_d
@@ -537,6 +644,7 @@ let:
     KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
 
 assume:
+    KEMDecapsIsDeterministic(KEM1);
     KEMCorrectness(KEM1);
     CCAKEM(KEM1);
     TwoKeyPRFFirstKeySecurity(F);
@@ -547,6 +655,8 @@ theorem:
 games:
     // Left half
     CCAKEM(KC).Real against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).TwoCalls compose R_Determ_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).OneCall compose R_Determ_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
     KEMCorrectness(KEM1).FromDecaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
     KEMCorrectness(KEM1).FromEncaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
     G_StoredSS1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CCAKEM(KC).Adversary;
@@ -564,4 +674,6 @@ games:
     G_StoredSS1_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CCAKEM(KC).Adversary;
     KEMCorrectness(KEM1).FromEncaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
     KEMCorrectness(KEM1).FromDecaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).OneCall compose R_Determ_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).TwoCalls compose R_Determ_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
     CCAKEM(KC).Random against CCAKEM(KC).Adversary;
