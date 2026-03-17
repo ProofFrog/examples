@@ -1,0 +1,679 @@
+// Proof that KEMCombiner is IND-CCA secure,
+// assuming KEM1 is IND-CCA secure, F has first-key PRF security,
+// and KEM1 is correct.
+//
+// The proof is symmetric. The left half:
+// 1. Use KEM1 correctness to replace KEM1.Decaps(sk1, ct1Star) with stored
+//    ss1 in Decaps oracle when ct1 == ct1Star
+// 2. Replace ss1 with random via CCAKEM(KEM1)
+// 3. Replace F(random_ss1, ...) with random function via TwoKeyPRFFirstKeySecurity(F)
+// The right half reverses the same steps from CCAKEM(KC).Random.
+
+import '../../Primitives/KEM.primitive';
+import 'TwoKeyPRF.primitive';
+import 'KEMCombiner.scheme';
+import '../../Games/KEM/CCAKEM.game';
+import '../../Games/KEM/Correctness.game';
+import 'KEMDecapsIsDeterministic.game';
+import 'TwoKeyPRFFirstKeySecurity.game';
+
+// Determinism reduction (left half): delegates a pair of KEM1.Decaps
+// calls on the challenge ciphertext to the determinism challenger.
+// Initialize uses Encaps result for F.evaluate but stores the second
+// Decaps result for the Decaps oracle. With TwoCalls composition,
+// if-condition alias propagation collapses the conditional in Decaps.
+Reduction R_Determ_L(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMDecapsIsDeterministic(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1d;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        KEM1.SharedSecret ss1e = rsp1[0];
+        ct1Star = rsp1[1];
+        [KEM1.SharedSecret, KEM1.SharedSecret] dd = challenger.Call(sk1, ct1Star);
+        ss1d = dd[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        ct2Star = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1Star;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2Star;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        KC.SharedSecret ss = F.evaluate(ss1e, ss2, label);
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1d, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Determinism reduction (right half): same Decaps as left half, but
+// Initialize returns an independent random shared secret.
+Reduction R_Determ_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMDecapsIsDeterministic(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1d;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ct1Star = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        ct2Star = rsp2[1];
+        [KEM1.SharedSecret, KEM1.SharedSecret] dd = challenger.Call(sk1, ct1Star);
+        ss1d = dd[1];
+        KC.SharedSecret ss <- KC.SharedSecret;
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1d, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Correctness reduction (left half): delegates KEM1 Encaps+Decaps pair
+// to the correctness challenger. Uses ss_e for the challenge and ss_d
+// for Decaps when ct1 == ct1Star.
+Reduction R_Correct_L(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMCorrectness(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1d;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.Ciphertext, KEM1.SharedSecret, KEM1.SharedSecret] corr = challenger.Compute(pk1, sk1);
+        ct1Star = corr[0];
+        KEM1.SharedSecret ss1e = corr[1];
+        ss1d = corr[2];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        ct2Star = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1Star;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2Star;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        KC.SharedSecret ss = F.evaluate(ss1e, ss2, label);
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1d, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Correctness reduction (right half): same as left but Initialize
+// returns an independent random shared secret.
+Reduction R_Correct_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMCorrectness(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1d;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.Ciphertext, KEM1.SharedSecret, KEM1.SharedSecret] corr = challenger.Compute(pk1, sk1);
+        ct1Star = corr[0];
+        ss1d = corr[2];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        ct2Star = rsp2[1];
+        KC.SharedSecret ss <- KC.SharedSecret;
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1d, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// KEM1 CCA reduction (left half): delegates KEM1 to CCA challenger.
+// Stores ss1Star for Decaps when ct1 == ct1Star. Challenge shared
+// secret is derived from ss1Star via the PRF.
+Reduction R_KEM1_L(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose CCAKEM(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1Star;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = challenger.Initialize();
+        pk1 = rsp1[0];
+        ss1Star = rsp1[1];
+        ct1Star = rsp1[2];
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        ct2Star = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1Star;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2Star;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        KC.SharedSecret ss = F.evaluate(ss1Star, ss2, label);
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1Star, ss2, label);
+        }
+        KEM1.SharedSecret? ss1_opt = challenger.Decaps(ct1);
+        if (ss1_opt == None) {
+            return None;
+        }
+        return F.evaluate(ss1_opt, ss2, label);
+    }
+}
+
+// PRF reduction (left half): delegates all F calls that use ss1
+// to the PRF challenger (both Initialize and Decaps ct1==ct1Star).
+Reduction R_PRF_L(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose TwoKeyPRFFirstKeySecurity(F) against CCAKEM(KC).Adversary {
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        challenger.Initialize();
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ct1Star = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        ct2Star = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1Star;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2Star;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        KC.SharedSecret ss = challenger.Lookup(ss2, label);
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return challenger.Lookup(ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// KEM1 CCA reduction (right half): same Decaps as left half, but
+// Initialize returns an independent random shared secret.
+Reduction R_KEM1_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose CCAKEM(KEM1) against CCAKEM(KC).Adversary {
+    KEM1.SharedSecret ss1Star;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = challenger.Initialize();
+        pk1 = rsp1[0];
+        ss1Star = rsp1[1];
+        ct1Star = rsp1[2];
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        ct2Star = rsp2[1];
+        KC.SharedSecret ss <- KC.SharedSecret;
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1Star, ss2, label);
+        }
+        KEM1.SharedSecret? ss1_opt = challenger.Decaps(ct1);
+        if (ss1_opt == None) {
+            return None;
+        }
+        return F.evaluate(ss1_opt, ss2, label);
+    }
+}
+
+// PRF reduction (right half): only delegates Decaps ct1==ct1Star PRF
+// calls to challenger. Initialize returns independent random.
+Reduction R_PRF_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose TwoKeyPRFFirstKeySecurity(F) against CCAKEM(KC).Adversary {
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], KC.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        challenger.Initialize();
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ct1Star = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        ct2Star = rsp2[1];
+        KC.SharedSecret ss <- KC.SharedSecret;
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    KC.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return challenger.Lookup(ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Intermediate game: stored ss1 with real challenge (left correctness target)
+Game G_StoredSS1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) {
+    KEM1.SharedSecret ss1Star;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ss1Star = rsp1[0];
+        ct1Star = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        ct2Star = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1Star;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2Star;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        BitString<F.out> ss = F.evaluate(ss1Star, ss2, label);
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1Star, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Intermediate game: random ss1, real challenge (after KEM1 CCA hop)
+Game G_RandKey(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) {
+    BitString<F.lambda1> ss1Star;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ct1Star = rsp1[1];
+        ss1Star <- BitString<F.lambda1>;
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        KEM2.SharedSecret ss2 = rsp2[0];
+        ct2Star = rsp2[1];
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1Star;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2Star;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        BitString<F.out> ss = F.evaluate(ss1Star, ss2, label);
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1Star, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Intermediate game: random ss1, random challenge (right half mirror of G_RandKey)
+Game G_RandKey_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) {
+    BitString<F.lambda1> ss1Star;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ct1Star = rsp1[1];
+        ss1Star <- BitString<F.lambda1>;
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        ct2Star = rsp2[1];
+        BitString<F.out> ss <- BitString<F.out>;
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1Star, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+// Intermediate game: stored ss1 with random challenge (right correctness target)
+Game G_StoredSS1_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) {
+    KEM1.SharedSecret ss1Star;
+    KEM1.SecretKey sk1;
+    KEM2.SecretKey sk2;
+    KEM1.PublicKey pk1;
+    KEM2.PublicKey pk2;
+    KEM1.Ciphertext ct1Star;
+    KEM2.Ciphertext ct2Star;
+
+    [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
+        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        pk1 = k1[0];
+        sk1 = k1[1];
+        pk2 = k2[0];
+        sk2 = k2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
+        ss1Star = rsp1[0];
+        ct1Star = rsp1[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
+        ct2Star = rsp2[1];
+        BitString<F.out> ss <- BitString<F.out>;
+        return [[pk1, pk2], ss, [ct1Star, ct2Star]];
+    }
+
+    BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
+        if (c == [ct1Star, ct2Star]) {
+            return None;
+        }
+        KEM1.Ciphertext ct1 = c[0];
+        KEM2.Ciphertext ct2 = c[1];
+        KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
+        BitString<pk1len> bpk1 = pk1;
+        BitString<ct1len> bct1 = ct1;
+        BitString<pk2len> bpk2 = pk2;
+        BitString<ct2len> bct2 = ct2;
+        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
+        if (ct1 == ct1Star) {
+            return F.evaluate(ss1Star, ss2, label);
+        }
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
+        return F.evaluate(ss1, ss2, label);
+    }
+}
+
+proof:
+
+let:
+    Int ss1len;
+    Int ss2len;
+    Int ct1len;
+    Int ct2len;
+    Int pk1len;
+    Int pk2len;
+    Set SK1Space;
+    Set SK2Space;
+    Set SS1Space;
+    Set SS2Space;
+    Set CT1Space;
+    Set CT2Space;
+    Set PK1Space;
+    Set PK2Space;
+    Int outlen;
+    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
+    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
+    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
+    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
+
+assume:
+    KEMDecapsIsDeterministic(KEM1);
+    KEMCorrectness(KEM1);
+    CCAKEM(KEM1);
+    TwoKeyPRFFirstKeySecurity(F);
+
+theorem:
+    CCAKEM(KC);
+
+games:
+    // Left half
+    CCAKEM(KC).Real against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).TwoCalls compose R_Determ_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).OneCall compose R_Determ_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMCorrectness(KEM1).FromDecaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMCorrectness(KEM1).FromEncaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    G_StoredSS1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CCAKEM(KC).Adversary;
+    CCAKEM(KEM1).Real compose R_KEM1_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    CCAKEM(KEM1).Random compose R_KEM1_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    G_RandKey(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CCAKEM(KC).Adversary;
+    TwoKeyPRFFirstKeySecurity(F).Real compose R_PRF_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    TwoKeyPRFFirstKeySecurity(F).Random compose R_PRF_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    // Right half (mirror)
+    TwoKeyPRFFirstKeySecurity(F).Random compose R_PRF_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    TwoKeyPRFFirstKeySecurity(F).Real compose R_PRF_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    G_RandKey_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CCAKEM(KC).Adversary;
+    CCAKEM(KEM1).Random compose R_KEM1_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    CCAKEM(KEM1).Real compose R_KEM1_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    G_StoredSS1_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against CCAKEM(KC).Adversary;
+    KEMCorrectness(KEM1).FromEncaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMCorrectness(KEM1).FromDecaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).OneCall compose R_Determ_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    KEMDecapsIsDeterministic(KEM1).TwoCalls compose R_Determ_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against CCAKEM(KC).Adversary;
+    CCAKEM(KC).Random against CCAKEM(KC).Adversary;
