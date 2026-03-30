@@ -5,5 +5,5 @@ Primitive MAC(Set MessageSpace, Set TagSpace, Set KeySpace) {
 
     Key KeyGen();
 
-    Tag MAC(Key k, Message m);
+    deterministic Tag MAC(Key k, Message m);
 }

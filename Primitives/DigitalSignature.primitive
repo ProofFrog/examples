@@ -6,5 +6,5 @@ Primitive DigitalSignature(Set SigningKeySpace, Set VerificationKeySpace, Set Me
     
     [SigningKey, VerificationKey] KeyGen();
     Signature Sign(SigningKey sk, Message m);
-    Bool Verify(VerificationKey vk, Message m, Signature s);
+    deterministic Bool Verify(VerificationKey vk, Message m, Signature s);
 }
