@@ -5,5 +5,5 @@ Primitive SymEnc(Set MessageSpace, Set CiphertextSpace, Set KeySpace) {
 
     Key KeyGen();
     Ciphertext Enc(Key k, Message m);
-    Message? Dec(Key k, Ciphertext c);
+    deterministic Message? Dec(Key k, Ciphertext c);
 }

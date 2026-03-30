@@ -2,7 +2,7 @@ Primitive PRP(Int lambda, Int blen) {
     Int lambda = lambda;
     Int blen = blen;
 
-    BitString<blen> evaluate(BitString<lambda> seed, BitString<blen> input);
+    deterministic injective BitString<blen> evaluate(BitString<lambda> seed, BitString<blen> input);
 
-    BitString<blen> evaluateInverse(BitString<lambda> seed, BitString<blen> input);
+    deterministic injective BitString<blen> evaluateInverse(BitString<lambda> seed, BitString<blen> input);
 }
