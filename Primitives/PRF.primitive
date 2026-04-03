@@ -3,5 +3,5 @@ Primitive PRF(Int lambda, Int in, Int out) {
     Int in = in;
     Int out = out;
 
-    BitString<out> evaluate(BitString<lambda> seed, BitString<in> input);
+    deterministic BitString<out> evaluate(BitString<lambda> seed, BitString<in> input);
 }

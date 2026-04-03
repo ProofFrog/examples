@@ -1,25 +1,22 @@
-// Proof that KEMPRF is correct, assuming the underlying KEM is correct
-// and PRF is deterministic.
+// Proof that KEMPRF is correct, assuming the underlying KEM is correct.
 //
 // Main idea: KEMPRF.Encaps applies F.evaluate(k, c) where k is the KEM
 // shared secret and c is the ciphertext. KEMPRF.Decaps applies
 // F.evaluate(K.Decaps(sk, c), c). KEM correctness ensures
 // K.Decaps(sk, c) = K.Encaps(pk)[0], giving two F.evaluate calls with
-// the same inputs. PRF determinism collapses these into one value.
+// the same inputs. The engine's deterministic expression deduplication
+// collapses these into one value.
 //
 // Game sequence:
 // Game 0: KEMCorrectness(KF).FromDecaps -- inline KEMPRF into correctness game
 // Game 1: KEMCorrectness(K).FromDecaps compose R_KEM -- isolate KEM correctness
 // Game 2: KEMCorrectness(K).FromEncaps compose R_KEM -- by KEM correctness
-// Game 3: PRFIsDeterministic(F).TwoCalls compose R_PRF -- isolate PRF determinism
-// Game 4: PRFIsDeterministic(F).OneCall compose R_PRF -- by PRF determinism
-// Game 5: KEMCorrectness(KF).FromEncaps -- done
+// Game 3: KEMCorrectness(KF).FromEncaps -- done
 
 import '../../Primitives/KEM.primitive';
 import '../../Primitives/PRF.primitive';
 import '../../Schemes/KEM/KEMPRF.scheme';
 import '../../Games/KEM/Correctness.game';
-import '../../Games/PRF/IsDeterministic.game';
 
 // Reduction for KEM correctness: wraps the KEM correctness challenger
 // and applies F.evaluate to both shared secrets.
@@ -30,18 +27,6 @@ Reduction R_KEM(KEM K, PRF F, KEMPRF KF) compose KEMCorrectness(K) against KEMCo
         K.SharedSecret ss_e = result[1];
         K.SharedSecret ss_d = result[2];
         return [ct, F.evaluate(ss_e, ct), F.evaluate(ss_d, ct)];
-    }
-}
-
-// Reduction for PRF determinism: calls K.Encaps to get the shared secret
-// and ciphertext, then delegates the two F.evaluate calls to the challenger.
-Reduction R_PRF(KEM K, PRF F, KEMPRF KF) compose PRFIsDeterministic(F) against KEMCorrectness(KF).Adversary {
-    [KF.Ciphertext, KF.SharedSecret, KF.SharedSecret] Compute(KF.PublicKey pk, KF.SecretKey sk) {
-        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(pk);
-        K.SharedSecret ss = encaps_result[0];
-        K.Ciphertext ct = encaps_result[1];
-        [BitString<F.out>, BitString<F.out>] prf_result = challenger.Call(ss, ct);
-        return [ct, prf_result[0], prf_result[1]];
     }
 }
 
@@ -61,7 +46,6 @@ let:
 
 assume:
     KEMCorrectness(K);
-    PRFIsDeterministic(F);
 
 theorem:
     KEMCorrectness(KF);
@@ -70,6 +54,4 @@ games:
     KEMCorrectness(KF).FromDecaps against KEMCorrectness(KF).Adversary;
     KEMCorrectness(K).FromDecaps compose R_KEM(K, F, KF) against KEMCorrectness(KF).Adversary;
     KEMCorrectness(K).FromEncaps compose R_KEM(K, F, KF) against KEMCorrectness(KF).Adversary;
-    PRFIsDeterministic(F).TwoCalls compose R_PRF(K, F, KF) against KEMCorrectness(KF).Adversary;
-    PRFIsDeterministic(F).OneCall compose R_PRF(K, F, KF) against KEMCorrectness(KF).Adversary;
     KEMCorrectness(KF).FromEncaps against KEMCorrectness(KF).Adversary;

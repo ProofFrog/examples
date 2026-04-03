@@ -28,7 +28,6 @@ The two-key PRF has single-key and multi-key security notions for each key posit
 | [TwoKeyPRFSecondKeySecurity.game](TwoKeyPRFSecondKeySecurity.game) | Single-key PRF security in the second key (key2 fixed across queries) |
 | [TwoKeyPRFFirstKeyMultiKey.game](TwoKeyPRFFirstKeyMultiKey.game) | Multi-key PRF security in the first key (fresh key1 per query) |
 | [TwoKeyPRFSecondKeyMultiKey.game](TwoKeyPRFSecondKeyMultiKey.game) | Multi-key PRF security in the second key (fresh key2 per query) |
-| [TwoKeyPRFIsDeterministic.game](TwoKeyPRFIsDeterministic.game) | Determinism of the PRF (needed for correctness) |
 
 The multi-key security properties are derived from the single-key ones via a standard hybrid argument:
 
@@ -37,10 +36,10 @@ The multi-key security properties are derived from the single-key ones via a sta
 
 ## Correctness proof
 
-[KEMCombinerCorrectness.proof](KEMCombinerCorrectness.proof) shows that the combiner is correct (decapsulation recovers the encapsulated shared secret) assuming both component KEMs are correct and the PRF is deterministic:
+[KEMCombinerCorrectness.proof](KEMCombinerCorrectness.proof) shows that the combiner is correct (decapsulation recovers the encapsulated shared secret) assuming both component KEMs are correct:
 
-- Assumptions: `KEMCorrectness(KEM1)`, `KEMCorrectness(KEM2)`, `TwoKeyPRFIsDeterministic(F)`
-- 8 game hops, reducing to the correctness of each component KEM and determinism of the PRF.
+- Assumptions: `KEMCorrectness(KEM1)`, `KEMCorrectness(KEM2)`
+- 5 game hops, reducing to the correctness of each component KEM. The engine's deterministic expression deduplication automatically handles the PRF determinism.
 
 ## IND-CPA security proofs
 

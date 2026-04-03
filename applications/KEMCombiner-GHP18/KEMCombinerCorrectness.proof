@@ -1,8 +1,11 @@
-// Proof that KEMCombiner is correct, assuming both underlying KEMs are
-// correct and TwoKeyPRF is deterministic.
+// Proof that KEMCombiner is correct, assuming both underlying KEMs are correct.
 //
 // Uses KEMCorrectnessKG (with built-in KeyGen) so the engine can track
 // that pk components stored in sk equal the original pk.
+//
+// The engine's deterministic expression deduplication collapses the two
+// F.evaluate calls (from Encaps and Decaps) once KEM correctness ensures
+// the shared secrets match.
 //
 // Game sequence:
 // 0: KEMCorrectnessKG(KC).FromDecaps -- inline combiner
@@ -10,16 +13,13 @@
 // 2: KEMCorrectness(KEM1).FromEncaps compose R_KEM1 -- by KEM1 correctness
 // 3: KEMCorrectness(KEM2).FromDecaps compose R_KEM2
 // 4: KEMCorrectness(KEM2).FromEncaps compose R_KEM2 -- by KEM2 correctness
-// 5: TwoKeyPRFIsDeterministic(F).TwoCalls compose R_PRF
-// 6: TwoKeyPRFIsDeterministic(F).OneCall compose R_PRF -- by PRF determinism
-// 7: KEMCorrectnessKG(KC).FromEncaps
+// 5: KEMCorrectnessKG(KC).FromEncaps
 
 import '../../Primitives/KEM.primitive';
 import 'TwoKeyPRF.primitive';
 import 'KEMCombiner.scheme';
 import '../../Games/KEM/Correctness.game';
 import 'KEMCorrectnessKG.game';
-import 'TwoKeyPRFIsDeterministic.game';
 
 // Reduction for KEM1 correctness: delegates KEM1 Encaps/Decaps to challenger,
 // handles KEM2 and PRF locally.
@@ -71,33 +71,6 @@ Reduction R_KEM2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk
     }
 }
 
-// Reduction for PRF determinism: calls both KEMs to get shared secrets,
-// then delegates the two F.evaluate calls to the challenger.
-// Note: sk1 and sk2 are extracted but unused, matching the structure of
-// KEMCorrectnessKG(KC).FromEncaps which also calls KC.KeyGen() (producing
-// both pk and sk) even though only pk is needed for Encaps.
-Reduction R_PRF(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose TwoKeyPRFIsDeterministic(F) against KEMCorrectnessKG(KC).Adversary {
-    [KC.Ciphertext, KC.SharedSecret, KC.SharedSecret] Compute() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
-        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
-        KEM1.PublicKey pk1 = k1[0];
-        KEM2.PublicKey pk2 = k2[0];
-        [KEM1.SharedSecret, KEM1.Ciphertext] r1 = KEM1.Encaps(pk1);
-        KEM1.SharedSecret ss1 = r1[0];
-        KEM1.Ciphertext ct1 = r1[1];
-        [KEM2.SharedSecret, KEM2.Ciphertext] r2 = KEM2.Encaps(pk2);
-        KEM2.SharedSecret ss2 = r2[0];
-        KEM2.Ciphertext ct2 = r2[1];
-        BitString<pk1len> bpk1 = pk1;
-        BitString<ct1len> bct1 = ct1;
-        BitString<pk2len> bpk2 = pk2;
-        BitString<ct2len> bct2 = ct2;
-        BitString<F.in> label = bpk1 || bct1 || bpk2 || bct2;
-        [BitString<F.out>, BitString<F.out>] prf_result = challenger.Call(ss1, ss2, label);
-        return [[ct1, ct2], prf_result[0], prf_result[1]];
-    }
-}
-
 proof:
 
 let:
@@ -124,7 +97,6 @@ let:
 assume:
     KEMCorrectness(KEM1);
     KEMCorrectness(KEM2);
-    TwoKeyPRFIsDeterministic(F);
 
 theorem:
     KEMCorrectnessKG(KC);
@@ -135,6 +107,4 @@ games:
     KEMCorrectness(KEM1).FromEncaps compose R_KEM1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
     KEMCorrectness(KEM2).FromDecaps compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
     KEMCorrectness(KEM2).FromEncaps compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
-    TwoKeyPRFIsDeterministic(F).TwoCalls compose R_PRF(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
-    TwoKeyPRFIsDeterministic(F).OneCall compose R_PRF(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
     KEMCorrectnessKG(KC).FromEncaps against KEMCorrectnessKG(KC).Adversary;
