@@ -7,8 +7,8 @@ import '../../Primitives/KEM.primitive';
 import 'TwoKeyPRF.primitive';
 
 Scheme KEMCombiner(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len) extends KEM {
-    requires KEM1.SharedSecret subsets BitString<F.lambda1>;
-    requires KEM2.SharedSecret subsets BitString<F.lambda2>;
+    requires KEM1.SharedSecret == BitString<F.lambda1>;
+    requires KEM2.SharedSecret == BitString<F.lambda2>;
     requires KEM1.PublicKey subsets BitString<pk1len>;
     requires KEM1.Ciphertext subsets BitString<ct1len>;
     requires KEM2.PublicKey subsets BitString<pk2len>;

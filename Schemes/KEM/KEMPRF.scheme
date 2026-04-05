@@ -2,7 +2,7 @@ import '../../Primitives/KEM.primitive';
 import '../../Primitives/PRF.primitive';
 
 Scheme KEMPRF(KEM K, PRF F) extends KEM {
-    requires K.SharedSecret subsets BitString<F.lambda>;
+    requires K.SharedSecret == BitString<F.lambda>;
     requires K.Ciphertext subsets BitString<F.in>;
 
     Set Ciphertext = K.Ciphertext;
