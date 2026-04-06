@@ -48,10 +48,10 @@ Reduction R_PRF(SymEnc E, PRF F) compose PRFSecurity(F) against OneTimeUniformCi
 
 // Intermediate game: PRF replaced by random function
 Game G_RF(SymEnc E, PRF F) {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -62,11 +62,11 @@ Game G_RF(SymEnc E, PRF F) {
 }
 
 // Reduction for forward UniqueSampling hop (Replacement -> NoReplacement on r)
-Reduction R_Sample(SymEnc E, PRF F) compose UniqueSampling(F.in) against OneTimeUniformCiphertexts(E).Adversary {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+Reduction R_Sample(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against OneTimeUniformCiphertexts(E).Adversary {
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -78,10 +78,10 @@ Reduction R_Sample(SymEnc E, PRF F) compose UniqueSampling(F.in) against OneTime
 
 // Intermediate game: unique sampling with RF
 Game G_Uniq(SymEnc E, PRF F) {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -95,11 +95,11 @@ Game G_Uniq(SymEnc E, PRF F) {
 // After UniqueRFSimplification, z = RF(r) becomes z <- uniform,
 // so this reduction just samples z uniformly and delegates r to challenger.
 // RF field is retained for domain bookkeeping even though it is not called.
-Reduction R_Sample2(SymEnc E, PRF F) compose UniqueSampling(F.in) against OneTimeUniformCiphertexts(E).Adversary {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+Reduction R_Sample2(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against OneTimeUniformCiphertexts(E).Adversary {
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -121,7 +121,7 @@ let:
 
 assume:
     PRFSecurity(F);
-    UniqueSampling(F.in);
+    UniqueSampling(BitString<F.in>);
     calls <= 1;
 
 theorem:
@@ -144,19 +144,19 @@ games:
     G_RF(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability
-    UniqueSampling(F.in).Replacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    UniqueSampling(BitString<F.in>).Replacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // By UniqueSampling assumption (forward: Replacement -> NoReplacement)
-    UniqueSampling(F.in).NoReplacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability
     G_Uniq(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability (engine: UniqueRF simplification, RF(r) -> z <- R)
-    UniqueSampling(F.in).NoReplacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // By UniqueSampling assumption (reverse: NoReplacement -> Replacement)
-    UniqueSampling(F.in).Replacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
+    UniqueSampling(BitString<F.in>).Replacement compose R_Sample2(E, F) against OneTimeUniformCiphertexts(E).Adversary;
 
     // Interchangeability: uniform r, uniform z, m + z -> uniform = OTUC.Random
     OneTimeUniformCiphertexts(E).Random against OneTimeUniformCiphertexts(E).Adversary;

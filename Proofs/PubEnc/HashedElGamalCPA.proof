@@ -1,0 +1,72 @@
+// Main result: Hashed ElGamal is IND-CPA secure under the Hashed DDH assumption.
+//
+// This is a standard model proof. H is an abstract known function
+// (not sampled), and HashedDDH is assumed directly.
+//
+// High-level proof idea:
+// HashedDDH replaces H(pk^r) with a random bitstring.
+// Once the hash output is replaced by a uniform random value,
+// the XOR masking makes the ciphertext independent of the message.
+//
+// Game sequence:
+//   CPA.Left                        -- [g^r, H(pk^r) + mL]
+//   HashedDDH.Left  o R_L           -- same by interchangeability
+//   HashedDDH.Right o R_L           -- by HashedDDH: H(pk^r) -> random h; h+mL -> h
+//   HashedDDH.Right o R_R           -- same (both canonicalize to [g^r, h])
+//   HashedDDH.Left  o R_R           -- by HashedDDH (reverse)
+//   CPA.Right                       -- [g^r, H(pk^r) + mR]
+
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Games/PubKeyEnc/CPA.game';
+import '../../Games/Group/HashedDDH.game';
+import '../../Schemes/PubEnc/HashedElGamal.scheme';
+
+// HashedDDH reduction (left message): XORs the hashed DH value with mL.
+Reduction R_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose HashedDDH(G, n, H) against CPA(HashedElGamal(G, n, H)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        [GroupElem<G>, BitString<n>] pair = challenger.Challenge();
+        return [pair[0], pair[1] + mL];
+    }
+}
+
+// HashedDDH reduction (right message): XORs the hashed DH value with mR.
+Reduction R_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose HashedDDH(G, n, H) against CPA(HashedElGamal(G, n, H)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        [GroupElem<G>, BitString<n>] pair = challenger.Challenge();
+        return [pair[0], pair[1] + mR];
+    }
+}
+
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H;
+    PubKeyEnc E = HashedElGamal(G, n, H);
+
+assume:
+    HashedDDH(G, n, H);
+
+theorem:
+    CPA(E);
+
+games:
+    CPA(E).Left against CPA(E).Adversary;
+
+    HashedDDH(G, n, H).Left compose R_L(G, n, H) against CPA(E).Adversary;
+    HashedDDH(G, n, H).Right compose R_L(G, n, H) against CPA(E).Adversary;
+
+    HashedDDH(G, n, H).Right compose R_R(G, n, H) against CPA(E).Adversary;
+
+    HashedDDH(G, n, H).Left compose R_R(G, n, H) against CPA(E).Adversary;
+
+    CPA(E).Right against CPA(E).Adversary;

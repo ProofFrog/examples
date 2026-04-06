@@ -1,14 +1,17 @@
-Game Replacement(Int lambda) {
-    BitString<lambda> Samp(Set<BitString<lambda>> bookkeeping) {
-        BitString<lambda> r <- BitString<lambda>;
-        return r;
+// Assumption: sampling uniformly from a set S is indistinguishable from
+// sampling from S \ bookkeeping.
+
+Game Replacement(Set S) {
+    S Samp(Set<S> bookkeeping) {
+        S val <- S;
+        return val;
     }
 }
 
-Game NoReplacement(Int lambda) {
-    BitString<lambda> Samp(Set<BitString<lambda>> bookkeeping) {
-        BitString<lambda> r <-uniq[bookkeeping] BitString<lambda>;
-        return r;
+Game NoReplacement(Set S) {
+    S Samp(Set<S> bookkeeping) {
+        S val <-uniq[bookkeeping] S;
+        return val;
     }
 }
 

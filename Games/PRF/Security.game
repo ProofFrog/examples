@@ -12,10 +12,10 @@ Game Real(PRF F) {
 }
 
 Game Random(PRF F) {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     BitString<F.out> Lookup(BitString<F.in> x) {
