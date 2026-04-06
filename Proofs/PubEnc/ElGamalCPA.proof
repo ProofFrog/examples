@@ -1,0 +1,69 @@
+// Main result: ElGamal encryption is IND-CPA secure under DDH.
+// Uses built-in GroupElem type -- no helper assumptions needed.
+//
+// High-level proof idea:
+// DDH replaces the DH shared secret pk^r with a random group element c.
+// The engine's uniform GroupElem masking transform then simplifies
+// mL * c (or mR * c) to just c, making the ciphertext independent
+// of the message.
+//
+// Game sequence:
+//   CPA.Left               -- [g^r, mL * pk^r]
+//   DDH.Left  o R_L        -- same by interchangeability
+//   DDH.Right o R_L        -- by DDH: pk^r -> random c; then mL*c -> c
+//   DDH.Right o R_R        -- same (both canonicalize to [g^r, c])
+//   DDH.Left  o R_R        -- by DDH (reverse)
+//   CPA.Right              -- [g^r, mR * pk^r]
+
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Games/PubKeyEnc/CPA.game';
+import '../../Games/Group/DDH.game';
+import '../../Schemes/PubEnc/ElGamal.scheme';
+
+// DDH reduction (left message): multiplies mL into the DDH value.
+Reduction R_L(Group G) compose DDH(G) against CPA(ElGamal(G)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
+        return [pair[0], mL * pair[1]];
+    }
+}
+
+// DDH reduction (right message): multiplies mR into the DDH value.
+Reduction R_R(Group G) compose DDH(G) against CPA(ElGamal(G)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
+        return [pair[0], mR * pair[1]];
+    }
+}
+
+proof:
+
+let:
+    Group G;
+    PubKeyEnc E = ElGamal(G);
+
+assume:
+    DDH(G);
+
+theorem:
+    CPA(E);
+
+games:
+    CPA(E).Left against CPA(E).Adversary;
+
+    DDH(G).Left compose R_L(G) against CPA(E).Adversary;
+    DDH(G).Right compose R_L(G) against CPA(E).Adversary;
+
+    DDH(G).Right compose R_R(G) against CPA(E).Adversary;
+
+    DDH(G).Left compose R_R(G) against CPA(E).Adversary;
+
+    CPA(E).Right against CPA(E).Adversary;
