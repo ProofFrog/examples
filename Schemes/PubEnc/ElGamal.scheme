@@ -1,0 +1,22 @@
+import '../../Primitives/PubKeyEnc.primitive';
+
+Scheme ElGamal(Group G) extends PubKeyEnc {
+    Set Message = GroupElem<G>;
+    Set Ciphertext = [GroupElem<G>, GroupElem<G>];
+    Set PublicKey = GroupElem<G>;
+    Set SecretKey = ModInt<G.order>;
+
+    [PublicKey, SecretKey] KeyGen() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        return [G.generator ^ a, a];
+    }
+
+    Ciphertext Enc(PublicKey pk, Message m) {
+        ModInt<G.order> r <- ModInt<G.order>;
+        return [G.generator ^ r, m * pk ^ r];
+    }
+
+    Message? Dec(SecretKey sk, Ciphertext c) {
+        return c[1] / c[0] ^ sk;
+    }
+}
