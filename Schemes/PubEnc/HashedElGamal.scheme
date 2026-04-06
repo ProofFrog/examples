@@ -1,0 +1,28 @@
+// Hashed ElGamal encryption in the random oracle model.
+// The hash function H is modeled as a Function parameter,
+// shared with the security game via the proof's let block.
+
+import '../../Primitives/PubKeyEnc.primitive';
+
+Scheme HashedElGamal(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) extends PubKeyEnc {
+    Set Message = BitString<n>;
+    Set Ciphertext = [GroupElem<G>, BitString<n>];
+    Set PublicKey = GroupElem<G>;
+    Set SecretKey = ModInt<G.order>;
+
+    [PublicKey, SecretKey] KeyGen() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        return [G.generator ^ a, a];
+    }
+
+    Ciphertext Enc(PublicKey pk, Message m) {
+        ModInt<G.order> r <- ModInt<G.order>;
+        BitString<n> h = H(pk ^ r);
+        return [G.generator ^ r, h + m];
+    }
+
+    Message? Dec(SecretKey sk, Ciphertext c) {
+        BitString<n> h = H(c[0] ^ sk);
+        return c[1] + h;
+    }
+}

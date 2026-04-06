@@ -17,10 +17,10 @@ Game Real(TwoKeyPRF F) {
 }
 
 Game Random(TwoKeyPRF F) {
-    RandomFunctions<[BitString<F.lambda1>, BitString<F.in>], BitString<F.out>> RF;
+    Function<[BitString<F.lambda1>, BitString<F.in>], BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<[BitString<F.lambda1>, BitString<F.in>], BitString<F.out>>;
+        RF <- Function<[BitString<F.lambda1>, BitString<F.in>], BitString<F.out>>;
     }
 
     BitString<F.out> Lookup(BitString<F.lambda1> key1, BitString<F.in> x) {

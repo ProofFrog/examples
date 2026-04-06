@@ -45,10 +45,10 @@ Reduction R_PRF(SymEnc E, PRF F) compose PRFSecurity(F) against CPA$(E).Adversar
 
 // G_RF: PRF replaced by a random function
 Game G_RF(SymEnc E, PRF F) {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -58,11 +58,11 @@ Game G_RF(SymEnc E, PRF F) {
 }
 
 // Reduction for forward UniqueSampling hop: delegates r-sampling to challenger
-Reduction R_Uniq(SymEnc E, PRF F) compose UniqueSampling(F.in) against CPA$(E).Adversary {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+Reduction R_Uniq(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against CPA$(E).Adversary {
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -73,10 +73,10 @@ Reduction R_Uniq(SymEnc E, PRF F) compose UniqueSampling(F.in) against CPA$(E).A
 
 // G_Uniq: unique sampling guarantees distinct RF inputs
 Game G_Uniq(SymEnc E, PRF F) {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -90,10 +90,10 @@ Game G_Uniq(SymEnc E, PRF F) {
 //   1. UniqueRF: RF(r) -> z <- BitString<F.out> (r uniquely sampled)
 //   2. UniformXOR: m + z -> z (z is uniform)
 Game G_UniqSimp(SymEnc E, PRF F) {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -104,11 +104,11 @@ Game G_UniqSimp(SymEnc E, PRF F) {
 }
 
 // Reduction for reverse UniqueSampling hop: r from challenger, z sampled uniformly
-Reduction R_Uniq2(SymEnc E, PRF F) compose UniqueSampling(F.in) against CPA$(E).Adversary {
-    RandomFunctions<BitString<F.in>, BitString<F.out>> RF;
+Reduction R_Uniq2(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against CPA$(E).Adversary {
+    Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
-        RF <- RandomFunctions<BitString<F.in>, BitString<F.out>>;
+        RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
@@ -138,7 +138,7 @@ let:
 
 assume:
     PRFSecurity(F);
-    UniqueSampling(F.in);
+    UniqueSampling(BitString<F.in>);
 
 theorem:
     CPA$(E);
@@ -157,10 +157,10 @@ games:
     G_RF(E, F) against CPA$(E).Adversary;
 
     // Interchangeability: extract r-sampling to challenger
-    UniqueSampling(F.in).Replacement compose R_Uniq(E, F) against CPA$(E).Adversary;
+    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq(E, F) against CPA$(E).Adversary;
 
     // By UniqueSampling assumption (forward): sample r without replacement
-    UniqueSampling(F.in).NoReplacement compose R_Uniq(E, F) against CPA$(E).Adversary;
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq(E, F) against CPA$(E).Adversary;
 
     // Interchangeability: inline unique sampling
     G_Uniq(E, F) against CPA$(E).Adversary;
@@ -169,10 +169,10 @@ games:
     G_UniqSimp(E, F) against CPA$(E).Adversary;
 
     // Interchangeability: extract r-sampling to challenger
-    UniqueSampling(F.in).NoReplacement compose R_Uniq2(E, F) against CPA$(E).Adversary;
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq2(E, F) against CPA$(E).Adversary;
 
     // By UniqueSampling assumption (reverse): sample r with replacement
-    UniqueSampling(F.in).Replacement compose R_Uniq2(E, F) against CPA$(E).Adversary;
+    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq2(E, F) against CPA$(E).Adversary;
 
     // Interchangeability: inline uniform sampling
     G_Uniform(E, F) against CPA$(E).Adversary;
