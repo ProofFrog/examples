@@ -1,12 +1,12 @@
 import '../../Primitives/SymEnc.primitive';
-import '../../Book/2_Exercises/2_14.game';
+import '../../joy_old/2_Exercises/2_15.game';
 import '../../Games/SymEnc/OneTimeSecrecy.game';
 
 Reduction R(SymEnc E) compose OneTimeSecrecy(E) against Foo(E).Adversary {
-    E.Ciphertext Foo(E.Message m) {
-        E.Message mPrime <- E.Message;
-        E.Ciphertext c = challenger.Eavesdrop(m, mPrime);
-        return c;
+    [E.Ciphertext, E.Ciphertext] Foo(E.Message mL, E.Message mR) {
+        E.Ciphertext c1 = challenger.Eavesdrop(mL, mR);
+        E.Ciphertext c2 = challenger.Eavesdrop(mR, mL);
+        return [c1, c2];
     }
 }
 

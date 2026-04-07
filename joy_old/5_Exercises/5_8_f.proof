@@ -1,6 +1,6 @@
 import '../../Primitives/PRG.primitive';
-import '../../Book/5_Exercises/5_8_f.scheme';
-import '../../Book/5/5_2_PseudoOTP.scheme';
+import '../../joy_old/5_Exercises/5_8_f.scheme';
+import '../../joy_old/5/5_2_PseudoOTP.scheme';
 import '../../Games/PRG/Security.game';
 import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
@@ -28,7 +28,7 @@ let:
 
 assume:
     Security(G);
-    OneTimeUniformCiphertexts(P); // see '../../Book/5_Exercises/5_8_PseudoOTP_OTUC.proof'
+    OneTimeUniformCiphertexts(P); // see '../../joy_old/5_Exercises/5_8_PseudoOTP_OTUC.proof'
 
 theorem:
     Security(H);

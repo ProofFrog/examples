@@ -1,5 +1,5 @@
 import '../../Primitives/PRG.primitive';
-import '../../Book/5_Exercises/5_8_b.scheme';
+import '../../joy_old/5_Exercises/5_8_b.scheme';
 import '../../Games/PRG/Security.game';
 
 Reduction R1(PRG G, PRG_5_8_b H) compose Security(G) against Security(H).Adversary {
