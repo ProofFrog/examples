@@ -3,7 +3,7 @@
 // replacing G.evaluate(k) with uniform z (via Security(G)),
 // z + mL and z + mR both canonicalize to z
 
-import '../../Book/5/5_2_PseudoOTP.scheme';
+import '../../joy_old/5/5_2_PseudoOTP.scheme';
 import '../../Primitives/PRG.primitive';
 import '../../Games/SymEnc/OneTimeSecrecy.game';
 import '../../Games/PRG/Security.game';

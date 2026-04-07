@@ -2,7 +2,7 @@
 // The engine's uniform XOR simplification recognizes that
 // k[0] + k[1] + m (with k[0], k[1] uniform) canonicalizes to uniform
 
-import '../../Book/2/2_12_DoubleOTP.scheme';
+import '../../joy_old/2/2_12_DoubleOTP.scheme';
 import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
 proof:
