@@ -1,0 +1,38 @@
+// ROM programming assumption: programming a random function at one point
+// with a fresh random value is equivalent to evaluating it normally.
+// This is a perfect statistical equivalence when H is a random function.
+//
+// The target is fixed at initialization (non-adaptive).
+//
+// Natural:    Initialize(target) returns H(target);     Query(x) returns H(x)
+// Programmed: Initialize(target) returns fresh u;       Query(x) returns u if x==target, else H(x)
+
+Game Natural(Set D, Set R, Function<D, R> H) {
+    R Initialize(D target) {
+        return H(target);
+    }
+
+    R Query(D x) {
+        return H(x);
+    }
+}
+
+Game Programmed(Set D, Set R, Function<D, R> H) {
+    D t;
+    R u;
+
+    R Initialize(D target) {
+        t = target;
+        u <- R;
+        return u;
+    }
+
+    R Query(D x) {
+        if (x == t) {
+            return u;
+        }
+        return H(x);
+    }
+}
+
+export as ROMProgramming;

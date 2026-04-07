@@ -1,0 +1,113 @@
+// OneTimeCDH implies OneTimeHashedDDH in the ROM.
+//
+// OneTimeHashedDDH here is the counter-based one-query variant of HashedDDH.
+// Both reductions expose Initialize/Hash/Challenge matching the adversary
+// interface, with Challenge counter-guarded to fire on the first call only.
+//
+// The proof uses two assumptions:
+// 1. ROMProgramming: programming H at pk^r with a fresh random value u is
+//    equivalent to evaluating H(pk^r) normally (perfect statistical equivalence).
+// 2. OneTimeCDH: the adversary cannot compute pk^r from (pk, g^r), so it
+//    cannot detect whether H is programmed at that point.
+//
+// Game sequence:
+//   OneTimeHashedDDH.Left                            -- [pk, g^r, H(pk^r)]; H random
+//   ROMProgramming.Natural    compose R_ROM          -- interchangeability
+//   ROMProgramming.Programmed compose R_ROM          -- by ROMProgramming
+//   OneTimeCDH.Left  compose R_CDH                   -- interchangeability
+//   OneTimeCDH.Right compose R_CDH                   -- by OneTimeCDH assumption
+//   OneTimeHashedDDH.Right                           -- interchangeability
+
+import '../../Games/Group/OneTimeCDH.game';
+import '../../Games/Misc/ROMProgramming.game';
+import '../../Games/Group/OneTimeHashedDDH.game';
+
+// ROM programming reduction: pre-samples pk and g^r in its own Initialize,
+// delegates the hash value at pk^r to the ROMProgramming challenger.
+Reduction R_ROM(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose ROMProgramming(GroupElem<G>, BitString<n>, H) against OneTimeHashedDDH(G, n, H).Adversary {
+    GroupElem<G> gr_saved;
+    BitString<n> val_saved;
+    Int count;
+
+    GroupElem<G> Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        GroupElem<G> pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        gr_saved = G.generator ^ r;
+        val_saved = challenger.Initialize(pk ^ r);
+        count = 0;
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return challenger.Query(x);
+    }
+
+    [GroupElem<G>, BitString<n>]? Challenge() {
+        [GroupElem<G>, BitString<n>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, val_saved];
+        }
+        return result;
+    }
+}
+
+// OneTimeCDH reduction: uses the Solve oracle to detect hash queries at
+// pk^r.  Samples u in Initialize and uses it as the answer to the (unique)
+// Challenge query and as the value returned for any Hash query at the
+// secret pk^r.
+Reduction R_CDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose OneTimeCDH(G) against OneTimeHashedDDH(G, n, H).Adversary {
+    BitString<n> u;
+    GroupElem<G> gr_saved;
+    Int count;
+
+    GroupElem<G> Initialize() {
+        u <- BitString<n>;
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Initialize();
+        gr_saved = pair[1];
+        count = 0;
+        return pair[0];
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        if (challenger.Solve(x)) {
+            return u;
+        }
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>]? Challenge() {
+        [GroupElem<G>, BitString<n>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, u];
+        }
+        return result;
+    }
+}
+
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+
+assume:
+    OneTimeCDH(G);
+    ROMProgramming(GroupElem<G>, BitString<n>, H);
+
+theorem:
+    OneTimeHashedDDH(G, n, H);
+
+games:
+    OneTimeHashedDDH(G, n, H).Left against OneTimeHashedDDH(G, n, H).Adversary;
+
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural compose R_ROM(G, n, H) against OneTimeHashedDDH(G, n, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_ROM(G, n, H) against OneTimeHashedDDH(G, n, H).Adversary;
+
+    OneTimeCDH(G).Left compose R_CDH(G, n, H) against OneTimeHashedDDH(G, n, H).Adversary;
+    OneTimeCDH(G).Right compose R_CDH(G, n, H) against OneTimeHashedDDH(G, n, H).Adversary;
+
+    OneTimeHashedDDH(G, n, H).Right against OneTimeHashedDDH(G, n, H).Adversary;
