@@ -14,7 +14,7 @@ Scheme OTP(Int lambda) extends SymEnc {
         return k + m;
     }
 
-    Message Dec(Key k, Ciphertext c) {
+    deterministic Message? Dec(Key k, Ciphertext c) {
         return k + c;
     }
 }

@@ -22,7 +22,7 @@ Scheme KEMPRF(KEM K, PRF F) extends KEM {
         return [ss, c];
     }
 
-    SharedSecret Decaps(SecretKey sk, Ciphertext c) {
+    deterministic SharedSecret Decaps(SecretKey sk, Ciphertext c) {
         K.SharedSecret k = K.Decaps(sk, c);
         BitString<F.out> ss = F.evaluate(k, c);
         return ss;

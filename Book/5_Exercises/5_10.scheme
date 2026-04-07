@@ -6,7 +6,7 @@ Scheme PRG_5_10(PRG G) extends PRG {
     Int lambda = G.lambda;
     Int stretch = 2 * G.lambda;
 
-    BitString<lambda + stretch> evaluate(BitString<lambda> s) {
+    deterministic BitString<lambda + stretch> evaluate(BitString<lambda> s) {
         BitString<G.lambda + G.stretch> xy = G.evaluate(s);
         BitString<G.lambda> x = xy[0 : G.lambda];
         BitString<G.lambda> y = xy[G.lambda : 2 * G.lambda];

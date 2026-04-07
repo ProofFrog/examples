@@ -19,7 +19,7 @@ Scheme SymEncPRF(PRF F) extends SymEnc {
         return [r, m + z];
     }
 
-    Message Dec(Key k, Ciphertext c) {
+    deterministic Message? Dec(Key k, Ciphertext c) {
         Message m = F.evaluate(k, c[0]) + c[1];
         return m;
     }

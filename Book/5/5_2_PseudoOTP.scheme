@@ -17,7 +17,7 @@ Scheme PseudoOTP(Int lambda, Int stretch, PRG G) extends SymEnc {
         return G.evaluate(k) + m;
     }
 
-    Message Dec(Key k, Ciphertext c) {
+    deterministic Message? Dec(Key k, Ciphertext c) {
         return G.evaluate(k) + c;
     }
 }

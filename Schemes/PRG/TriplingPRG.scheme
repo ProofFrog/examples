@@ -6,7 +6,7 @@ Scheme TriplingPRG(PRG G) extends PRG {
     Int lambda = G.lambda;
     Int stretch = 2 * G.lambda;
 
-    BitString<lambda + stretch> evaluate(BitString<lambda> s) {
+    deterministic BitString<lambda + stretch> evaluate(BitString<lambda> s) {
         BitString<2 * lambda> result1 = G.evaluate(s);
         BitString<lambda> x = result1[0 : lambda];
         BitString<lambda> y = result1[lambda : 2*lambda];

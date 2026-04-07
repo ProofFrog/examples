@@ -6,7 +6,7 @@ Scheme PRG_5_8_f(PRG G) extends PRG {
     Int lambda = 2 * G.lambda; // seed length
     Int stretch = G.lambda;
 
-    BitString<lambda + stretch> evaluate(BitString<lambda> s) {
+    deterministic BitString<lambda + stretch> evaluate(BitString<lambda> s) {
         BitString<G.lambda> sL = s[0 : G.lambda];
         BitString<G.lambda> sR = s[G.lambda : lambda];
         return G.evaluate(sL) + G.evaluate(sR);
