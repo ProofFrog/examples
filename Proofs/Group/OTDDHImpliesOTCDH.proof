@@ -1,0 +1,79 @@
+// One-time DDH implies one-time CDH.
+//
+// Standard textbook implication: an OTCDH solver yields an OTDDH
+// distinguisher.  Given a DDH triple (pk, g^r, z), the reduction exposes
+// (pk, g^r) as the OTCDH challenge and answers each Solve(c) query by
+// checking c == z.  When z = g^(ar) the simulation is perfect (matching
+// OTCDH.Left); when z is uniform random, Solve answers false except with
+// negligible q/|G| probability (matching OTCDH.Right).  So if OTDDH is
+// hard, OTCDH is hard.
+//
+// Proof outline:
+//   1. OTCDH.Left
+//   2. OTDDH.Left  o R       (interchangeability)
+//   3. OTDDH.Right o R       (by OneTimeDDH)
+//   4. RTG.Real    o R'      (interchangeability -- comparing against the
+//                              hidden uniform z is the same as comparing
+//                              against a hidden uniform target)
+//   5. RTG.Ideal   o R'      (by RandomTargetGuessing -- comparing against
+//                              the hidden target collapses to false)
+//   6. OTCDH.Right            (interchangeability)
+
+import '../../Games/Group/OneTimeCDH.game';
+import '../../Games/Group/OneTimeDDH.game';
+import '../../Games/Misc/RandomTargetGuessing.game';
+
+// Reduction R: composes with OneTimeDDH and presents an OTCDH interface.
+// Stores the third component of the DDH triple as the "expected DH value"
+// and answers Solve(c) by checking c == that value.
+Reduction R(Group G) compose OneTimeDDH(G) against OneTimeCDH(G).Adversary {
+    GroupElem<G> z;
+
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        [GroupElem<G>, GroupElem<G>, GroupElem<G>] triple = challenger.Initialize();
+        z = triple[2];
+        return [triple[0], triple[1]];
+    }
+
+    Bool Solve(GroupElem<G> c) {
+        return c == z;
+    }
+}
+
+// Reduction R': composes with RandomTargetGuessing(GroupElem<G>) and
+// presents an OTCDH interface. Forwards Solve queries to the Eq oracle.
+Reduction Rprime(Group G) compose RandomTargetGuessing(GroupElem<G>) against OneTimeCDH(G).Adversary {
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        challenger.Initialize();
+        ModInt<G.order> a <- ModInt<G.order>;
+        ModInt<G.order> r <- ModInt<G.order>;
+        return [G.generator ^ a, G.generator ^ r];
+    }
+
+    Bool Solve(GroupElem<G> c) {
+        return challenger.Eq(c);
+    }
+}
+
+proof:
+
+let:
+    Group G;
+
+assume:
+    OneTimeDDH(G);
+    RandomTargetGuessing(GroupElem<G>);
+
+theorem:
+    OneTimeCDH(G);
+
+games:
+    OneTimeCDH(G).Left against OneTimeCDH(G).Adversary;
+
+    OneTimeDDH(G).Left compose R(G) against OneTimeCDH(G).Adversary;
+    OneTimeDDH(G).Right compose R(G) against OneTimeCDH(G).Adversary;
+
+    RandomTargetGuessing(GroupElem<G>).Real compose Rprime(G) against OneTimeCDH(G).Adversary;
+    RandomTargetGuessing(GroupElem<G>).Ideal compose Rprime(G) against OneTimeCDH(G).Adversary;
+
+    OneTimeCDH(G).Right against OneTimeCDH(G).Adversary;

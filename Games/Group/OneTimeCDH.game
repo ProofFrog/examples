@@ -1,0 +1,37 @@
+// One-time Computational Diffie-Hellman assumption.
+// Single-challenge variant of CDH: the (pk, g^r) challenge pair is returned
+// from Initialize, so no separate Challenge oracle is needed. Solve remains
+// a multi-call oracle (the adversary may guess pk^r many times).
+// Left:  Initialize returns (pk, g^r); Solve(c) returns true iff c == pk^r.
+// Right: Initialize returns (pk, g^r); Solve(c) always returns false.
+
+Game Left(Group G) {
+    GroupElem<G> dh;
+
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        GroupElem<G> pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        dh = pk ^ r;
+        return [pk, G.generator ^ r];
+    }
+
+    Bool Solve(GroupElem<G> c) {
+        return c == dh;
+    }
+}
+
+Game Right(Group G) {
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        GroupElem<G> pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        return [pk, G.generator ^ r];
+    }
+
+    Bool Solve(GroupElem<G> c) {
+        return false;
+    }
+}
+
+export as OneTimeCDH;

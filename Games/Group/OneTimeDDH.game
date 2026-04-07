@@ -1,0 +1,25 @@
+// One-time Decisional Diffie-Hellman assumption.
+// Single-challenge version of DDH: the challenge is embedded in Initialize,
+// so no Challenge oracle is needed.
+// Left: (pk, g^r, pk^r)  Right: (pk, g^r, random)
+
+Game Left(Group G) {
+    [GroupElem<G>, GroupElem<G>, GroupElem<G>] Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        GroupElem<G> pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        return [pk, G.generator ^ r, pk ^ r];
+    }
+}
+
+Game Right(Group G) {
+    [GroupElem<G>, GroupElem<G>, GroupElem<G>] Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        GroupElem<G> pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        GroupElem<G> c <- GroupElem<G>;
+        return [pk, G.generator ^ r, c];
+    }
+}
+
+export as OneTimeDDH;
