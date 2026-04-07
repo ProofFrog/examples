@@ -24,7 +24,7 @@ Scheme ChainedEncryption(SymEnc E1, SymEnc E2) extends SymEnc {
         return [c1, c2];
     }
 
-    Message? Dec(Key k, Ciphertext c) {
+    deterministic Message? Dec(Key k, Ciphertext c) {
         E2.Key? kprime = E1.Dec(k, c[0]);
         if (kprime == None) {
             return None;

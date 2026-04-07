@@ -21,7 +21,7 @@ Scheme HashedElGamal(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) ext
         return [G.generator ^ r, h + m];
     }
 
-    Message? Dec(SecretKey sk, Ciphertext c) {
+    deterministic Message? Dec(SecretKey sk, Ciphertext c) {
         BitString<n> h = H(c[0] ^ sk);
         return c[1] + h;
     }

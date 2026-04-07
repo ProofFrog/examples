@@ -16,7 +16,7 @@ Scheme ElGamal(Group G) extends PubKeyEnc {
         return [G.generator ^ r, m * pk ^ r];
     }
 
-    Message? Dec(SecretKey sk, Ciphertext c) {
+    deterministic Message? Dec(SecretKey sk, Ciphertext c) {
         return c[1] / c[0] ^ sk;
     }
 }

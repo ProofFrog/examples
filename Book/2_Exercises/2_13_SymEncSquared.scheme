@@ -17,7 +17,7 @@ Scheme SymEncSquared(SymEnc E) extends SymEnc {
         return [c1, c2];
     }
 
-    Message? Dec(Key k, Ciphertext c) {
+    deterministic Message? Dec(Key k, Ciphertext c) {
         E.Message? m1 = E.Dec(k[0], c[0]);
         E.Message? m2 = E.Dec(k[1], c[1]);
         if (m1 != m2) {

@@ -21,7 +21,7 @@ Scheme EncryptThenMAC(SymEnc E, MAC M) extends SymEnc {
         return [c, t];
     }
 
-    Message? Dec(Key k, Ciphertext c) {
+    deterministic Message? Dec(Key k, Ciphertext c) {
         if (c[1] != M.MAC(k[1], c[0])) {
             return None;
         }

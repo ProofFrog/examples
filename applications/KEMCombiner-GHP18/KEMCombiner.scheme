@@ -44,7 +44,7 @@ Scheme KEMCombiner(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int 
         return [ss, [ct1, ct2]];
     }
 
-    SharedSecret Decaps(SecretKey sk, Ciphertext c) {
+    deterministic SharedSecret Decaps(SecretKey sk, Ciphertext c) {
         KEM1.SecretKey sk1 = sk[0];
         KEM2.SecretKey sk2 = sk[1];
         KEM1.PublicKey pk1 = sk[2];
