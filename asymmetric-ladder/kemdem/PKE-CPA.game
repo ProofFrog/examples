@@ -1,0 +1,41 @@
+import 'PKE.primitive';
+
+Game Left(PKE E) {
+    E.PublicKey pk;
+    E.SecretKey sk;
+
+    Void Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        sk = k[1];
+    }
+
+    E.PublicKey PK() {
+        return pk;
+    }
+
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        return E.Enc(pk, mL);
+    }
+}
+
+Game Right(PKE E) {
+    E.PublicKey pk;
+    E.SecretKey sk;
+
+    Void Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        sk = k[1];
+    }
+
+    E.PublicKey PK() {
+        return pk;
+    }
+
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        return E.Enc(pk, mR);
+    }
+}
+
+export as CPA;
