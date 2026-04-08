@@ -6,13 +6,13 @@ import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
 
 Reduction R1(PRG G, PRG_5_8_e H) compose Security(G) against Security(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
-        return challenger.Query() + G.evaluate(0b0);
+        return challenger.Query() + G.evaluate(0^G.lambda);
     }
 }
 
 Reduction R2(PseudoOTP P, PRG G, PRG_5_8_e H) compose OneTimeUniformCiphertexts(P) against Security(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
-        BitString<3 * H.lambda> result = challenger.CTXT(G.evaluate(0b0));
+        BitString<3 * H.lambda> result = challenger.CTXT(G.evaluate(0^G.lambda));
         return result;
     }
 }
