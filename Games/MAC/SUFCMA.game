@@ -16,7 +16,7 @@ Game Real(MAC E) {
     }
 }
 
-Game Random(MAC E) {
+Game Ideal(MAC E) {
     E.Key k;
     Set<[E.Message, E.Tag]> T;
 
@@ -35,4 +35,4 @@ Game Random(MAC E) {
     }
 }
 
-export as Security;
+export as SUFCMA;
