@@ -1,7 +1,7 @@
 import '../../Primitives/PRF.primitive';
 import '../../Primitives/SymEnc.primitive';
 import '../../Schemes/SymEnc/SymEncPRF.scheme';
-import '../../Games/Misc/UniqueSampling.game';
+import '../../Games/Helpers/Probability/UniqueSampling.game';
 import '../../Games/SymEnc/CPA$.game';
 import '../../Games/PRF/Security.game' as PRFSecurity;
 

@@ -15,7 +15,7 @@
 //   HashedDDHMultiChal.Right                         -- H(c_uniq) -> random (exact)
 
 import '../../Games/Group/DDHMultiChal.game';
-import '../../Games/Misc/UniqueSampling.game';
+import '../../Games/Helpers/Probability/UniqueSampling.game';
 import '../../Games/Group/HashedDDHMultiChal.game';
 
 // DDHMultiChal reduction: hashes the DDH challenge value and forwards the Hash oracle.

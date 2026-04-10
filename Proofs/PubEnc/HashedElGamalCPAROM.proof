@@ -21,7 +21,7 @@
 
 import '../../Primitives/PubKeyEnc.primitive';
 import '../../Games/Group/DDHMultiChal.game';
-import '../../Games/Misc/UniqueSampling.game';
+import '../../Games/Helpers/Probability/UniqueSampling.game';
 import '../../Games/PubKeyEnc/CPAROM.game';
 import '../../Schemes/PubEnc/HashedElGamal.scheme';
 
