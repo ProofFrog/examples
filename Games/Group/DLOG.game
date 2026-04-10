@@ -1,0 +1,29 @@
+Game Real(Group G) {
+    ModInt<G.order> a;
+
+    GroupElem<G> Initialize() {
+        a <- ModInt<G.order>;
+        GroupElem<G> A = G.generator ^ a;
+        return A;
+    }
+
+    Bool Check(ModInt<G.order> aprime) {
+        return a == aprime;
+    }
+}
+
+Game Ideal(Group G) {
+    ModInt<G.order> a;
+
+    GroupElem<G> Initialize() {
+        a <- ModInt<G.order>;
+        GroupElem<G> A = G.generator ^ a;
+        return A;
+    }
+
+    Bool Check(ModInt<G.order> aprime) {
+        return false;
+    }
+}
+
+export as DLOG;

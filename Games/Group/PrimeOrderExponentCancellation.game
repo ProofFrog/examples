@@ -1,0 +1,17 @@
+// Scaling both exponents by the same factor preserves equality.
+// (g^x == g^y) iff (g^(ax) == g^(ay)) for any invertible a.
+// This holds with overwhelming probability for uniform a in Z_q (prime order).
+
+Game Unscaled(Group G) {
+    Bool Check(ModInt<G.order> a, ModInt<G.order> x, ModInt<G.order> y) {
+        return G.generator ^ x == G.generator ^ y;
+    }
+}
+
+Game Scaled(Group G) {
+    Bool Check(ModInt<G.order> a, ModInt<G.order> x, ModInt<G.order> y) {
+        return G.generator ^ (a * x) == G.generator ^ (a * y);
+    }
+}
+
+export as PrimeOrderExponentCancellation;

@@ -1,0 +1,13 @@
+Game InBase(Group G) {
+    Bool Check(ModInt<G.order> e1, ModInt<G.order> e2) {
+        return G.generator ^ e1 == G.generator ^ e2;
+    }
+}
+
+Game InExponent(Group G) {
+    Bool Check(ModInt<G.order> e1, ModInt<G.order> e2) {
+        return e1 == e2;
+    }
+}
+
+export as ExpIsInjective;

@@ -1,0 +1,88 @@
+import '../../Games/Group/DLOG.game';
+import '../../Games/Group/OneTimeCDH.game';
+import '../../Games/Group/ExpIsInjective.game';
+import '../../Games/Group/PrimeOrderExponentCancellation.game';
+
+Reduction R_ExpInj(Group G) compose ExpIsInjective(G) against DLOG(G).Adversary {
+    ModInt<G.order> a;
+    GroupElem<G> Initialize() { 
+        a <- ModInt<G.order>;
+        GroupElem<G> A = G.generator ^ a;
+        return A;
+    }
+    Bool Check(ModInt<G.order> aprime) { 
+        return challenger.Check(a, aprime);
+    }
+}
+
+// Return g^b (the "challenge" exponent) and use a as the scaling factor.
+// Unscaled side: DCE removes unused a, leaving just sample b, return g^b, check g^b == g^aprime.
+// Scaled side: return g^b, check g^(a*b) == g^(a*aprime), which matches G_Bridge.
+Reduction R_ExpScale(Group G) compose PrimeOrderExponentCancellation(G) against DLOG(G).Adversary {
+    ModInt<G.order> a;
+    ModInt<G.order> b;
+    GroupElem<G> Initialize() {
+        a <- ModInt<G.order>;
+        b <- ModInt<G.order>;
+        return G.generator ^ b;
+    }
+    Bool Check(ModInt<G.order> aprime) {
+        return challenger.Check(a, b, aprime);
+    }
+}
+
+// Intermediate game: samples a, b; stores g^a and g^(a*b); returns g^b.
+// Check: (g^a)^aprime == g^(a*b), i.e., a*aprime == a*b, i.e., aprime == b.
+Game G_Bridge(Group G) {
+    GroupElem<G> A;
+    GroupElem<G> AB;
+
+    GroupElem<G> Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        A = G.generator ^ a;
+        ModInt<G.order> b <- ModInt<G.order>;
+        AB = G.generator ^ (a * b);
+        return G.generator ^ b;
+    }
+
+    Bool Check(ModInt<G.order> aprime) {
+        return A ^ aprime == AB;
+    }
+}
+
+Reduction R_CDH(Group G) compose OneTimeCDH(G) against DLOG(G).Adversary {
+    GroupElem<G> B;
+    GroupElem<G> Initialize() {
+        [GroupElem<G>, GroupElem<G>] cdhChall = challenger.Initialize();
+        GroupElem<G> A = cdhChall[0];
+        B = cdhChall[1];
+        return A;
+    }
+    Bool Check(ModInt<G.order> aprime) {
+        return challenger.Solve(B ^ aprime);
+    }
+}
+
+proof:
+
+let:
+    Group G;
+
+assume:
+    OneTimeCDH(G);
+    ExpIsInjective(G);
+    PrimeOrderExponentCancellation(G);
+
+theorem:
+    DLOG(G);
+
+games:
+    DLOG(G).Real against DLOG(G).Adversary;
+    ExpIsInjective(G).InExponent compose R_ExpInj(G) against DLOG(G).Adversary;
+    ExpIsInjective(G).InBase compose R_ExpInj(G) against DLOG(G).Adversary;
+    PrimeOrderExponentCancellation(G).Unscaled compose R_ExpScale(G) against DLOG(G).Adversary;
+    PrimeOrderExponentCancellation(G).Scaled compose R_ExpScale(G) against DLOG(G).Adversary;
+    G_Bridge(G) against DLOG(G).Adversary;
+    OneTimeCDH(G).Left compose R_CDH(G) against DLOG(G).Adversary;
+    OneTimeCDH(G).Right compose R_CDH(G) against DLOG(G).Adversary;
+    DLOG(G).Ideal against DLOG(G).Adversary;

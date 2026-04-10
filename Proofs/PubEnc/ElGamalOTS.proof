@@ -1,0 +1,96 @@
+// Main result: ElGamal encryption satisfies One-Time Secrecy (OTS) under OneTimeDDH.
+//
+// High-level proof idea:
+// The ElGamal ciphertext is [g^r, m * pk^r]. Under OneTimeDDH, pk^r is
+// computationally indistinguishable from a uniform random group element c.
+// Once the DH value is replaced by a uniform c, the masking m * c is also
+// uniform (group masking), making the ciphertext independent of the message.
+//
+// Game sequence:
+//   OTS(ElGamal).Left                -- Challenge returns [g^r, mL * pk^r]
+//   OneTimeDDH.Left  compose R_L     -- same by interchangeability
+//   OneTimeDDH.Right compose R_L     -- by OneTimeDDH: pk^r -> uniform c; mL*c -> uniform
+//   OneTimeDDH.Right compose R_R     -- same (both sides: [g^r, uniform])
+//   OneTimeDDH.Left  compose R_R     -- by OneTimeDDH (reverse)
+//   OTS(ElGamal).Right               -- Challenge returns [g^r, mR * pk^r]
+
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Games/PubKeyEnc/OneTimeSecrecy.game';
+import '../../Games/Group/OneTimeDDH.game';
+import '../../Schemes/PubEnc/ElGamal.scheme';
+
+// Reduction R_L: plugs into OneTimeDDH, simulates OTS for the adversary using mL.
+// Gets DDH triple [pk, g^r, z] from challenger; returns [g^r, mL * z] as ciphertext.
+// When z = pk^r (Left), this is a valid ElGamal encryption of mL.
+// When z is uniform (Right), mL * z is also uniform, hiding the message.
+Reduction R_L(Group G) compose OneTimeDDH(G) against OneTimeSecrecy(ElGamal(G)).Adversary {
+    GroupElem<G> gr_saved;
+    GroupElem<G> dh_saved;
+    Int count;
+
+    GroupElem<G> Initialize() {
+        [GroupElem<G>, GroupElem<G>, GroupElem<G>] triple = challenger.Initialize();
+        gr_saved = triple[1];
+        dh_saved = triple[2];
+        count = 0;
+        return triple[0];
+    }
+
+    [GroupElem<G>, GroupElem<G>]? Challenge(GroupElem<G> mL, GroupElem<G> mR) {
+        [GroupElem<G>, GroupElem<G>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, mL * dh_saved];
+        }
+        return result;
+    }
+}
+
+// Reduction R_R: same as R_L but uses mR.
+// When z = pk^r (Left), returns a valid ElGamal encryption of mR.
+// When z is uniform (Right), mR * z is uniform.
+Reduction R_R(Group G) compose OneTimeDDH(G) against OneTimeSecrecy(ElGamal(G)).Adversary {
+    GroupElem<G> gr_saved;
+    GroupElem<G> dh_saved;
+    Int count;
+
+    GroupElem<G> Initialize() {
+        [GroupElem<G>, GroupElem<G>, GroupElem<G>] triple = challenger.Initialize();
+        gr_saved = triple[1];
+        dh_saved = triple[2];
+        count = 0;
+        return triple[0];
+    }
+
+    [GroupElem<G>, GroupElem<G>]? Challenge(GroupElem<G> mL, GroupElem<G> mR) {
+        [GroupElem<G>, GroupElem<G>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, mR * dh_saved];
+        }
+        return result;
+    }
+}
+
+proof:
+
+let:
+    Group G;
+    PubKeyEnc E = ElGamal(G);
+
+assume:
+    OneTimeDDH(G);
+
+theorem:
+    OneTimeSecrecy(E);
+
+games:
+    OneTimeSecrecy(E).Left against OneTimeSecrecy(E).Adversary;
+
+    OneTimeDDH(G).Left compose R_L(G) against OneTimeSecrecy(E).Adversary;
+    OneTimeDDH(G).Right compose R_L(G) against OneTimeSecrecy(E).Adversary;
+
+    OneTimeDDH(G).Right compose R_R(G) against OneTimeSecrecy(E).Adversary;
+    OneTimeDDH(G).Left compose R_R(G) against OneTimeSecrecy(E).Adversary;
+
+    OneTimeSecrecy(E).Right against OneTimeSecrecy(E).Adversary;
