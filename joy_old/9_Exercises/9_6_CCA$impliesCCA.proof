@@ -1,5 +1,5 @@
 import '../../Primitives/SymEnc.primitive';
-import '../../Games/SymEnc/CCABook.game';
+import '../../Games/SymEnc/CCA.game';
 import '../../Games/SymEnc/CCA$.game';
 
 Reduction R1(SymEnc E) compose CCA$(E) against CCA(E).Adversary {
