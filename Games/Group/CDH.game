@@ -1,5 +1,5 @@
-// One-time Computational Diffie-Hellman assumption.
-// Single-challenge variant of CDH: the (pk, g^r) challenge pair is returned
+// Computational Diffie-Hellman assumption.
+// Single-challenge variant: the (pk, g^r) challenge pair is returned
 // from Initialize, so no separate Challenge oracle is needed. Solve remains
 // a multi-call oracle (the adversary may guess pk^r many times).
 // Left:  Initialize returns (pk, g^r); Solve(c) returns true iff c == pk^r.
@@ -34,4 +34,4 @@ Game Right(Group G) {
     }
 }
 
-export as OneTimeCDH;
+export as CDH;

@@ -1,0 +1,82 @@
+// HashedDDHMultiChal follows from DDHMultiChal + UniqueSampling in the random oracle model.
+//
+// H is sampled as a random function. DDHMultiChal replaces the DH shared secret
+// with a random group element c. UniqueSampling switches from uniform
+// to exclusion sampling (explicit q/|D| guessing loss). With c excluded
+// from all adversary hash queries, H(c) is exactly an independent
+// uniform bitstring.
+//
+// Game sequence:
+//   HashedDDHMultiChal.Left                          -- [g^r, H(pk^r)]
+//   DDHMultiChal.Left  o R_DDH                       -- same by interchangeability
+//   DDHMultiChal.Right o R_DDH                       -- by DDHMultiChal: pk^r -> random c
+//   UniqueSampling.Replacement  o R_Uniq    -- interchangeability (uniform c)
+//   UniqueSampling.NoReplacement o R_Uniq   -- by UniqueSampling (q/|D| loss)
+//   HashedDDHMultiChal.Right                         -- H(c_uniq) -> random (exact)
+
+import '../../Games/Group/DDHMultiChal.game';
+import '../../Games/Misc/UniqueSampling.game';
+import '../../Games/Group/HashedDDHMultiChal.game';
+
+// DDHMultiChal reduction: hashes the DDH challenge value and forwards the Hash oracle.
+Reduction R_DDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDHMultiChal(G) against HashedDDHMultiChal(G, n, H).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge() {
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
+        return [pair[0], H(pair[1])];
+    }
+}
+
+// UniqueSampling reduction: delegates sampling to the UniqueSampling challenger,
+// using H.domain (implicitly maintained) as the bookkeeping set.
+Reduction R_Uniq(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose UniqueSampling(GroupElem<G>) against HashedDDHMultiChal(G, n, H).Adversary {
+    GroupElem<G> pk;
+
+    GroupElem<G> Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        pk = G.generator ^ a;
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge() {
+        ModInt<G.order> r <- ModInt<G.order>;
+        GroupElem<G> c = challenger.Samp(H.domain);
+        return [G.generator ^ r, H(c)];
+    }
+}
+
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+
+assume:
+    DDHMultiChal(G);
+    UniqueSampling(GroupElem<G>);
+
+theorem:
+    HashedDDHMultiChal(G, n, H);
+
+games:
+    HashedDDHMultiChal(G, n, H).Left against HashedDDHMultiChal(G, n, H).Adversary;
+
+    DDHMultiChal(G).Left compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+    DDHMultiChal(G).Right compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+
+    HashedDDHMultiChal(G, n, H).Right against HashedDDHMultiChal(G, n, H).Adversary;

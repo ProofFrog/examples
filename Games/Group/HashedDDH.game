@@ -1,17 +1,23 @@
 // Hashed Decisional Diffie-Hellman assumption.
-// Left:  (pk, g^r, H(pk^r))   -- hash of real DH shared secret
-// Right: (pk, g^r, random)     -- independent random bitstring
-//
-// Includes a Hash oracle so the same game works for both standard model
-// and ROM. In the standard model, giving the adversary an oracle for a
-// function it can already compute does not change security.
+// Counter-based single-challenge version: Challenge() may be called at most
+// once (subsequent calls return None). Same Initialize/Hash/Challenge
+// interface as HashedDDHMultiChal so a hybrid argument can lift this to
+// HashedDDHMultiChal.
+// Left:  (pk, g^r, H(pk^r))   Right: (pk, g^r, random)
 
 Game Left(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
     GroupElem<G> pk;
+    GroupElem<G> gr_saved;
+    BitString<n> val_saved;
+    Int count;
 
     GroupElem<G> Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
         pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        gr_saved = G.generator ^ r;
+        val_saved = H(pk ^ r);
+        count = 0;
         return pk;
     }
 
@@ -19,18 +25,29 @@ Game Left(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
         return H(x);
     }
 
-    [GroupElem<G>, BitString<n>] Challenge() {
-        ModInt<G.order> r <- ModInt<G.order>;
-        return [G.generator ^ r, H(pk ^ r)];
+    [GroupElem<G>, BitString<n>]? Challenge() {
+        [GroupElem<G>, BitString<n>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, val_saved];
+        }
+        return result;
     }
 }
 
 Game Right(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
     GroupElem<G> pk;
+    GroupElem<G> gr_saved;
+    BitString<n> val_saved;
+    Int count;
 
     GroupElem<G> Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
         pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        gr_saved = G.generator ^ r;
+        val_saved <- BitString<n>;
+        count = 0;
         return pk;
     }
 
@@ -38,10 +55,13 @@ Game Right(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
         return H(x);
     }
 
-    [GroupElem<G>, BitString<n>] Challenge() {
-        ModInt<G.order> r <- ModInt<G.order>;
-        BitString<n> h <- BitString<n>;
-        return [G.generator ^ r, h];
+    [GroupElem<G>, BitString<n>]? Challenge() {
+        [GroupElem<G>, BitString<n>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, val_saved];
+        }
+        return result;
     }
 }
 
