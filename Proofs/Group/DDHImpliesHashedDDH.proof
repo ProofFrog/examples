@@ -1,47 +1,70 @@
-// HashedDDH follows from DDH + UniqueSampling in the random oracle model.
+// DDH implies Hashed DDH (standard model).
 //
-// H is sampled as a random function. DDH replaces the DH shared secret
-// with a random group element c. UniqueSampling switches from uniform
-// to exclusion sampling (explicit q/|D| guessing loss). With c excluded
-// from all adversary hash queries, H(c) is exactly an independent
-// uniform bitstring.
+// Idea: from a DDH triple (pk, g^r, z), the reduction returns
+// the HashedDDH challenge [g^r, H(z)]. When DDH is Left, z = pk^r and
+// we get the real hashed DH value. When DDH is Right, z is uniform in G,
+// and H(z) is indistinguishable from a uniform BitString<n> by the
+// HashOnUniform helper assumption.
 //
-// Game sequence:
-//   HashedDDH.Left                          -- [g^r, H(pk^r)]
-//   DDH.Left  o R_DDH                       -- same by interchangeability
-//   DDH.Right o R_DDH                       -- by DDH: pk^r -> random c
-//   UniqueSampling.Replacement  o R_Uniq    -- interchangeability (uniform c)
-//   UniqueSampling.NoReplacement o R_Uniq   -- by UniqueSampling (q/|D| loss)
-//   HashedDDH.Right                         -- H(c_uniq) -> random (exact)
+// Proof outline:
+//   1. HashedDDH.Left
+//   2. DDH.Left  o R       (interchangeability)
+//   3. DDH.Right o R       (by DDH)
+//   4. HOU.Real    o R'      (interchangeability -- the H(uniform z) call
+//                              moves under a Sample() oracle)
+//   5. HOU.Ideal   o R'      (by HashOnUniform)
+//   6. HashedDDH.Right     (interchangeability)
 
-import '../../Games/Group/DDH.game';
-import '../../Games/Misc/UniqueSampling.game';
 import '../../Games/Group/HashedDDH.game';
+import '../../Games/Group/DDH.game';
+import '../../Games/Misc/HashOnUniform.game';
 
-// DDH reduction: hashes the DDH challenge value and forwards the Hash oracle.
-Reduction R_DDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDH(G) against HashedDDH(G, n, H).Adversary {
-    GroupElem<G> Initialize(GroupElem<G> pk) {
-        return pk;
+// Reduction R: composes with DDH and presents a HashedDDH
+// interface. Calls challenger.Initialize() once to obtain (pk, g^r, z),
+// stores g^r and H(z) in fields (eagerly applying H to match the
+// canonical shape of HashedDDH), and on Challenge returns the saved
+// pair.
+Reduction R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDH(G) against HashedDDH(G, n, H).Adversary {
+    GroupElem<G> gr_saved;
+    BitString<n> val_saved;
+    Int count;
+
+    GroupElem<G> Initialize() {
+        [GroupElem<G>, GroupElem<G>, GroupElem<G>] triple = challenger.Initialize();
+        gr_saved = triple[1];
+        val_saved = H(triple[2]);
+        count = 0;
+        return triple[0];
     }
 
     BitString<n> Hash(GroupElem<G> x) {
         return H(x);
     }
 
-    [GroupElem<G>, BitString<n>] Challenge() {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        return [pair[0], H(pair[1])];
+    [GroupElem<G>, BitString<n>]? Challenge() {
+        [GroupElem<G>, BitString<n>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, val_saved];
+        }
+        return result;
     }
 }
 
-// UniqueSampling reduction: delegates sampling to the UniqueSampling challenger,
-// using H.domain (implicitly maintained) as the bookkeeping set.
-Reduction R_Uniq(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose UniqueSampling(GroupElem<G>) against HashedDDH(G, n, H).Adversary {
-    GroupElem<G> pk;
+// Reduction R': composes with HashOnUniform and presents a HashedDDH
+// interface. Samples pk and gr locally; obtains val_saved from Sample().
+Reduction Rprime(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose HashOnUniform(GroupElem<G>, n, H) against HashedDDH(G, n, H).Adversary {
+    GroupElem<G> gr_saved;
+    BitString<n> val_saved;
+    Int count;
 
     GroupElem<G> Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
-        pk = G.generator ^ a;
+        GroupElem<G> pk = G.generator ^ a;
+        ModInt<G.order> r <- ModInt<G.order>;
+        gr_saved = G.generator ^ r;
+        val_saved = challenger.Sample();
+        count = 0;
         return pk;
     }
 
@@ -49,10 +72,13 @@ Reduction R_Uniq(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose
         return H(x);
     }
 
-    [GroupElem<G>, BitString<n>] Challenge() {
-        ModInt<G.order> r <- ModInt<G.order>;
-        GroupElem<G> c = challenger.Samp(H.domain);
-        return [G.generator ^ r, H(c)];
+    [GroupElem<G>, BitString<n>]? Challenge() {
+        [GroupElem<G>, BitString<n>]? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = [gr_saved, val_saved];
+        }
+        return result;
     }
 }
 
@@ -61,11 +87,11 @@ proof:
 let:
     Group G;
     Int n;
-    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+    Function<GroupElem<G>, BitString<n>> H;
 
 assume:
     DDH(G);
-    UniqueSampling(GroupElem<G>);
+    HashOnUniform(GroupElem<G>, n, H);
 
 theorem:
     HashedDDH(G, n, H);
@@ -73,10 +99,10 @@ theorem:
 games:
     HashedDDH(G, n, H).Left against HashedDDH(G, n, H).Adversary;
 
-    DDH(G).Left compose R_DDH(G, n, H) against HashedDDH(G, n, H).Adversary;
-    DDH(G).Right compose R_DDH(G, n, H) against HashedDDH(G, n, H).Adversary;
+    DDH(G).Left compose R(G, n, H) against HashedDDH(G, n, H).Adversary;
+    DDH(G).Right compose R(G, n, H) against HashedDDH(G, n, H).Adversary;
 
-    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq(G, n, H) against HashedDDH(G, n, H).Adversary;
-    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq(G, n, H) against HashedDDH(G, n, H).Adversary;
+    HashOnUniform(GroupElem<G>, n, H).Real compose Rprime(G, n, H) against HashedDDH(G, n, H).Adversary;
+    HashOnUniform(GroupElem<G>, n, H).Ideal compose Rprime(G, n, H) against HashedDDH(G, n, H).Adversary;
 
     HashedDDH(G, n, H).Right against HashedDDH(G, n, H).Adversary;

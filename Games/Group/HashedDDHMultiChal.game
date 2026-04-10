@@ -1,0 +1,48 @@
+// Multi-challenge Hashed Decisional Diffie-Hellman assumption.
+// Left:  (pk, g^r, H(pk^r))   -- hash of real DH shared secret
+// Right: (pk, g^r, random)     -- independent random bitstring
+//
+// Includes a Hash oracle so the same game works for both standard model
+// and ROM. In the standard model, giving the adversary an oracle for a
+// function it can already compute does not change security.
+
+Game Left(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
+    GroupElem<G> pk;
+
+    GroupElem<G> Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        pk = G.generator ^ a;
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge() {
+        ModInt<G.order> r <- ModInt<G.order>;
+        return [G.generator ^ r, H(pk ^ r)];
+    }
+}
+
+Game Right(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
+    GroupElem<G> pk;
+
+    GroupElem<G> Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        pk = G.generator ^ a;
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge() {
+        ModInt<G.order> r <- ModInt<G.order>;
+        BitString<n> h <- BitString<n>;
+        return [G.generator ^ r, h];
+    }
+}
+
+export as HashedDDHMultiChal;

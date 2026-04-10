@@ -1,34 +1,24 @@
-// Decisional Diffie-Hellman assumption using built-in GroupElem type.
+// Decisional Diffie-Hellman assumption.
+// Single-challenge version: the challenge is embedded in Initialize,
+// so no Challenge oracle is needed.
 // Left: (pk, g^r, pk^r)  Right: (pk, g^r, random)
 
 Game Left(Group G) {
-    GroupElem<G> pk;
-
-    GroupElem<G> Initialize() {
+    [GroupElem<G>, GroupElem<G>, GroupElem<G>] Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
-        pk = G.generator ^ a;
-        return pk;
-    }
-
-    [GroupElem<G>, GroupElem<G>] Challenge() {
+        GroupElem<G> pk = G.generator ^ a;
         ModInt<G.order> r <- ModInt<G.order>;
-        return [G.generator ^ r, pk ^ r];
+        return [pk, G.generator ^ r, pk ^ r];
     }
 }
 
 Game Right(Group G) {
-    GroupElem<G> pk;
-
-    GroupElem<G> Initialize() {
+    [GroupElem<G>, GroupElem<G>, GroupElem<G>] Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
-        pk = G.generator ^ a;
-        return pk;
-    }
-
-    [GroupElem<G>, GroupElem<G>] Challenge() {
+        GroupElem<G> pk = G.generator ^ a;
         ModInt<G.order> r <- ModInt<G.order>;
         GroupElem<G> c <- GroupElem<G>;
-        return [G.generator ^ r, c];
+        return [pk, G.generator ^ r, c];
     }
 }
 
