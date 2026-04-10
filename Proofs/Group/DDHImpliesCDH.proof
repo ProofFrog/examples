@@ -21,7 +21,7 @@
 
 import '../../Games/Group/CDH.game';
 import '../../Games/Group/DDH.game';
-import '../../Games/Misc/RandomTargetGuessing.game';
+import '../../Games/Helpers/Probability/RandomTargetGuessing.game';
 
 // Reduction R: composes with DDH and presents a CDH interface.
 // Stores the third component of the DDH triple as the "expected DH value"

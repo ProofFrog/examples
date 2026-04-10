@@ -19,7 +19,7 @@
 //   HashedDDH.Right                           -- interchangeability
 
 import '../../Games/Group/CDH.game';
-import '../../Games/Misc/ROMProgramming.game';
+import '../../Games/Helpers/Probability/ROMProgramming.game';
 import '../../Games/Group/HashedDDH.game';
 
 // ROM programming reduction: pre-samples pk and g^r in its own Initialize,

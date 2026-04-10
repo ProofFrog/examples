@@ -1,0 +1,32 @@
+// Assumption: H is a regular (a.k.a. balanced) hash function -- every
+// output in BitString<n> has the same number of preimages in D. Under
+// this assumption, H(x) for uniformly sampled x is distributed uniformly
+// on BitString<n> (exactly so when |D| is a multiple of 2^n, and
+// statistically close to uniform otherwise).
+//
+// This is a genuine cryptographic assumption about H, not a statistical
+// fact: for an arbitrary deterministic function H the distribution of
+// H(x) need not be uniform (e.g. H could be constant). Regularity holds
+// whenever H is a strong randomness extractor, a universal hash, a
+// regular hash function, or a random oracle.
+//
+// In the random oracle model the engine can already discharge this via
+// FreshInputRFToUniform and friends; this assumption exists to capture
+// the same fact in the standard model, where H is a deterministic
+// Function declared in the proof's let: block without sampling.
+
+Game Real(Set D, Int n, Function<D, BitString<n>> H) {
+    BitString<n> Sample() {
+        D x <- D;
+        return H(x);
+    }
+}
+
+Game Ideal(Set D, Int n, Function<D, BitString<n>> H) {
+    BitString<n> Sample() {
+        BitString<n> y <- BitString<n>;
+        return y;
+    }
+}
+
+export as Regularity;
