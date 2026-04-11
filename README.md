@@ -4,7 +4,7 @@
 
 # ProofFrog Examples
 
-[ProofFrog](https://github.com/ProofFrog/ProofFrog) is a tool for checking transitions in cryptographic game-hopping proofs. It verifies that each adjacent pair of games in a proof is either interchangeable (by code equivalence) or justified by a stated assumption. Proofs are written in FrogLang, a small C/Java-style domain-specific language designed to look like a pen-and-paper proof.
+[ProofFrog](https://github.com/ProofFrog/ProofFrog) is a tool for checking transitions in cryptographic game-hopping proofs. It verifies that each adjacent pair of games in a proof is either interchangeable (by code equivalence) or justified by a stated assumption. Proofs are written in FrogLang, a small C/Java-style domain-specific language designed to look like a pen-and-paper proof. ProofFrog is suitable for introductory level proofs, but is not as expressive for advanced concepts as other verification tools like EasyCrypt.
 
 This repository contains a growing collection of cryptographic definitions and proofs that can be used with ProofFrog.
 
