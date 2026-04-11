@@ -1,3 +1,5 @@
+// One-time IND$ (real-or-random) for symmetric encryption with a fresh key per query.
+// Real: encrypts the message. Random: returns a uniform random ciphertext.
 // Joy of Cryptography Chapter 2 calls this "one-time uniform ciphertexts".
 
 import '../../Primitives/SymEnc.primitive';

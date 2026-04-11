@@ -1,3 +1,5 @@
+// Message Authentication Code (MAC) primitive.
+// Provides KeyGen and a deterministic MAC operation that tags a message under a key.
 Primitive MAC(Set MessageSpace, Set TagSpace, Set KeySpace) {
     Set Message = MessageSpace;
     Set Tag = TagSpace;

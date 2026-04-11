@@ -1,3 +1,5 @@
+// Exercise 5.8 helper: PseudoOTP has one-time uniform ciphertext security (INDOT$).
+// Assumes PRG security of G and INDOT$ of OTP. Used by the 5.8(e) and 5.8(f) proofs.
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5/5_2_PseudoOTP.scheme';
 import '../../Games/SymEnc/INDOT$.game';

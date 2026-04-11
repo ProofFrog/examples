@@ -1,3 +1,6 @@
+// Correctness of public key encryption: decryption recovers the encrypted message.
+// Real: encrypts then decrypts and checks equality. Ideal: always returns true.
+
 import '../../Primitives/PubKeyEnc.primitive';
 
 Game Real(PubKeyEnc E) {
@@ -18,7 +21,7 @@ Game Real(PubKeyEnc E) {
     }
 }
 
-Game Fake(PubKeyEnc E) {
+Game Ideal(PubKeyEnc E) {
     E.PublicKey pk;
     E.SecretKey sk;
 

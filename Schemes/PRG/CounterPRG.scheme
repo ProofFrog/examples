@@ -1,3 +1,4 @@
+// PRG built from a PRF using counter mode: evaluates F(s, 0) || F(s, 1).
 import '../../Primitives/PRG.primitive';
 import '../../Primitives/PRF.primitive';
 

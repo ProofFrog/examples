@@ -1,3 +1,5 @@
+// Chapter 5, Construction 5.2: Pseudo-OTP encryption scheme.
+// Uses a PRG to stretch a short key and XORs the result with the message.
 import '../../Primitives/SymEnc.primitive';
 import '../../Primitives/PRG.primitive';
 

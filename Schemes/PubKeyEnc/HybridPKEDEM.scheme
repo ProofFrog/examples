@@ -1,3 +1,5 @@
+// Hybrid public-key encryption (KEM-DEM paradigm): encrypts a fresh symmetric key
+// under the public-key scheme, then encrypts the message with that symmetric key.
 import '../../Primitives/SymEnc.primitive';
 import '../../Primitives/PubKeyEnc.primitive';
 

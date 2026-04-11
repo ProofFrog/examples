@@ -1,3 +1,5 @@
+// Exercise 5.8(a): PRG_5_8_a is a secure PRG, assuming G is a secure PRG.
+// Hybrid argument: first replace G(s) with random, then replace G(x) and G(z) with random.
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_8_a.scheme';
 import '../../Games/PRG/PRGSecurity.game';

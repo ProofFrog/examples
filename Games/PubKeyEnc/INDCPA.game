@@ -1,4 +1,5 @@
-// One-time secrecy for public key encryption (single-challenge IND-CPA).
+// Single-challenge IND-CPA (left-or-right) for public key encryption.
+// Left: encrypts mL; Right: encrypts mR. Only the first query is answered.
 
 import '../../Primitives/PubKeyEnc.primitive';
 

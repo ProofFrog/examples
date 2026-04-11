@@ -1,3 +1,5 @@
+// KEM that applies a PRF to the shared secret of an underlying KEM, keyed by the
+// shared secret and evaluated on the ciphertext, to derive a new shared secret.
 import '../../Primitives/KEM.primitive';
 import '../../Primitives/PRF.primitive';
 

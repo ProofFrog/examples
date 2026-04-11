@@ -1,3 +1,5 @@
+// Exercise 2.15: Security game where the adversary submits two messages (mL, mR)
+// and receives two ciphertexts; Left encrypts (mL, mR), Right encrypts (mR, mL).
 import '../../Primitives/SymEnc.primitive';
 
 Game Left(SymEnc E) {

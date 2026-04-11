@@ -1,3 +1,7 @@
+// Strong unforgeability under chosen message attack (SUF-CMA) for MACs.
+// Real: CheckTag verifies against the actual MAC computation.
+// Ideal: CheckTag only accepts message-tag pairs previously returned by GetTag.
+
 import '../../Primitives/MAC.primitive';
 
 Game Real(MAC E) {

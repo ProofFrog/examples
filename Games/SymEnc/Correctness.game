@@ -1,3 +1,6 @@
+// Correctness of symmetric encryption: decryption recovers the encrypted message.
+// Real: encrypts then decrypts and checks equality. Ideal: always returns true.
+
 import '../../Primitives/SymEnc.primitive';
 
 Game Real(SymEnc E) {
@@ -8,7 +11,7 @@ Game Real(SymEnc E) {
     }
 }
 
-Game Fake(SymEnc E) {
+Game Ideal(SymEnc E) {
     Bool Test(E.Key k, E.Message m) {
         return true;
     }

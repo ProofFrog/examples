@@ -1,3 +1,8 @@
+// Proves that general double symmetric encryption is IND-OT$ secure.
+// Assumes: INDOT$(T) for the outer encryption scheme.
+// Strategy: Reduces to the outer scheme's INDOT$ security by encrypting with the inner
+// scheme and delegating the outer encryption to the challenger.
+
 import '../../Primitives/NonNullableSymEnc.primitive';
 import '../../Schemes/SymEnc/GeneralDoubleSymEnc.scheme';
 import '../../Games/SymEnc/INDOT$.game';

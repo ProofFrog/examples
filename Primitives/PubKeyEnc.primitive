@@ -1,3 +1,5 @@
+// Public-key encryption primitive.
+// Provides KeyGen (public/secret key pair), Enc (encrypt under public key), and deterministic Dec (returns Message?).
 Primitive PubKeyEnc(Set MessageSpace, Set CiphertextSpace, Set PKeySpace, Set SKeySpace) {
     Set Message = MessageSpace;
     Set Ciphertext = CiphertextSpace;

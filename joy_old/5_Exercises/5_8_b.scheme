@@ -1,3 +1,5 @@
+// Exercise 5.8(b): PRG construction with stretch lambda.
+// Applies G (with stretch 2*lambda) to seed and outputs only the first two blocks.
 import '../../Primitives/PRG.primitive';
 
 Scheme PRG_5_8_b(PRG G) extends PRG {

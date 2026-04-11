@@ -1,3 +1,5 @@
+// Key Encapsulation Mechanism (KEM) primitive.
+// Provides KeyGen (public/secret key pair), Encaps (shared secret + ciphertext), and deterministic Decaps.
 Primitive KEM(Set SharedSecretSpace, Set CiphertextSpace, Set PKeySpace, Set SKeySpace) {
     Set SharedSecret = SharedSecretSpace;
     Set Ciphertext = CiphertextSpace;

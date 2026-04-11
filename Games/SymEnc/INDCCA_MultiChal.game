@@ -1,3 +1,7 @@
+// IND-CCA multi-challenge (left-or-right chosen ciphertext attack) for symmetric encryption.
+// Left: Eavesdrop encrypts mL; Decrypt decrypts non-challenge ciphertexts.
+// Right: Eavesdrop encrypts mR instead.
+
 import '../../Primitives/SymEnc.primitive';
 
 Game Left(SymEnc E) {

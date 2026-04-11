@@ -1,3 +1,5 @@
+// Exercise 5.8(f): PRG_5_8_f (G(sL) XOR G(sR)) is a secure PRG.
+// Assumes G is a secure PRG and PseudoOTP has one-time uniform ciphertext security.
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_8_f.scheme';
 import '../../joy_old/5/5_2_PseudoOTP.scheme';

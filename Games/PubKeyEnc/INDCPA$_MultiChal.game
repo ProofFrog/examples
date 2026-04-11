@@ -1,3 +1,6 @@
+// Multi-challenge IND-CPA$ (real-or-random) for public key encryption.
+// Real: returns the encryption of the message. Random: returns a uniform random ciphertext.
+
 import '../../Primitives/PubKeyEnc.primitive';
 
 Game Real(PubKeyEnc E) {

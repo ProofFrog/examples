@@ -1,3 +1,5 @@
+// Chapter 2, Construction 2.12: Double OTP encryption scheme.
+// Encrypts by XORing the message with two independent key halves in sequence.
 import '../../Primitives/SymEnc.primitive';
 
 Scheme DoubleOTP(Int lambda) extends SymEnc {

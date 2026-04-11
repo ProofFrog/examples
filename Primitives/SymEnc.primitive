@@ -1,3 +1,5 @@
+// Symmetric encryption primitive.
+// Provides KeyGen, Enc, and deterministic Dec (returns Message?, allowing decryption failure).
 Primitive SymEnc(Set MessageSpace, Set CiphertextSpace, Set KeySpace) {
     Set Message = MessageSpace;
     Set Ciphertext = CiphertextSpace;

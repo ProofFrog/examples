@@ -1,3 +1,5 @@
+// Multi-challenge IND-CPA$ (real-or-random) for symmetric encryption.
+// Real: encrypts the message. Random: returns a uniform random ciphertext.
 // Joy of Cryptography Chapter 7 calls this "CPA$ security".
 
 import '../../Primitives/SymEnc.primitive';

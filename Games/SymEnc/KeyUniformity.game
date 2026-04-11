@@ -1,3 +1,6 @@
+// Key uniformity for symmetric encryption: KeyGen output is indistinguishable from uniform.
+// Real: returns a key from KeyGen. Random: returns a uniformly sampled key.
+
 import '../../Primitives/SymEnc.primitive';
 
 Game Real(SymEnc E) {

@@ -1,3 +1,5 @@
+// Hash function primitive parameterized by seed length (lambda) and output length.
+// Provides a deterministic evaluate operation mapping a seed and arbitrary-length input to a fixed-length output.
 Primitive Hash(Int lambda, Int outputLen) {
     Int lambda = lambda;
     Int outputLen = outputLen;

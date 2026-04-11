@@ -24,4 +24,4 @@ theorem:
 games:
     Correctness(E).Real against Correctness(E).Adversary;
 
-    Correctness(E).Fake against Correctness(E).Adversary;
+    Correctness(E).Ideal against Correctness(E).Adversary;

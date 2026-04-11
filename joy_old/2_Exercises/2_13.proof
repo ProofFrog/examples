@@ -1,3 +1,6 @@
+// Exercise 2.13: SymEncSquared has one-time indistinguishability (INDOT),
+// assuming the underlying scheme E has INDOT. Reduces via a single reduction
+// that forwards two independent eavesdrop calls to E's INDOT challenger.
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/2_Exercises/2_13_SymEncSquared.scheme';
 import '../../Games/SymEnc/INDOT.game';

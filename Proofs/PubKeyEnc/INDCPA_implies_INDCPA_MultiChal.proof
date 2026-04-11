@@ -1,3 +1,9 @@
+// Proves that single-challenge IND-CPA security implies multi-challenge IND-CPA security
+// for public-key encryption via a hybrid argument.
+// Assumes: INDCPA(E) and a bound on the number of challenge queries (calls <= q).
+// Strategy: Induction over challenge queries, switching one query at a time from left
+// to right using the single-challenge IND-CPA assumption.
+
 import '../../Primitives/PubKeyEnc.primitive';
 import '../../Primitives/NonNullableSymEnc.primitive';
 import '../../Games/PubKeyEnc/INDCPA_MultiChal.game';

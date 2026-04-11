@@ -1,3 +1,8 @@
+// Proves that the hybrid PKE-DEM (KEM/DEM) construction is IND-CPA multi-challenge secure.
+// Assumes: INDCPA_MultiChal(P) for the public-key scheme and INDOT(E) for the symmetric scheme.
+// Strategy: Swaps the encapsulated key via INDCPA, then swaps the symmetric ciphertext via INDOT,
+// then swaps the encapsulated key back via INDCPA (symmetric three-hop structure).
+
 import '../../Primitives/PubKeyEnc.primitive';
 import '../../Primitives/SymEnc.primitive';
 import '../../Schemes/PubKeyEnc/HybridPKEDEM.scheme';

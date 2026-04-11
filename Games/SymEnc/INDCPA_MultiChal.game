@@ -1,3 +1,5 @@
+// Multi-challenge IND-CPA (left-or-right) for symmetric encryption.
+// Left: encrypts mL. Right: encrypts mR.
 // Joy of Cryptography Chapter 7 calls this "CPA security".
 
 import '../../Primitives/SymEnc.primitive';

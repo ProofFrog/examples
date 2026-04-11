@@ -1,3 +1,4 @@
+// Double encryption with two different symmetric encryption schemes: encrypts with S then T.
 import '../../Primitives/NonNullableSymEnc.primitive';
 
 Scheme GeneralDoubleSymEnc(SymEnc S, SymEnc T) extends SymEnc {

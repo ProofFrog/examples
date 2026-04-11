@@ -1,3 +1,5 @@
+// Symmetric encryption primitive where Dec always returns a message (never None).
+// Provides KeyGen, Enc, and deterministic Dec with a non-optional return type.
 Primitive SymEnc(Set MessageSpace, Set CiphertextSpace, Set KeySpace) {
     Set Message = MessageSpace;
     Set Ciphertext = CiphertextSpace;

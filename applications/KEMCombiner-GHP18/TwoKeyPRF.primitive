@@ -1,3 +1,5 @@
+// Two-key Pseudorandom Function (PRF) primitive for KEM combiner constructions.
+// Provides a deterministic evaluate operation that takes two independent keys and an input.
 Primitive TwoKeyPRF(Int lambda1, Int lambda2, Int in, Int out) {
     Int lambda1 = lambda1;
     Int lambda2 = lambda2;

@@ -1,7 +1,8 @@
+// Encrypt-then-MAC: composes a symmetric encryption scheme with a MAC for authenticated
+// encryption. Encrypts the message, then MACs the ciphertext; decryption verifies the tag first.
 import '../../Primitives/SymEnc.primitive';
 import '../../Primitives/MAC.primitive';
 
-// Specify some precondition that E.Ciphertext subsets M.Message
 Scheme EncryptThenMAC(SymEnc E, MAC M) extends SymEnc {
     requires E.Ciphertext subsets M.Message;
 
