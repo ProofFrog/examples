@@ -1,3 +1,8 @@
+// Proves that general double symmetric encryption is IND-CPA$ multi-challenge secure.
+// Assumes: INDCPA$_MultiChal(E) for the outer encryption scheme.
+// Strategy: Reduces to the outer scheme's INDCPA$ security via a single reduction that
+// encrypts with the inner scheme and delegates the outer encryption to the challenger.
+
 import '../../Primitives/NonNullableSymEnc.primitive';
 import '../../Schemes/SymEnc/GeneralDoubleSymEnc.scheme';
 import '../../Games/SymEnc/INDCPA$_MultiChal.game';

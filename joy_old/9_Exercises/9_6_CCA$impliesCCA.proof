@@ -1,3 +1,5 @@
+// Exercise 9.6: IND-CCA$ (multi-challenge) implies IND-CCA (multi-challenge).
+// Two reductions forward mL or mR to the CTXT oracle, with a swap in the middle.
 import '../../Primitives/SymEnc.primitive';
 import '../../Games/SymEnc/INDCCA_MultiChal.game';
 import '../../Games/SymEnc/INDCCA$_MultiChal.game';

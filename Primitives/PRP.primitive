@@ -1,3 +1,5 @@
+// Pseudorandom Permutation (PRP) primitive parameterized by seed length (lambda) and block length (blen).
+// Provides deterministic injective evaluate and evaluateInverse operations (a keyed bijection on blen-bit blocks).
 Primitive PRP(Int lambda, Int blen) {
     Int lambda = lambda;
     Int blen = blen;

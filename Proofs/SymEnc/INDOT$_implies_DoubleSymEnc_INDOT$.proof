@@ -1,3 +1,8 @@
+// Proves that double symmetric encryption (same scheme applied twice) is IND-OT$ secure.
+// Assumes: INDOT$(E) for the underlying encryption scheme.
+// Strategy: Reduces to INDOT$ of the underlying scheme by encrypting once and delegating
+// the second encryption to the challenger.
+
 import '../../Primitives/NonNullableSymEnc.primitive';
 import '../../Schemes/SymEnc/DoubleSymEnc.scheme';
 import '../../Games/SymEnc/INDOT$.game';

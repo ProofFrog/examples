@@ -1,3 +1,5 @@
+// Exercise 5.8(b): PRG_5_8_b is a secure PRG, assuming G is a secure PRG.
+// Single reduction: replace G(s) with random and truncate to the first two blocks.
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_8_b.scheme';
 import '../../Games/PRG/PRGSecurity.game';

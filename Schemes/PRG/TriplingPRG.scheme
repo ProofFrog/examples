@@ -1,3 +1,5 @@
+// PRG with tripled stretch: applies a length-doubling PRG twice to produce 3x output.
+// Splits G(s) into (x, y), then outputs x || G(y).
 import '../../Primitives/PRG.primitive';
 
 Scheme TriplingPRG(PRG G) extends PRG {

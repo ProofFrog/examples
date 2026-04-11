@@ -1,3 +1,5 @@
+// Exercise 2.14 (forward direction): INDOT implies the Foo security game.
+// Reduces by sampling a random message and forwarding to INDOT's Eavesdrop oracle.
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/2_Exercises/2_14.game';
 import '../../Games/SymEnc/INDOT.game';

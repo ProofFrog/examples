@@ -1,3 +1,5 @@
+// Exercise 7.13 (backward direction): The Challenge game implies IND-CPA (multi-challenge).
+// Uses two reductions that swap which message argument is forwarded to Challenge.
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/7_Exercises/7_13.game';
 import '../../Games/SymEnc/INDCPA_MultiChal.game';

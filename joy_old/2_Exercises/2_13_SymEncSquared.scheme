@@ -1,3 +1,5 @@
+// Exercise 2.13: "Squared" encryption scheme that encrypts the same message
+// twice under two independent keys, returning a pair of ciphertexts.
 import '../../Primitives/SymEnc.primitive';
 
 Scheme SymEncSquared(SymEnc E) extends SymEnc {

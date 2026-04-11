@@ -1,3 +1,6 @@
+// PRF security: a keyed PRF is indistinguishable from a random function.
+// Real: evaluates the PRF with a secret key. Random: evaluates a truly random function.
+
 import '../../Primitives/PRF.primitive';
 
 Game Real(PRF F) {

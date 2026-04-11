@@ -1,3 +1,5 @@
+// Exercise 5.10: PRG with doubled stretch constructed from a length-doubling PRG.
+// Computes G(s)=(x||y), then outputs (x+y) || G(y).
 import '../../Primitives/PRG.primitive';
 
 Scheme PRG_5_10(PRG G) extends PRG {

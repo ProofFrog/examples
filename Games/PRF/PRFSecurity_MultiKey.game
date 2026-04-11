@@ -1,3 +1,6 @@
+// Multi-key PRF security: each query uses a fresh random key.
+// Real: evaluates the PRF with a fresh key per query. Random: returns a uniform random output.
+
 import '../../Primitives/PRF.primitive';
 
 Game Real(PRF F) {

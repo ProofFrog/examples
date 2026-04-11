@@ -1,3 +1,9 @@
+// Proves that IND-CPA$ multi-challenge security implies IND-CPA multi-challenge security
+// for symmetric encryption.
+// Assumes: INDCPA$_MultiChal(E).
+// Strategy: Two reductions route the left and right messages through the INDCPA$ challenger;
+// the random ciphertext bridge in the middle connects them via the assumption.
+
 import '../../Primitives/SymEnc.primitive';
 import '../../Games/SymEnc/INDCPA_MultiChal.game';
 import '../../Games/SymEnc/INDCPA$_MultiChal.game';

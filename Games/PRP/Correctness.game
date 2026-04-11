@@ -1,3 +1,6 @@
+// Correctness of a pseudorandom permutation: evaluateInverse undoes evaluate.
+// Real: tests that inverting the output recovers the input. Ideal: always returns true.
+
 import '../../Primitives/PRP.primitive';
 
 Game Real(PRP F) {
@@ -8,7 +11,7 @@ Game Real(PRP F) {
     }
 }
 
-Game Fake(PRP F) {
+Game Ideal(PRP F) {
     Bool test(BitString<F.lambda> seed, BitString<F.blen> input) {
         return true;
     }

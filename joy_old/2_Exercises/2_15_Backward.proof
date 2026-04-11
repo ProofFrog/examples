@@ -1,3 +1,5 @@
+// Exercise 2.15 (backward direction): The Foo security game (swap two ciphertexts)
+// implies INDOT. Reduces by extracting one ciphertext from the Foo pair.
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/2_Exercises/2_15.game';
 import '../../Games/SymEnc/INDOT.game';

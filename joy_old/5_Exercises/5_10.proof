@@ -1,3 +1,5 @@
+// Exercise 5.10: PRG_5_10 is a secure PRG with doubled stretch, assuming G is secure.
+// Three-stage hybrid: replace G(s) with random, use OTP security on x+y, then replace G(y).
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_10.scheme';
 import '../../Schemes/SymEnc/OTP.scheme';

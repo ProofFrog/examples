@@ -1,3 +1,7 @@
+// IND-CCA$ (real-or-random chosen ciphertext attack) for symmetric encryption.
+// Real: CTXT encrypts normally; Decrypt decrypts non-challenge ciphertexts.
+// Random: CTXT returns a uniform random ciphertext instead of encrypting.
+
 import '../../Primitives/SymEnc.primitive';
 
 Game Real(SymEnc E) {

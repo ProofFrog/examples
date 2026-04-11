@@ -1,3 +1,9 @@
+// Proves that the tripling PRG construction (applying a length-doubling PRG G twice
+// to produce 3*lambda bits from a lambda-bit seed) is a secure PRG.
+// Assumes: PRGSecurity(G) for the underlying length-doubling PRG.
+// Strategy: Two reduction hops replace the two applications of G with random strings,
+// first the initial application and then the second, arriving at a fully random output.
+
 import '../../Primitives/PRG.primitive';
 import '../../Schemes/PRG/TriplingPRG.scheme';
 import '../../Games/PRG/PRGSecurity.game';

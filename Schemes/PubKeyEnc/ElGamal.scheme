@@ -1,3 +1,5 @@
+// ElGamal public-key encryption over a cyclic group G.
+// Encrypts by computing (g^r, m * pk^r); decrypts by dividing out c[0]^sk.
 import '../../Primitives/PubKeyEnc.primitive';
 
 Scheme ElGamal(Group G) extends PubKeyEnc {

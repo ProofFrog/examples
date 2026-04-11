@@ -1,3 +1,8 @@
+// Proves that the Encrypt-then-MAC construction is IND-CCA multi-challenge secure.
+// Assumes: INDCPA_MultiChal(E) and SUFCMA(M).
+// Strategy: Uses SUF-CMA to replace MAC verification with rejection of all non-cached
+// ciphertexts, then swaps left/right via IND-CPA, then restores the MAC.
+
 import '../../Primitives/SymEnc.primitive';
 import '../../Primitives/MAC.primitive';
 import '../../Games/SymEnc/INDCPA_MultiChal.game';

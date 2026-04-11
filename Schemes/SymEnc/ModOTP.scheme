@@ -1,3 +1,4 @@
+// Modular one-time pad: symmetric encryption over ModInt<q> using addition mod q.
 import '../../Primitives/SymEnc.primitive';
 
 Scheme ModOTP(Int q) extends SymEnc {

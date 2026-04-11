@@ -1,3 +1,6 @@
+// Multi-challenge IND-CPA (left-or-right) for public key encryption.
+// Left: encrypts the left message mL. Right: encrypts the right message mR.
+
 import '../../Primitives/PubKeyEnc.primitive';
 
 Game Left(PubKeyEnc E) {

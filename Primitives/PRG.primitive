@@ -1,3 +1,5 @@
+// Pseudorandom Generator (PRG) primitive parameterized by seed length (lambda) and stretch.
+// Provides a deterministic evaluate operation that expands a lambda-bit seed to a (lambda + stretch)-bit output.
 Primitive PRG(Int lambda, Int stretch) {
     Int lambda = lambda;
     Int stretch = stretch;

@@ -1,3 +1,5 @@
+// One-time secrecy (left-or-right) for symmetric encryption with a fresh key per query.
+// Left: encrypts mL. Right: encrypts mR.
 // Joy of Cryptography Definition 2.5.3 calls this "one-time secrecy".
 
 import '../../Primitives/SymEnc.primitive';

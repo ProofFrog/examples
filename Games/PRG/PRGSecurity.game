@@ -1,3 +1,6 @@
+// PRG security: a pseudorandom generator's output is indistinguishable from uniform.
+// Real: evaluates the PRG on a random seed. Random: returns a uniform random string.
+
 import '../../Primitives/PRG.primitive';
 
 Game Real(PRG G) {

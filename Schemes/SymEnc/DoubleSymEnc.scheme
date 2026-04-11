@@ -1,3 +1,4 @@
+// Double encryption using the same symmetric encryption scheme with two independent keys.
 import '../../Primitives/NonNullableSymEnc.primitive';
 
 Scheme DoubleSymEnc(SymEnc s) extends SymEnc {
