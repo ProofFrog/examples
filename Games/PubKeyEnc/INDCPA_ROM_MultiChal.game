@@ -1,0 +1,45 @@
+// CPA security in the Random Oracle Model.
+// Like standard CPA, but the adversary also gets a Hash oracle
+// exposing the random function H used by the encryption scheme.
+// H is passed as a parameter and shared with the scheme via the
+// proof's let block.
+
+import '../../Primitives/PubKeyEnc.primitive';
+
+Game Left(PubKeyEnc E, Set D, Set R, Function<D, R> H) {
+    E.PublicKey pk;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        return pk;
+    }
+
+    R Hash(D x) {
+        return H(x);
+    }
+
+    E.Ciphertext Challenge(E.Message mL, E.Message mR) {
+        return E.Enc(pk, mL);
+    }
+}
+
+Game Right(PubKeyEnc E, Set D, Set R, Function<D, R> H) {
+    E.PublicKey pk;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        return pk;
+    }
+
+    R Hash(D x) {
+        return H(x);
+    }
+
+    E.Ciphertext Challenge(E.Message mL, E.Message mR) {
+        return E.Enc(pk, mR);
+    }
+}
+
+export as INDCPA_ROM_MultiChal;

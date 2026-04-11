@@ -1,0 +1,50 @@
+import '../../Primitives/SymEnc.primitive';
+import '../../Games/SymEnc/INDOT.game';
+import '../../Games/SymEnc/INDOT$.game';
+
+Reduction R1(SymEnc se) compose INDOT$(se) against INDOT(se).Adversary {
+    se.Ciphertext Eavesdrop(se.Message mL, se.Message mR) {
+        return challenger.CTXT(mL);
+    }
+}
+
+Reduction R2(SymEnc se2) compose INDOT$(se2) against INDOT(se2).Adversary {
+    se2.Ciphertext Eavesdrop(se2.Message mL, se2.Message mR) {
+        return challenger.CTXT(mR);
+    }
+}
+
+proof:
+
+let:
+
+    Set ProofMessageSpace;
+    Set ProofCiphertextSpace;
+    Set ProofKeySpace;
+
+    SymEnc proofE = SymEnc(ProofMessageSpace, ProofCiphertextSpace, ProofKeySpace);
+
+assume:
+    INDOT$(proofE);
+
+theorem:
+    INDOT(proofE);
+
+games:
+
+    INDOT(proofE).Left against INDOT(proofE).Adversary;
+
+    // Codewise-equivalency
+    INDOT$(proofE).Real compose R1(proofE) against INDOT(proofE).Adversary;
+
+    // By assumption
+    INDOT$(proofE).Random compose R1(proofE) against INDOT(proofE).Adversary;
+
+    // mL argument is not used in R
+    INDOT$(proofE).Random compose R2(proofE) against INDOT(proofE).Adversary;
+
+    // By assumption
+    INDOT$(proofE).Real compose R2(proofE) against INDOT(proofE).Adversary;
+
+    // Codewise equivalency
+    INDOT(proofE).Right against INDOT(proofE).Adversary;

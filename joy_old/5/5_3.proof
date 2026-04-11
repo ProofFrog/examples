@@ -1,21 +1,21 @@
-// Simplified proof that PseudoOTP satisfies OneTimeSecrecy.
+// Simplified proof that PseudoOTP satisfies INDOT.
 // The engine's uniform XOR simplification recognizes that after
 // replacing G.evaluate(k) with uniform z (via Security(G)),
 // z + mL and z + mR both canonicalize to z
 
 import '../../joy_old/5/5_2_PseudoOTP.scheme';
 import '../../Primitives/PRG.primitive';
-import '../../Games/SymEnc/OneTimeSecrecy.game';
-import '../../Games/PRG/Security.game';
+import '../../Games/SymEnc/INDOT.game';
+import '../../Games/PRG/PRGSecurity.game';
 
-Reduction R1(PseudoOTP P, PRG G) compose Security(G) against OneTimeSecrecy(P).Adversary {
+Reduction R1(PseudoOTP P, PRG G) compose PRGSecurity(G) against INDOT(P).Adversary {
     P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
         P.Ciphertext c = challenger.Query() + mL;
         return c;
     }
 }
 
-Reduction R3(PseudoOTP P, PRG G) compose Security(G) against OneTimeSecrecy(P).Adversary {
+Reduction R3(PseudoOTP P, PRG G) compose PRGSecurity(G) against INDOT(P).Adversary {
     P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
         P.Ciphertext c = challenger.Query() + mR;
         return c;
@@ -31,20 +31,20 @@ let:
     PseudoOTP P = PseudoOTP(lambda, stretch, G);
 
 assume:
-    Security(G);
+    PRGSecurity(G);
 
 theorem:
-    OneTimeSecrecy(P);
+    INDOT(P);
 
 games:
-    OneTimeSecrecy(P).Left against OneTimeSecrecy(P).Adversary;
+    INDOT(P).Left against INDOT(P).Adversary;
 
-    Security(G).Real compose R1(P, G) against OneTimeSecrecy(P).Adversary;
+    PRGSecurity(G).Real compose R1(P, G) against INDOT(P).Adversary;
 
-    Security(G).Random compose R1(P, G) against OneTimeSecrecy(P).Adversary;
+    PRGSecurity(G).Random compose R1(P, G) against INDOT(P).Adversary;
 
-    Security(G).Random compose R3(P, G) against OneTimeSecrecy(P).Adversary;
+    PRGSecurity(G).Random compose R3(P, G) against INDOT(P).Adversary;
 
-    Security(G).Real compose R3(P, G) against OneTimeSecrecy(P).Adversary;
+    PRGSecurity(G).Real compose R3(P, G) against INDOT(P).Adversary;
 
-    OneTimeSecrecy(P).Right against OneTimeSecrecy(P).Adversary;
+    INDOT(P).Right against INDOT(P).Adversary;

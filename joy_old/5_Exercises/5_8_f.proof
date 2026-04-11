@@ -1,17 +1,17 @@
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_8_f.scheme';
 import '../../joy_old/5/5_2_PseudoOTP.scheme';
-import '../../Games/PRG/Security.game';
-import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
+import '../../Games/PRG/PRGSecurity.game';
+import '../../Games/SymEnc/INDOT$.game';
 
-Reduction R2(PRG G, PRG_5_8_f H) compose Security(G) against Security(H).Adversary {
+Reduction R2(PRG G, PRG_5_8_f H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
         BitString<G.lambda> sR <- BitString<G.lambda>;
         return challenger.Query() + G.evaluate(sR);
     }
 }
 
-Reduction R3(PRG G, PRG_5_8_f H, PseudoOTP P) compose OneTimeUniformCiphertexts(P) against Security(H).Adversary {
+Reduction R3(PRG G, PRG_5_8_f H, PseudoOTP P) compose INDOT$(P) against PRGSecurity(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
         BitString<G.lambda> sR <- BitString<G.lambda>;
         return challenger.CTXT(G.evaluate(sR));
@@ -27,19 +27,19 @@ let:
     PseudoOTP P = PseudoOTP(lambda, 2 * lambda, G);
 
 assume:
-    Security(G);
-    OneTimeUniformCiphertexts(P); // see '../../joy_old/5_Exercises/5_8_PseudoOTP_OTUC.proof'
+    PRGSecurity(G);
+    INDOT$(P); // see '../../joy_old/5_Exercises/5_8_PseudoOTP_OTUC.proof'
 
 theorem:
-    Security(H);
+    PRGSecurity(H);
 
 games:
-    Security(H).Real against Security(H).Adversary;
+    PRGSecurity(H).Real against PRGSecurity(H).Adversary;
 
-    Security(G).Real compose R2(G, H) against Security(H).Adversary;
+    PRGSecurity(G).Real compose R2(G, H) against PRGSecurity(H).Adversary;
 
-    OneTimeUniformCiphertexts(P).Real compose R3(G, H, P) against Security(H).Adversary;
+    INDOT$(P).Real compose R3(G, H, P) against PRGSecurity(H).Adversary;
 
-    OneTimeUniformCiphertexts(P).Random compose R3(G, H, P) against Security(H).Adversary;
+    INDOT$(P).Random compose R3(G, H, P) against PRGSecurity(H).Adversary;
 
-    Security(H).Random against Security(H).Adversary;
+    PRGSecurity(H).Random against PRGSecurity(H).Adversary;

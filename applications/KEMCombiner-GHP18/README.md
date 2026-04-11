@@ -31,12 +31,12 @@ The two-key PRF has single-key and multi-key security notions for each key posit
 
 The multi-key security properties are derived from the single-key ones via a standard hybrid argument:
 
-- [TwoKeyPRFFirstKeyMultiKeyFromSecurity.proof](TwoKeyPRFFirstKeyMultiKeyFromSecurity.proof): Multi-key first-key security from single-key first-key security (induction over `q` queries).
-- [TwoKeyPRFSecondKeyMultiKeyFromSecurity.proof](TwoKeyPRFSecondKeyMultiKeyFromSecurity.proof): Multi-key second-key security from single-key second-key security (induction over `q` queries).
+- [TwoKeyPRFFirstKeySecurity_implies_TwoKeyPRFFirstKeyMultiKey.proof](TwoKeyPRFFirstKeySecurity_implies_TwoKeyPRFFirstKeyMultiKey.proof): Multi-key first-key security from single-key first-key security (induction over `q` queries).
+- [TwoKeyPRFSecondKeySecurity_implies_TwoKeyPRFSecondKeyMultiKey.proof](TwoKeyPRFSecondKeySecurity_implies_TwoKeyPRFSecondKeyMultiKey.proof): Multi-key second-key security from single-key second-key security (induction over `q` queries).
 
 ## Correctness proof
 
-[KEMCombinerCorrectness.proof](KEMCombinerCorrectness.proof) shows that the combiner is correct (decapsulation recovers the encapsulated shared secret) assuming both component KEMs are correct:
+[GHP18_Correctness.proof](GHP18_Correctness.proof) shows that the combiner is correct (decapsulation recovers the encapsulated shared secret) assuming both component KEMs are correct:
 
 - Assumptions: `KEMCorrectness(KEM1)`, `KEMCorrectness(KEM2)`
 - 5 game hops, reducing to the correctness of each component KEM. The engine's deterministic expression deduplication automatically handles the PRF determinism.
@@ -46,10 +46,10 @@ The multi-key security properties are derived from the single-key ones via a sta
 There are two independent proofs that the combiner is IND-CPA-secure, each relying on a different component KEM being secure.
 This means the combiner is secure as long as **at least one** of the two component KEMs is secure.
 
-**Proof 1** ([KEMCombinerINDCPA1.proof](KEMCombinerINDCPA1.proof)):
-- Assumptions: `CPAKEM(KEM1)` + `TwoKeyPRFFirstKeyMultiKey(F)`
+**Proof 1** ([GHP18_INDCPA1.proof](GHP18_INDCPA1.proof)):
+- Assumptions: `KEM_INDCPA_MultiChal(KEM1)` + `TwoKeyPRFFirstKeyMultiKey(F)`
 - 7 game hops: replace `KEM1`'s shared secret with random (via IND-CPA assumption), then replace the PRF output with random (via multi-key first-key PRF security).
 
-**Proof 2** ([KEMCombinerINDCPA2.proof](KEMCombinerINDCPA2.proof)):
-- Assumptions: `CPAKEM(KEM2)` + `TwoKeyPRFSecondKeyMultiKey(F)`
+**Proof 2** ([GHP18_INDCPA2.proof](GHP18_INDCPA2.proof)):
+- Assumptions: `KEM_INDCPA_MultiChal(KEM2)` + `TwoKeyPRFSecondKeyMultiKey(F)`
 - 7 game hops: replace `KEM2`'s shared secret with random (via IND-CPA assumption), then replace the PRF output with random (via multi-key second-key PRF security).

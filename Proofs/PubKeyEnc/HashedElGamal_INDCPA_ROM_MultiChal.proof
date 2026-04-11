@@ -1,0 +1,137 @@
+// Hashed ElGamal is IND-INDCPA_MultiChal secure under DDHMultiChal + UniqueSampling in the ROM.
+//
+// H is sampled as a random function (ROM). The adversary gets a Hash
+// oracle via the INDCPA_ROM_MultiChal game. DDHMultiChal replaces the DH shared secret with
+// a random group element c. UniqueSampling switches from uniform to
+// exclusion sampling (explicit q/|D| guessing loss). With c excluded
+// from adversary queries, H(c) is exactly a random bitstring that
+// masks the message via XOR.
+//
+// Game sequence (symmetric around the middle):
+//   INDCPA_ROM_MultiChal.Left
+//   DDHMultiChal.Left  o R_L                           -- interchangeability
+//   DDHMultiChal.Right o R_L                           -- by DDHMultiChal
+//   US.Replacement o R_Uniq_L                 -- interchangeability
+//   US.NoReplacement o R_Uniq_L               -- by UniqueSampling (q/|D| loss)
+//   US.NoReplacement o R_Uniq_R               -- exact (FreshInputRFToUniform)
+//   US.Replacement o R_Uniq_R                 -- by UniqueSampling (reverse)
+//   DDHMultiChal.Right o R_R                           -- interchangeability
+//   DDHMultiChal.Left  o R_R                           -- by DDHMultiChal (reverse)
+//   INDCPA_ROM_MultiChal.Right
+
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Games/Group/DDHMultiChal.game';
+import '../../Games/Helpers/Probability/UniqueSampling.game';
+import '../../Games/PubKeyEnc/INDCPA_ROM_MultiChal.game';
+import '../../Schemes/PubKeyEnc/HashedElGamal.scheme';
+
+// DDHMultiChal reduction (left message): forwards Hash oracle, XORs H(DDH value) with mL.
+Reduction R_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDHMultiChal(G) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
+        BitString<n> h = H(pair[1]);
+        return [pair[0], h + mL];
+    }
+}
+
+// DDHMultiChal reduction (right message): forwards Hash oracle, XORs H(DDH value) with mR.
+Reduction R_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDHMultiChal(G) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
+        BitString<n> h = H(pair[1]);
+        return [pair[0], h + mR];
+    }
+}
+
+// UniqueSampling reduction (left message): delegates c-sampling to US challenger.
+Reduction R_Uniq_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose UniqueSampling(GroupElem<G>) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    GroupElem<G> pk;
+
+    GroupElem<G> Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        pk = G.generator ^ a;
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        ModInt<G.order> r <- ModInt<G.order>;
+        GroupElem<G> c = challenger.Samp(H.domain);
+        BitString<n> h = H(c);
+        return [G.generator ^ r, h + mL];
+    }
+}
+
+// UniqueSampling reduction (right message): delegates c-sampling to US challenger.
+Reduction R_Uniq_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose UniqueSampling(GroupElem<G>) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    GroupElem<G> pk;
+
+    GroupElem<G> Initialize() {
+        ModInt<G.order> a <- ModInt<G.order>;
+        pk = G.generator ^ a;
+        return pk;
+    }
+
+    BitString<n> Hash(GroupElem<G> x) {
+        return H(x);
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        ModInt<G.order> r <- ModInt<G.order>;
+        GroupElem<G> c = challenger.Samp(H.domain);
+        BitString<n> h = H(c);
+        return [G.generator ^ r, h + mR];
+    }
+}
+
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+    PubKeyEnc E = HashedElGamal(G, n, H);
+
+assume:
+    DDHMultiChal(G);
+    UniqueSampling(GroupElem<G>);
+
+theorem:
+    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H);
+
+games:
+    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Left against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    DDHMultiChal(G).Left compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    DDHMultiChal(G).Right compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    DDHMultiChal(G).Right compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    DDHMultiChal(G).Left compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Right against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;

@@ -1,0 +1,38 @@
+import '../../Primitives/NonNullableSymEnc.primitive';
+import '../../Schemes/SymEnc/DoubleSymEnc.scheme';
+import '../../Games/SymEnc/INDOT$.game';
+
+Reduction R1(DoubleSymEnc D, SymEnc E) compose INDOT$(E) against INDOT$(D).Adversary {
+    D.Ciphertext CTXT(D.Message m) {
+        E.Key k = E.KeyGen();
+        E.Ciphertext c = E.Enc(k, m);
+        return challenger.CTXT(c);
+    }
+}
+
+proof:
+
+let:
+    Set MessageSpace;
+    Set KeySpace;
+
+    SymEnc E = SymEnc(MessageSpace, MessageSpace, KeySpace);
+    DoubleSymEnc D = DoubleSymEnc(E);
+
+assume:
+    INDOT$(E);
+
+theorem:
+    INDOT$(D);
+
+games:
+    INDOT$(D).Real against INDOT$(D).Adversary;
+
+    // By codewise equivalency
+    INDOT$(E).Real compose R1(D, E) against INDOT$(D).Adversary;
+
+    // By assumption
+    INDOT$(E).Random compose R1(D, E) against INDOT$(D).Adversary;
+
+    // By codewise equivalency
+    INDOT$(D).Random against INDOT$(D).Adversary;
