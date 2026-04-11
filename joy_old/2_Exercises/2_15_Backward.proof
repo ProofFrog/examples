@@ -1,8 +1,8 @@
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/2_Exercises/2_15.game';
-import '../../Games/SymEnc/OneTimeSecrecy.game';
+import '../../Games/SymEnc/INDOT.game';
 
-Reduction R(SymEnc E) compose Foo(E) against OneTimeSecrecy(E).Adversary {
+Reduction R(SymEnc E) compose Foo(E) against INDOT(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
         [E.Ciphertext, E.Ciphertext] c = challenger.Foo(mL, mR);
         return c[0];
@@ -22,16 +22,16 @@ assume:
     Foo(E);
 
 theorem:
-    OneTimeSecrecy(E);
+    INDOT(E);
 
 games:
-    OneTimeSecrecy(E).Left against OneTimeSecrecy(E).Adversary;
+    INDOT(E).Left against INDOT(E).Adversary;
     
     // By codewise equivalency
-    Foo(E).Left compose R(E) against OneTimeSecrecy(E).Adversary;
+    Foo(E).Left compose R(E) against INDOT(E).Adversary;
     
     // By assumption
-    Foo(E).Right compose R(E) against OneTimeSecrecy(E).Adversary;
+    Foo(E).Right compose R(E) against INDOT(E).Adversary;
 
     // By codewise equivalency
-    OneTimeSecrecy(E).Right against OneTimeSecrecy(E).Adversary;
+    INDOT(E).Right against INDOT(E).Adversary;

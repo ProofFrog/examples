@@ -1,0 +1,67 @@
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Primitives/NonNullableSymEnc.primitive';
+import '../../Games/PubKeyEnc/INDCPA_MultiChal.game';
+import '../../Games/PubKeyEnc/INDCPA.game';
+
+Reduction R(PubKeyEnc E, Int h) compose INDCPA(E) against INDCPA_MultiChal(E).Adversary {
+    Int count;
+    E.PublicKey pk;
+
+    E.PublicKey Initialize(E.PublicKey one_time_pk) {
+        pk = one_time_pk;
+        count = 0;
+        return pk;
+    }
+
+    E.Ciphertext Challenge(E.Message mL, E.Message mR) {
+        count = count + 1;
+        if (count < h) {
+            return E.Enc(pk, mR);
+        } else if (count == h) {
+            E.Ciphertext? result = challenger.Challenge(mL, mR);
+            if (result == None) {
+                return E.Enc(pk, mL);
+            }
+            return result;
+        } else {
+            return E.Enc(pk, mL);
+        }
+    }
+}
+
+proof:
+
+let:
+    Set MessageSpace;
+    Set CiphertextSpace;
+    Set PubKeySpace;
+    Set SecretKeySpace;
+
+    Int q;
+
+    PubKeyEnc E = PubKeyEnc(MessageSpace, CiphertextSpace, PubKeySpace, SecretKeySpace);
+
+assume:
+    INDCPA(E);
+    calls <= q;
+
+theorem:
+    INDCPA_MultiChal(E);
+
+games:
+    INDCPA_MultiChal(E).Left against INDCPA_MultiChal(E).Adversary;
+
+    assume R(E, 1).count >= 1;
+    assume INDCPA(E).Left.count == 1;
+
+    induction(i from 1 to q) {
+        INDCPA(E).Left compose R(E, i) against INDCPA_MultiChal(E).Adversary;
+        INDCPA(E).Right compose R(E, i) against INDCPA_MultiChal(E).Adversary;
+        assume INDCPA(E).Left.count == 1;
+        assume INDCPA(E).Right.count == 1;
+    }
+
+    assume R(E, q).count < q + 1;
+    assume INDCPA(E).Right.count == 1;
+
+    INDCPA_MultiChal(E).Right against INDCPA_MultiChal(E).Adversary;

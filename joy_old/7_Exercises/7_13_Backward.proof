@@ -1,15 +1,15 @@
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/7_Exercises/7_13.game';
-import '../../Games/SymEnc/CPA.game';
+import '../../Games/SymEnc/INDCPA_MultiChal.game';
 
-Reduction R1(SymEnc E) compose Challenge(E) against CPA(E).Adversary {
+Reduction R1(SymEnc E) compose Challenge(E) against INDCPA_MultiChal(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
         E.Ciphertext c = challenger.Challenge(mL);
         return c;
     }
 }
 
-Reduction R2(SymEnc E) compose Challenge(E) against CPA(E).Adversary {
+Reduction R2(SymEnc E) compose Challenge(E) against INDCPA_MultiChal(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
         E.Ciphertext c = challenger.Challenge(mR);
         return c;
@@ -29,22 +29,22 @@ assume:
     Challenge(E);
 
 theorem:
-    CPA(E);
+    INDCPA_MultiChal(E);
 
 games:
-    CPA(E).Left against CPA(E).Adversary;
+    INDCPA_MultiChal(E).Left against INDCPA_MultiChal(E).Adversary;
     
     // By codewise equivalency
-    Challenge(E).Left compose R1(E) against CPA(E).Adversary;
+    Challenge(E).Left compose R1(E) against INDCPA_MultiChal(E).Adversary;
     
     // By assumption
-    Challenge(E).Right compose R1(E) against CPA(E).Adversary;
+    Challenge(E).Right compose R1(E) against INDCPA_MultiChal(E).Adversary;
 
     // mL argument is not used in R1, replace with mR
-    Challenge(E).Right compose R2(E) against CPA(E).Adversary;
+    Challenge(E).Right compose R2(E) against INDCPA_MultiChal(E).Adversary;
 
     // By assumption 
-    Challenge(E).Left compose R2(E) against CPA(E).Adversary;    
+    Challenge(E).Left compose R2(E) against INDCPA_MultiChal(E).Adversary;    
     
     // By codewise equivalency
-    CPA(E).Right against CPA(E).Adversary;
+    INDCPA_MultiChal(E).Right against INDCPA_MultiChal(E).Adversary;

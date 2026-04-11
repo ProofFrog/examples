@@ -1,8 +1,8 @@
 import '../../Primitives/SymEnc.primitive';
-import '../../Games/SymEnc/CCA.game';
-import '../../Games/SymEnc/CCA$.game';
+import '../../Games/SymEnc/INDCCA_MultiChal.game';
+import '../../Games/SymEnc/INDCCA$_MultiChal.game';
 
-Reduction R1(SymEnc E) compose CCA$(E) against CCA(E).Adversary {
+Reduction R1(SymEnc E) compose INDCCA$_MultiChal(E) against INDCCA_MultiChal(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
         return challenger.CTXT(mL);
     }
@@ -11,7 +11,7 @@ Reduction R1(SymEnc E) compose CCA$(E) against CCA(E).Adversary {
     }
 }
 
-Reduction R2(SymEnc E) compose CCA$(E) against CCA(E).Adversary {
+Reduction R2(SymEnc E) compose INDCCA$_MultiChal(E) against INDCCA_MultiChal(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
         return challenger.CTXT(mR);
     }
@@ -29,15 +29,15 @@ let:
     SymEnc E = SymEnc(MessageSpace, CiphertextSpace, KeySpace);
 
 assume:
-    CCA$(E);
+    INDCCA$_MultiChal(E);
 
 theorem:
-    CCA(E);
+    INDCCA_MultiChal(E);
 
 games:
-    CCA(E).Left against CCA(E).Adversary;
-    CCA$(E).Real compose R1(E) against CCA(E).Adversary;
-    CCA$(E).Random compose R1(E) against CCA(E).Adversary;
-    CCA$(E).Random compose R2(E) against CCA(E).Adversary;
-    CCA$(E).Real compose R2(E) against CCA(E).Adversary;
-    CCA(E).Right against CCA(E).Adversary;
+    INDCCA_MultiChal(E).Left against INDCCA_MultiChal(E).Adversary;
+    INDCCA$_MultiChal(E).Real compose R1(E) against INDCCA_MultiChal(E).Adversary;
+    INDCCA$_MultiChal(E).Random compose R1(E) against INDCCA_MultiChal(E).Adversary;
+    INDCCA$_MultiChal(E).Random compose R2(E) against INDCCA_MultiChal(E).Adversary;
+    INDCCA$_MultiChal(E).Real compose R2(E) against INDCCA_MultiChal(E).Adversary;
+    INDCCA_MultiChal(E).Right against INDCCA_MultiChal(E).Adversary;

@@ -1,0 +1,109 @@
+import '../../Primitives/SymEnc.primitive';
+import '../../Primitives/MAC.primitive';
+import '../../Games/SymEnc/INDCPA_MultiChal.game';
+import '../../Games/MAC/SUFCMA.game';
+import '../../Games/SymEnc/INDCCA_MultiChal.game';
+import '../../Schemes/SymEnc/EncryptThenMAC.scheme';
+
+Reduction R1(SymEnc E, MAC M, EncryptThenMAC EtM) compose SUFCMA(M) against INDCCA_MultiChal(EtM).Adversary {
+    E.Key ke;
+    Set<[E.Ciphertext, M.Tag]> S;
+    Void Initialize() {
+        ke = E.KeyGen();
+    }
+    EtM.Ciphertext Eavesdrop(EtM.Message mL, EtM.Message mR) {
+        E.Ciphertext c = E.Enc(ke, mL);
+        M.Tag t = challenger.GetTag(c);
+        S = S union [c, t];
+        return [c, t];
+    }
+    EtM.Message? Decrypt(EtM.Ciphertext c) {
+        if (c in S) {
+            return None;
+        }
+        if (!(challenger.CheckTag(c[0], c[1]))) {
+            return None;
+        }
+        return E.Dec(ke, c[0]);
+    }
+}
+
+Reduction R2(SymEnc E, MAC M, EncryptThenMAC EtM) compose INDCPA_MultiChal(E) against INDCCA_MultiChal(EtM).Adversary {
+    M.Key km;
+    Set<[E.Ciphertext, M.Tag]> S;
+    Void Initialize() {
+        km = M.KeyGen();
+    }
+    EtM.Ciphertext Eavesdrop(EtM.Message mL, EtM.Message mR) {
+        E.Ciphertext c = challenger.Eavesdrop(mL, mR);
+        M.Tag t = M.MAC(km, c);
+        S = S union [c, t];
+        return [c, t];
+    }
+    EtM.Message? Decrypt(EtM.Ciphertext c) {
+        if (c in S) {
+            return None;
+        }
+        if (!(c in S)) {
+            return None;
+        }
+    }
+}
+
+Reduction R3(SymEnc E, MAC M, EncryptThenMAC EtM) compose SUFCMA(M) against INDCCA_MultiChal(EtM).Adversary {
+    E.Key ke;
+    Set<[E.Ciphertext, M.Tag]> S;
+    Void Initialize() {
+        ke = E.KeyGen();
+    }
+    EtM.Ciphertext Eavesdrop(EtM.Message mL, EtM.Message mR) {
+        E.Ciphertext c = E.Enc(ke, mR);
+        M.Tag t = challenger.GetTag(c);
+        S = S union [c, t];
+        return [c, t];
+    }
+    EtM.Message? Decrypt(EtM.Ciphertext c) {
+        if (c in S) {
+            return None;
+        }
+        if (!(challenger.CheckTag(c[0], c[1]))) {
+            return None;
+        }
+        return E.Dec(ke, c[0]);
+    }
+}
+
+proof:
+    let:
+        Set SymEncKeySpace;
+        Set MACKeySpace;
+        Set MessageSpace;
+        Set CiphertextSpace;
+        Set TagSpace;
+        SymEnc E = SymEnc(MessageSpace, CiphertextSpace, SymEncKeySpace);
+        MAC M = MAC(CiphertextSpace, TagSpace, MACKeySpace);
+        EncryptThenMAC EtM = EncryptThenMAC(E, M);
+
+    assume:
+        INDCPA_MultiChal(E);
+        SUFCMA(M);
+
+    theorem:
+        INDCCA_MultiChal(EtM);
+
+    games:
+        INDCCA_MultiChal(EtM).Left against INDCCA_MultiChal(EtM).Adversary;
+
+        SUFCMA(M).Real compose R1(E, M, EtM) against INDCCA_MultiChal(EtM).Adversary;
+
+        SUFCMA(M).Ideal compose R1(E, M, EtM) against INDCCA_MultiChal(EtM).Adversary;
+
+        INDCPA_MultiChal(E).Left compose R2(E, M, EtM) against INDCCA_MultiChal(EtM).Adversary;
+
+        INDCPA_MultiChal(E).Right compose R2(E, M, EtM) against INDCCA_MultiChal(EtM).Adversary;
+
+        SUFCMA(M).Ideal compose R3(E, M, EtM) against INDCCA_MultiChal(EtM).Adversary;
+
+        SUFCMA(M).Real compose R3(E, M, EtM) against INDCCA_MultiChal(EtM).Adversary;
+
+        INDCCA_MultiChal(EtM).Right against INDCCA_MultiChal(EtM).Adversary;

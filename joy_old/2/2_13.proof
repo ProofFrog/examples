@@ -1,9 +1,9 @@
-// Simplified proof that DoubleOTP has OneTimeUniformCiphertexts.
+// Simplified proof that DoubleOTP has INDOT$.
 // The engine's uniform XOR simplification recognizes that
 // k[0] + k[1] + m (with k[0], k[1] uniform) canonicalizes to uniform
 
 import '../../joy_old/2/2_12_DoubleOTP.scheme';
-import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
+import '../../Games/SymEnc/INDOT$.game';
 
 proof:
 
@@ -14,9 +14,9 @@ let:
 assume:
 
 theorem:
-    OneTimeUniformCiphertexts(D);
+    INDOT$(D);
 
 games:
-    OneTimeUniformCiphertexts(D).Real against OneTimeUniformCiphertexts(D).Adversary;
+    INDOT$(D).Real against INDOT$(D).Adversary;
 
-    OneTimeUniformCiphertexts(D).Random against OneTimeUniformCiphertexts(D).Adversary;
+    INDOT$(D).Random against INDOT$(D).Adversary;

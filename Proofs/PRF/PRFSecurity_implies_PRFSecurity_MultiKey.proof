@@ -1,0 +1,63 @@
+// Proof that PRFSecurity_MultiKey follows from standard PRFSecurity
+// via a hybrid argument over the number of oracle calls.
+//
+// Main idea: Use a hybrid reduction that, for the i-th call, delegates
+// to the PRF challenger, while earlier calls return random and later
+// calls use fresh PRF keys. Inducting over i from 1 to q replaces
+// each call one at a time.
+
+import '../../Primitives/PRF.primitive';
+import '../../Games/PRF/PRFSecurity.game';
+import '../../Games/PRF/PRFSecurity_MultiKey.game';
+
+Reduction R_Hybrid(PRF F, Int h) compose PRFSecurity(F) against PRFSecurity_MultiKey(F).Adversary {
+    Int count;
+
+    Void Initialize() {
+        count = 0;
+        challenger.Initialize();
+    }
+
+    BitString<F.out> Lookup(BitString<F.in> x) {
+        count = count + 1;
+        if (count < h) {
+            BitString<F.out> r <- BitString<F.out>;
+            return r;
+        } else if (count == h) {
+            return challenger.Lookup(x);
+        } else {
+            BitString<F.lambda> k <- BitString<F.lambda>;
+            return F.evaluate(k, x);
+        }
+    }
+}
+
+proof:
+
+let:
+    Int lambda;
+    Int in;
+    Int out;
+    Int q;
+    PRF F = PRF(lambda, in, out);
+
+assume:
+    PRFSecurity(F);
+    calls <= q;
+
+theorem:
+    PRFSecurity_MultiKey(F);
+
+games:
+    PRFSecurity_MultiKey(F).Real against PRFSecurity_MultiKey(F).Adversary;
+
+    assume R_Hybrid(F, 1).count >= 1;
+
+    induction(i from 1 to q) {
+        PRFSecurity(F).Real compose R_Hybrid(F, i) against PRFSecurity_MultiKey(F).Adversary;
+        PRFSecurity(F).Random compose R_Hybrid(F, i) against PRFSecurity_MultiKey(F).Adversary;
+    }
+
+    assume R_Hybrid(F, q).count < q + 1;
+
+    PRFSecurity_MultiKey(F).Random against PRFSecurity_MultiKey(F).Adversary;

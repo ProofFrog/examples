@@ -1,16 +1,16 @@
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5/5_2_PseudoOTP.scheme';
-import '../../Games/SymEnc/OneTimeUniformCiphertexts.game';
-import '../../Games/PRG/Security.game';
+import '../../Games/SymEnc/INDOT$.game';
+import '../../Games/PRG/PRGSecurity.game';
 import '../../Schemes/SymEnc/OTP.scheme';
 
-Reduction R1(OTP E, PRG G, PseudoOTP P) compose Security(G) against OneTimeUniformCiphertexts(P).Adversary {
+Reduction R1(OTP E, PRG G, PseudoOTP P) compose PRGSecurity(G) against INDOT$(P).Adversary {
     E.Ciphertext CTXT(E.Message m) {
         return challenger.Query() + m;
     }
 }
 
-Reduction R2(OTP E, PseudoOTP P) compose OneTimeUniformCiphertexts(E) against OneTimeUniformCiphertexts(P).Adversary {
+Reduction R2(OTP E, PseudoOTP P) compose INDOT$(E) against INDOT$(P).Adversary {
     E.Ciphertext CTXT(E.Message m) {
         E.Ciphertext result = challenger.CTXT(m);
         return result;
@@ -26,21 +26,21 @@ let:
     OTP E = OTP(3 * lambda);
 
 assume:
-    Security(G);
-    OneTimeUniformCiphertexts(E);
+    PRGSecurity(G);
+    INDOT$(E);
 
 theorem:
-    OneTimeUniformCiphertexts(P);
+    INDOT$(P);
 
 games:
-    OneTimeUniformCiphertexts(P).Real against OneTimeUniformCiphertexts(P).Adversary;
+    INDOT$(P).Real against INDOT$(P).Adversary;
 
-    Security(G).Real compose R1(E, G, P) against OneTimeUniformCiphertexts(P).Adversary;
+    PRGSecurity(G).Real compose R1(E, G, P) against INDOT$(P).Adversary;
 
-    Security(G).Random compose R1(E, G, P) against OneTimeUniformCiphertexts(P).Adversary;
+    PRGSecurity(G).Random compose R1(E, G, P) against INDOT$(P).Adversary;
 
-    OneTimeUniformCiphertexts(E).Real compose R2(E, P) against OneTimeUniformCiphertexts(P).Adversary;
+    INDOT$(E).Real compose R2(E, P) against INDOT$(P).Adversary;
 
-    OneTimeUniformCiphertexts(E).Random compose R2(E, P) against OneTimeUniformCiphertexts(P).Adversary;
+    INDOT$(E).Random compose R2(E, P) against INDOT$(P).Adversary;
 
-    OneTimeUniformCiphertexts(P).Random against OneTimeUniformCiphertexts(P).Adversary;
+    INDOT$(P).Random against INDOT$(P).Adversary;

@@ -1,15 +1,15 @@
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/2_Exercises/2_14.game';
-import '../../Games/SymEnc/OneTimeSecrecy.game';
+import '../../Games/SymEnc/INDOT.game';
 
-Reduction R1(SymEnc E) compose Foo(E) against OneTimeSecrecy(E).Adversary {
+Reduction R1(SymEnc E) compose Foo(E) against INDOT(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
         E.Ciphertext c = challenger.Foo(mL);
         return c;
     }
 }
 
-Reduction R2(SymEnc E) compose Foo(E) against OneTimeSecrecy(E).Adversary {
+Reduction R2(SymEnc E) compose Foo(E) against INDOT(E).Adversary {
     E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
         E.Ciphertext c = challenger.Foo(mR);
         return c;
@@ -29,22 +29,22 @@ assume:
     Foo(E);
 
 theorem:
-    OneTimeSecrecy(E);
+    INDOT(E);
 
 games:
-    OneTimeSecrecy(E).Left against OneTimeSecrecy(E).Adversary;
+    INDOT(E).Left against INDOT(E).Adversary;
     
     // By codewise equivalency
-    Foo(E).Left compose R1(E) against OneTimeSecrecy(E).Adversary;
+    Foo(E).Left compose R1(E) against INDOT(E).Adversary;
     
     // By assumption
-    Foo(E).Right compose R1(E) against OneTimeSecrecy(E).Adversary;
+    Foo(E).Right compose R1(E) against INDOT(E).Adversary;
 
     // mL argument is not used in R1, replace with mR
-    Foo(E).Right compose R2(E) against OneTimeSecrecy(E).Adversary;
+    Foo(E).Right compose R2(E) against INDOT(E).Adversary;
 
     // By assumption
-    Foo(E).Left compose R2(E) against OneTimeSecrecy(E).Adversary;
+    Foo(E).Left compose R2(E) against INDOT(E).Adversary;
     
     // By codewise equivalency
-    OneTimeSecrecy(E).Right against OneTimeSecrecy(E).Adversary;
+    INDOT(E).Right against INDOT(E).Adversary;

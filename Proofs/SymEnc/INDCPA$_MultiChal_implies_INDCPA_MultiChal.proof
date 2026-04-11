@@ -1,0 +1,37 @@
+import '../../Primitives/SymEnc.primitive';
+import '../../Games/SymEnc/INDCPA_MultiChal.game';
+import '../../Games/SymEnc/INDCPA$_MultiChal.game';
+
+Reduction R1(SymEnc E) compose INDCPA$_MultiChal(E) against INDCPA_MultiChal(E).Adversary {
+    E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
+        return challenger.CTXT(mL);
+    }
+}
+
+Reduction R2(SymEnc E) compose INDCPA$_MultiChal(E) against INDCPA_MultiChal(E).Adversary {
+    E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
+        return challenger.CTXT(mR);
+    }
+}
+
+proof:
+
+let:
+    Set MessageSpace;
+    Set CiphertextSpace;
+    Set KeySpace;
+    SymEnc E = SymEnc(MessageSpace, CiphertextSpace, KeySpace);
+
+assume:
+    INDCPA$_MultiChal(E);
+
+theorem:
+    INDCPA_MultiChal(E);
+
+games:
+    INDCPA_MultiChal(E).Left against INDCPA_MultiChal(E).Adversary;
+    INDCPA$_MultiChal(E).Real compose R1(E) against INDCPA_MultiChal(E).Adversary;
+    INDCPA$_MultiChal(E).Random compose R1(E) against INDCPA_MultiChal(E).Adversary;
+    INDCPA$_MultiChal(E).Random compose R2(E) against INDCPA_MultiChal(E).Adversary;
+    INDCPA$_MultiChal(E).Real compose R2(E) against INDCPA_MultiChal(E).Adversary;
+    INDCPA_MultiChal(E).Right against INDCPA_MultiChal(E).Adversary;

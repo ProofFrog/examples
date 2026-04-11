@@ -1,8 +1,8 @@
 import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/7_Exercises/7_13.game';
-import '../../Games/SymEnc/CPA.game';
+import '../../Games/SymEnc/INDCPA_MultiChal.game';
 
-Reduction R(SymEnc E) compose CPA(E) against Challenge(E).Adversary {
+Reduction R(SymEnc E) compose INDCPA_MultiChal(E) against Challenge(E).Adversary {
     E.Ciphertext Challenge(E.Message m) {
         E.Message mPrime <- E.Message;
         E.Ciphertext c = challenger.Eavesdrop(m, mPrime);
@@ -20,7 +20,7 @@ let:
     SymEnc E = SymEnc(MessageSpace, CiphertextSpace, KeySpace);
 
 assume:
-    CPA(E);
+    INDCPA_MultiChal(E);
 
 theorem:
     Challenge(E);
@@ -29,10 +29,10 @@ games:
     Challenge(E).Left against Challenge(E).Adversary;
     
     // By codewise equivalency
-    CPA(E).Left compose R(E) against Challenge(E).Adversary;
+    INDCPA_MultiChal(E).Left compose R(E) against Challenge(E).Adversary;
     
     // By assumption
-    CPA(E).Right compose R(E) against Challenge(E).Adversary;
+    INDCPA_MultiChal(E).Right compose R(E) against Challenge(E).Adversary;
     
     // By codewise equivalency
     Challenge(E).Right against Challenge(E).Adversary;

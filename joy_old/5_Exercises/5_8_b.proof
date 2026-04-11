@@ -1,8 +1,8 @@
 import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_8_b.scheme';
-import '../../Games/PRG/Security.game';
+import '../../Games/PRG/PRGSecurity.game';
 
-Reduction R1(PRG G, PRG_5_8_b H) compose Security(G) against Security(H).Adversary {
+Reduction R1(PRG G, PRG_5_8_b H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
     BitString<H.lambda + H.stretch> Query() {
         BitString<3 * H.lambda> result = challenger.Query();
 
@@ -21,16 +21,16 @@ let:
     PRG_5_8_b H = PRG_5_8_b(G);
 
 assume:
-    Security(G);
+    PRGSecurity(G);
 
 theorem:
-    Security(H);
+    PRGSecurity(H);
 
 games:
-    Security(H).Real against Security(H).Adversary;
+    PRGSecurity(H).Real against PRGSecurity(H).Adversary;
 
-    Security(G).Real compose R1(G, H) against Security(H).Adversary;
+    PRGSecurity(G).Real compose R1(G, H) against PRGSecurity(H).Adversary;
 
-    Security(G).Random compose R1(G, H) against Security(H).Adversary;
+    PRGSecurity(G).Random compose R1(G, H) against PRGSecurity(H).Adversary;
 
-    Security(H).Random against Security(H).Adversary;
+    PRGSecurity(H).Random against PRGSecurity(H).Adversary;
