@@ -1,6 +1,18 @@
 // Assumption: sampling uniformly from a set S is indistinguishable from
 // sampling from S \ bookkeeping.
 
+// Justification: FrogLang's <-uniq[bookkeeping] semantics implicitly add
+// the sampled value to bookkeeping, so over q queries to Samp the
+// NoReplacement game is guaranteed to return q distinct values. The two
+// games are then identical conditioned on no collision occurring in the
+// Replacement game, since NoReplacement differs from Replacement only by
+// rejecting values already in bookkeeping. The birthday-paradox collision
+// probability over q independent uniform samples from S is at most
+// q(q-1)/(2|S|), so the statistical distance -- and hence the
+// distinguishing advantage -- is bounded by at most q^2 / |S|. (This
+// bound is meaningful only when q << |S|^(1/2); at q \approx |S|^(1/2)
+// it is trivial.)
+
 Game Replacement(Set S) {
     S Samp(Set<S> bookkeeping) {
         S val <- S;
@@ -10,6 +22,8 @@ Game Replacement(Set S) {
 
 Game NoReplacement(Set S) {
     S Samp(Set<S> bookkeeping) {
+        // <-uniq[bookkeeping] implicitly adds val to bookkeeping, so
+        // repeated calls accumulate all prior outputs automatically.
         S val <-uniq[bookkeeping] S;
         return val;
     }
