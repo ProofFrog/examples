@@ -1,0 +1,71 @@
+// IND-CCA security for a public key encryption scheme.
+// Left: challenge ciphertext encrypts m0.
+// Right: challenge ciphertext encrypts m1.
+// Both games provide a Dec oracle that decrypts any ciphertext
+// except the challenge ciphertext.
+
+import 'PKE.primitive';
+
+Game Left(PKE E) {
+    E.PublicKey pk;
+    E.SecretKey sk;
+    E.Ciphertext ctStar;
+    Bool challenged;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        sk = k[1];
+        challenged = false;
+        return pk;
+    }
+
+    E.Ciphertext Challenge(E.Message m0, E.Message m1) {
+        E.Ciphertext ct = E.Enc(pk, m0);
+        ctStar = ct;
+        challenged = true;
+        return ct;
+    }
+
+    E.Message? Dec(E.Ciphertext ct) {
+        if (challenged) {
+            if (ct == ctStar) {
+                return None;
+            }
+        }
+        return E.Dec(sk, ct);
+    }
+}
+
+Game Right(PKE E) {
+    E.PublicKey pk;
+    E.SecretKey sk;
+    E.Ciphertext ctStar;
+    Bool challenged;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        sk = k[1];
+        challenged = false;
+        return pk;
+    }
+
+    E.Ciphertext Challenge(E.Message m0, E.Message m1) {
+        E.Ciphertext ct = E.Enc(pk, m1);
+        ctStar = ct;
+        challenged = true;
+        return ct;
+    }
+
+    E.Message? Dec(E.Ciphertext ct) {
+        if (challenged) {
+            if (ct == ctStar) {
+                return None;
+            }
+        }
+        return E.Dec(sk, ct);
+    }
+}
+
+export as PKE_INDCCA;

@@ -1,0 +1,12 @@
+// Public key encryption primitive with perfectly-correct decryption.
+// Dec returns Message (not Message?), modeling a PKE where decryption always succeeds.
+Primitive PKE(Set MessageSpace, Set CiphertextSpace, Set PKeySpace, Set SKeySpace) {
+    Set Message = MessageSpace;
+    Set Ciphertext = CiphertextSpace;
+    Set PublicKey = PKeySpace;
+    Set SecretKey = SKeySpace;
+
+    [PublicKey, SecretKey] KeyGen();
+    Ciphertext Enc(PublicKey pk, Message m);
+    deterministic Message Dec(SecretKey sk, Ciphertext ct);
+}
