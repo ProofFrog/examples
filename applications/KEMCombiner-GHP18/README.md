@@ -44,12 +44,25 @@ The multi-key security properties are derived from the single-key ones via a sta
 ## IND-CPA security proofs
 
 There are two independent proofs that the combiner is IND-CPA-secure, each relying on a different component KEM being secure.
-This means the combiner is secure as long as **at least one** of the two component KEMs is secure.
+This means the combiner is secure as long as **at least one** of the two component KEMs is CPA-secure.
 
-**Proof 1** ([GHP18_INDCPA1.proof](GHP18_INDCPA1.proof)):
+**Via KEM1** ([GHP18_INDCPA_First.proof](GHP18_INDCPA_First.proof)):
 - Assumptions: `KEM_INDCPA_MultiChal(KEM1)` + `TwoKeyPRFFirstKeyMultiKey(F)`
 - 7 game hops: replace `KEM1`'s shared secret with random (via IND-CPA assumption), then replace the PRF output with random (via multi-key first-key PRF security).
 
-**Proof 2** ([GHP18_INDCPA2.proof](GHP18_INDCPA2.proof)):
+**Via KEM2** ([GHP18_INDCPA_Second.proof](GHP18_INDCPA_Second.proof)):
 - Assumptions: `KEM_INDCPA_MultiChal(KEM2)` + `TwoKeyPRFSecondKeyMultiKey(F)`
 - 7 game hops: replace `KEM2`'s shared secret with random (via IND-CPA assumption), then replace the PRF output with random (via multi-key second-key PRF security).
+
+## IND-CCA security proofs
+
+There are two independent proofs that the combiner is IND-CCA-secure, each relying on a different component KEM being CCA-secure.
+This means the combiner is secure as long as **at least one** of the two component KEMs is CCA-secure.
+
+**Via KEM1** ([GHP18_INDCCA_First.proof](GHP18_INDCCA_First.proof)):
+- Assumptions: `KEMCorrectness(KEM1)` + `KEM_INDCCA_MultiChal(KEM1)` + `TwoKeyPRFFirstKeySecurity(F)`
+- 17 game hops (symmetric left/right structure): use KEM1 correctness to store `ss1` for the Decaps oracle, replace `ss1` with random via CCA assumption, then replace the PRF output with random via single-key first-key PRF security.
+
+**Via KEM2** ([GHP18_INDCCA_Second.proof](GHP18_INDCCA_Second.proof)):
+- Assumptions: `KEMCorrectness(KEM2)` + `KEM_INDCCA_MultiChal(KEM2)` + `TwoKeyPRFSecondKeySecurity(F)`
+- 17 game hops (symmetric left/right structure): use KEM2 correctness to store `ss2` for the Decaps oracle, replace `ss2` with random via CCA assumption, then replace the PRF output with random via single-key second-key PRF security.
