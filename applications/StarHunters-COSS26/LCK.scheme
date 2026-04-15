@@ -1,0 +1,28 @@
+// LCK: promotes a PKE into a KEM by encrypting a randomly-chosen key.
+// KeyGen: return PKE.KeyGen()
+// Encaps(pk): k <- SharedSecret; ct = PKE.Enc(pk, k); return (k, ct)
+// Decaps(sk, ct): return PKE.Dec(sk, ct)
+
+import '../../Primitives/KEM.primitive';
+import 'PKE.primitive';
+
+Scheme LCK(PKE E) extends KEM {
+    Set SharedSecret = E.Message;
+    Set Ciphertext = E.Ciphertext;
+    Set PublicKey = E.PublicKey;
+    Set SecretKey = E.SecretKey;
+
+    [PublicKey, SecretKey] KeyGen() {
+        return E.KeyGen();
+    }
+
+    [SharedSecret, Ciphertext] Encaps(PublicKey pk) {
+        SharedSecret k <- SharedSecret;
+        Ciphertext ct = E.Enc(pk, k);
+        return [k, ct];
+    }
+
+    deterministic SharedSecret Decaps(SecretKey sk, Ciphertext ct) {
+        return E.Dec(sk, ct);
+    }
+}

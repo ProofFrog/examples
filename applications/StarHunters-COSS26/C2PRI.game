@@ -1,0 +1,52 @@
+// C2PRI (Ciphertext Second Pre-Image Resistance) security for a KEM.
+// The adversary receives the full key pair and a challenge encapsulation,
+// and tries to find a different ciphertext that decapsulates to the same
+// shared secret.
+//
+// Reformulated as a left/right game:
+//  - Real:  Submit oracle truthfully reports whether ct is a second preimage
+//  - Ideal: Submit oracle always returns false
+//
+// The distinguishing advantage equals Pr[adversary finds a second preimage],
+// matching Definition 5 of Connolly-Ounsworth-Schmieg-Stebila (StarHunters).
+
+import '../../Primitives/KEM.primitive';
+
+Game Real(KEM K) {
+    K.SharedSecret kStar;
+    K.Ciphertext ctStar;
+    K.SecretKey sk;
+
+    [K.PublicKey, K.SecretKey, K.Ciphertext, K.SharedSecret] Initialize() {
+        [K.PublicKey, K.SecretKey] keys = K.KeyGen();
+        sk = keys[1];
+        [K.SharedSecret, K.Ciphertext] enc = K.Encaps(keys[0]);
+        kStar = enc[0];
+        ctStar = enc[1];
+        return [keys[0], keys[1], enc[1], enc[0]];
+    }
+
+    Bool Submit(K.Ciphertext ct) {
+        if (ct == ctStar) {
+            return false;
+        }
+        return K.Decaps(sk, ct) == kStar;
+    }
+}
+
+Game Ideal(KEM K) {
+    K.Ciphertext ctStar;
+
+    [K.PublicKey, K.SecretKey, K.Ciphertext, K.SharedSecret] Initialize() {
+        [K.PublicKey, K.SecretKey] keys = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] enc = K.Encaps(keys[0]);
+        ctStar = enc[1];
+        return [keys[0], keys[1], enc[1], enc[0]];
+    }
+
+    Bool Submit(K.Ciphertext ct) {
+        return false;
+    }
+}
+
+export as KEM_C2PRI;

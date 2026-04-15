@@ -1,0 +1,64 @@
+// Claim 1: LCK is an IND-CCA-secure KEM so long as PKE is an IND-CCA-secure PKE.
+//
+// Main idea:
+// The reduction B1 picks two random keys k0, k1 and submits them to the
+// PKE IND-CCA challenger. When the challenger encrypts k0 (Left), the
+// reduction simulates IND-CCA_KEM.Real. When the challenger encrypts k1
+// (Right), the reduction simulates IND-CCA_KEM.Random (k0 is independent
+// of the challenge ciphertext).
+//
+// Games:
+// 0. Starting game = IND-CCA_KEM(LCK).Real
+// 1. PKE_INDCCA.Left compose B1  (interchangeable with game 0)
+// 2. PKE_INDCCA.Right compose B1 (by PKE IND-CCA assumption)
+// 3. Ending game = IND-CCA_KEM(LCK).Random (interchangeable with game 2)
+
+import '../../Primitives/KEM.primitive';
+import 'PKE.primitive';
+import 'LCK.scheme';
+import '../../Games/KEM/INDCCA_MultiChal.game';
+import 'INDCCA_PKE.game';
+
+// Reduction to PKE IND-CCA: picks two random keys, submits them as
+// challenge messages, and uses k0 as the KEM shared secret.
+Reduction B1(PKE E, LCK L) compose PKE_INDCCA(E) against KEM_INDCCA_MultiChal(L).Adversary {
+    L.Ciphertext ctStar;
+
+    [L.PublicKey, L.SharedSecret, L.Ciphertext] Initialize() {
+        L.PublicKey pk = challenger.Initialize();
+        L.SharedSecret k0 <- L.SharedSecret;
+        L.SharedSecret k1 <- L.SharedSecret;
+        L.Ciphertext ct = challenger.Challenge(k0, k1);
+        ctStar = ct;
+        return [pk, k0, ct];
+    }
+
+    L.SharedSecret? Decaps(L.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return challenger.Dec(c);
+    }
+}
+
+proof:
+
+let:
+    Set MessageSpace;
+    Set CiphertextSpace;
+    Set PKeySpace;
+    Set SKeySpace;
+    PKE E = PKE(MessageSpace, CiphertextSpace, PKeySpace, SKeySpace);
+    LCK L = LCK(E);
+
+assume:
+    PKE_INDCCA(E);
+
+theorem:
+    KEM_INDCCA_MultiChal(L);
+
+games:
+    KEM_INDCCA_MultiChal(L).Real against KEM_INDCCA_MultiChal(L).Adversary;
+    PKE_INDCCA(E).Left compose B1(E, L) against KEM_INDCCA_MultiChal(L).Adversary;
+    PKE_INDCCA(E).Right compose B1(E, L) against KEM_INDCCA_MultiChal(L).Adversary;
+    KEM_INDCCA_MultiChal(L).Random against KEM_INDCCA_MultiChal(L).Adversary;
