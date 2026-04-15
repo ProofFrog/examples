@@ -368,15 +368,14 @@ Reduction R_PRF_Fwd(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, CK 
         BitString<ct2len> bct2 = ct2;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         if (ct2 == ct2Star) {
-            KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
             if (ss1 == ss1Star) {
                 BitString<F.out> r <- BitString<F.out>;
                 return r;
             }
             return challenger.Lookup(ss1, label);
         }
-        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
         return F.evaluate(ss1, ss2, label);
     }
@@ -418,15 +417,14 @@ Reduction R_PRF_Rev(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, CK 
         BitString<ct2len> bct2 = ct2;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         if (ct2 == ct2Star) {
-            KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
             if (ss1 == ss1Star) {
                 BitString<F.out> r <- BitString<F.out>;
                 return r;
             }
             return challenger.Lookup(ss1, label);
         }
-        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
         return F.evaluate(ss1, ss2, label);
     }
@@ -566,15 +564,14 @@ Game G_Abort(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
         BitString<ct2len> bct2 = ct2;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         if (ct2 == ct2Star) {
-            KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
             if (ss1 == ss1Star) {
                 BitString<F.out> r <- BitString<F.out>;
                 return r;
             }
             return F.evaluate(ss1, ss2Star, label);
         }
-        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
         return F.evaluate(ss1, ss2, label);
     }
@@ -618,15 +615,14 @@ Game G_AllRand(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
         BitString<ct2len> bct2 = ct2;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         if (ct2 == ct2Star) {
-            KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
             if (ss1 == ss1Star) {
                 BitString<F.out> r <- BitString<F.out>;
                 return r;
             }
             return RF([ss1, label]);
         }
-        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
         return F.evaluate(ss1, ss2, label);
     }
@@ -667,15 +663,14 @@ Game G_Unwound(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
         BitString<ct2len> bct2 = ct2;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
+        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         if (ct2 == ct2Star) {
-            KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
             if (ss1 == ss1Star) {
                 BitString<F.out> r <- BitString<F.out>;
                 return r;
             }
             return F.evaluate(ss1, ss2Star, label);
         }
-        KEM1.SharedSecret ss1 = KEM1.Decaps(sk1, ct1);
         KEM2.SharedSecret ss2 = KEM2.Decaps(sk2, ct2);
         return F.evaluate(ss1, ss2, label);
     }
