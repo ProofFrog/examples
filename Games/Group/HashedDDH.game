@@ -1,67 +1,34 @@
 // Hashed Decisional Diffie-Hellman assumption.
-// Counter-based single-challenge version: Challenge() may be called at most
-// once (subsequent calls return None). Same Initialize/Hash/Challenge
-// interface as HashedDDHMultiChal so a hybrid argument can lift this to
-// HashedDDHMultiChal.
+// Single-challenge variant: the challenge is returned directly from
+// Initialize. A Hash oracle is included so this game is usable in both
+// the standard model and the ROM; in the standard model H is a known
+// deterministic function the adversary can compute itself.
 // Left:  (pk, g^r, H(pk^r))   Right: (pk, g^r, random)
 
 Game Left(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
-    GroupElem<G> pk;
-    GroupElem<G> gr_saved;
-    BitString<n> val_saved;
-    Int count;
-
-    GroupElem<G> Initialize() {
+    [GroupElem<G>, GroupElem<G>, BitString<n>] Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
-        pk = G.generator ^ a;
         ModInt<G.order> r <- ModInt<G.order>;
-        gr_saved = G.generator ^ r;
-        val_saved = H(pk ^ r);
-        count = 0;
-        return pk;
+        GroupElem<G> pk = G.generator ^ a;
+        return [pk, G.generator ^ r, H(pk ^ r)];
     }
 
     BitString<n> Hash(GroupElem<G> x) {
         return H(x);
-    }
-
-    [GroupElem<G>, BitString<n>]? Challenge() {
-        [GroupElem<G>, BitString<n>]? result = None;
-        count = count + 1;
-        if (count == 1) {
-            result = [gr_saved, val_saved];
-        }
-        return result;
     }
 }
 
 Game Right(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) {
-    GroupElem<G> pk;
-    GroupElem<G> gr_saved;
-    BitString<n> val_saved;
-    Int count;
-
-    GroupElem<G> Initialize() {
+    [GroupElem<G>, GroupElem<G>, BitString<n>] Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
-        pk = G.generator ^ a;
         ModInt<G.order> r <- ModInt<G.order>;
-        gr_saved = G.generator ^ r;
-        val_saved <- BitString<n>;
-        count = 0;
-        return pk;
+        GroupElem<G> pk = G.generator ^ a;
+        BitString<n> h <- BitString<n>;
+        return [pk, G.generator ^ r, h];
     }
 
     BitString<n> Hash(GroupElem<G> x) {
         return H(x);
-    }
-
-    [GroupElem<G>, BitString<n>]? Challenge() {
-        [GroupElem<G>, BitString<n>]? result = None;
-        count = count + 1;
-        if (count == 1) {
-            result = [gr_saved, val_saved];
-        }
-        return result;
     }
 }
 
