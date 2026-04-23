@@ -1,0 +1,147 @@
+// HashedElGamalKEM is IND-CCA secure under gap-CDH in the ROM.
+//
+// High-level proof idea: first program the random oracle H at the
+// challenge point pk^r so that the shared secret is a fresh independent
+// random value (ROMProgramming hop); then simulate both H and Decaps
+// using only the public (pk, ctStar) pair plus the DDH oracle supplied
+// by GapCDH, at which point the programmed shared secret is already
+// unconditionally uniform and the Random game follows.
+//
+// Game sequence (six games, two reduction hops):
+//   0. KEM_INDCCA_MultiChal_ROM.Real                      -- scheme samples sk from ModInt<G.order> \ {0}
+//   1. ROMProgramming.Natural    compose R_Program        -- interchangeability
+//   2. ROMProgramming.Programmed compose R_Program        -- by ROMProgramming
+//   3. GapCDH_NZ.Left            compose R_Gap            -- interchangeability
+//   4. GapCDH_NZ.Right           compose R_Gap            -- by GapCDH_NZ (lemma: GapCDH => GapCDH_NZ)
+//   5. KEM_INDCCA_MultiChal_ROM.Random                    -- interchangeability
+
+import '../../Primitives/KEM.primitive';
+import '../../Schemes/KEM/HashedElGamalKEM.scheme';
+import '../../Games/KEM/INDCCA_MultiChal_ROM.game';
+import '../../Games/Group/GapCDH.game';
+import '../../Games/Group/GapCDH_NZ.game';
+import '../../Games/Helpers/Probability/ROMProgramming.game';
+import '../../Games/Helpers/Probability/UniqueSampling.game';
+
+// R_Program: peels ssStar by delegating H(ctStar^sk) to the
+// ROMProgramming challenger. Holds sk locally and answers Decaps via
+// challenger.Query(c^sk).
+Reduction R_Program(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
+    compose ROMProgramming(GroupElem<G>, BitString<n>, H)
+    against KEM_INDCCA_MultiChal_ROM(HashedElGamalKEM(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    ModInt<G.order> sk;
+    GroupElem<G> ctStar;
+    BitString<n> ssStar;
+
+    [GroupElem<G>, BitString<n>, GroupElem<G>] Initialize() {
+        sk <- ModInt<G.order> \ {0};
+        ModInt<G.order> b <- ModInt<G.order>;
+        ssStar = challenger.Initialize((G.generator ^ b) ^ sk);
+        ctStar = G.generator ^ b;
+        return [G.generator ^ sk, ssStar, ctStar];
+    }
+
+    BitString<n> Hash(GroupElem<G> m) {
+        return challenger.Query(m);
+    }
+
+    BitString<n>? Decaps(GroupElem<G> c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return challenger.Query(c ^ sk);
+    }
+}
+
+// R_Gap: lazy-simulated H + Decaps. Receives (pk, ctStar) from the
+// GapCDH challenger and samples ssStar fresh. HashTable (a lazy-sample
+// cache for Hash, keyed by the group element input) and PendingDecaps
+// (a Decaps cache, keyed by ciphertext) are cross-referenced via
+// challenger.TestOracle (the DDH oracle for the fixed sk). An
+// `if challenger.Solve(z)` guard at the top of Hash returns ssStar
+// when z == ctStar^sk, subsuming the programmed point from the
+// previous hop. The Solve guard sits BEFORE the HashTable cache check:
+// this placement is what lets the engine's canonicalization pipeline
+// (Lazy Map Scan + Map Key Reindex + LocalFunctionFieldToLet) unify
+// both sides of the GapCDH hop with the programmed game.
+Reduction R_Gap(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
+    compose GapCDH(G)
+    against KEM_INDCCA_MultiChal_ROM(HashedElGamalKEM(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    GroupElem<G> pk;
+    GroupElem<G> ctStar;
+    BitString<n> ssStar;
+    Map<GroupElem<G>, BitString<n>> HashTable;
+    Map<GroupElem<G>, BitString<n>> PendingDecaps;
+
+    [GroupElem<G>, BitString<n>, GroupElem<G>] Initialize() {
+        [GroupElem<G>, GroupElem<G>] init = challenger.Initialize();
+        pk = init[0];
+        ctStar = init[1];
+        ssStar <- BitString<n>;
+        return [pk, ssStar, ctStar];
+    }
+
+    BitString<n> Hash(GroupElem<G> m) {
+        if (challenger.Solve(m)) {
+            return ssStar;
+        }
+        if (m in HashTable) {
+            return HashTable[m];
+        }
+        for ([GroupElem<G>, BitString<n>] entry in PendingDecaps.entries) {
+            if (challenger.TestOracle(entry[0], m)) {
+                return entry[1];
+            }
+        }
+        BitString<n> h <- BitString<n>;
+        HashTable[m] = h;
+        return h;
+    }
+
+    BitString<n>? Decaps(GroupElem<G> c) {
+        if (c == ctStar) {
+            return None;
+        }
+        for ([GroupElem<G>, BitString<n>] entry in HashTable.entries) {
+            if (challenger.TestOracle(c, entry[0])) {
+                return entry[1];
+            }
+        }
+        BitString<n> s <- BitString<n>;
+        PendingDecaps[c] = s;
+        return s;
+    }
+}
+
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+    HashedElGamalKEM E = HashedElGamalKEM(G, n, H);
+
+assume:
+    GapCDH(G);
+    ROMProgramming(GroupElem<G>, BitString<n>, H);
+    UniqueSampling(ModInt<G.order>);
+
+requires:
+    G.order is prime;
+
+lemma:
+    GapCDH_NZ(G) by '../Group/GapCDH_implies_GapCDH_NZ.proof';
+
+theorem:
+    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H);
+
+games:
+    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Real against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural    compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    GapCDH_NZ(G).Left  compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    GapCDH_NZ(G).Right compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Random against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
