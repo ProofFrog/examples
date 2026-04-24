@@ -16,7 +16,7 @@ Primitive KEM(Int Nseed, Int Nss, Int Nct, Int Nek, Set SharedSecretSpace, Set C
     Set DecapsKey = DecapsKeySpace;
 
     [EncapsKey, DecapsKey] KeyGen();
-    [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed);
+    deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed);
     [SharedSecret, Ciphertext] Encaps(EncapsKey ek);
     deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct);
     deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss);
