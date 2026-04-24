@@ -1,0 +1,31 @@
+// Collision resistance of the KDF.
+//
+// Standard cryptographic assumption. The adversary submits two input
+// strings and wins if they are distinct but produce the same KDF output.
+// Used by the draft (section 6.4.2) to justify the LEAK-BIND-K-CT and
+// LEAK-BIND-K-PK binding properties of the UG and UK frameworks (and,
+// combined with KEM_PQ's own binding properties, of the CG and CK
+// frameworks).
+//
+// Breakable:   Challenge returns true iff the two inputs are distinct
+//              and collide under H.
+// Unbreakable: Challenge always returns false.
+//
+// The distinguishing advantage between the two games equals the
+// probability that the adversary finds a collision.
+
+import '../primitives/KDF.primitive';
+
+Game Breakable(KDF H) {
+    Bool Challenge(BitString<H.Nin> x0, BitString<H.Nin> x1) {
+        return H.evaluate(x0) == H.evaluate(x1) && x0 != x1;
+    }
+}
+
+Game Unbreakable(KDF H) {
+    Bool Challenge(BitString<H.Nin> x0, BitString<H.Nin> x1) {
+        return false;
+    }
+}
+
+export as KDFCollisionResistance;

@@ -1,0 +1,29 @@
+// KeyGen equivalence game for a KEM.
+//
+// Captures the assumption that K.KeyGen() is equivalent to sampling a
+// uniform seed and calling K.DeriveKeyPair(seed). This is a statistical
+// (definitional) property of the KEM primitive, not a cryptographic
+// assumption on a specific scheme; it is added as a separate game
+// because the engine cannot infer the equivalence automatically when
+// KeyGen and DeriveKeyPair are declared as independent operations on
+// an abstract primitive.
+//
+// FromDeriveKeyPair: sample seed, call DeriveKeyPair(seed).
+// FromKeyGen:         call KeyGen() directly.
+
+import '../primitives/KEM.primitive';
+
+Game FromDeriveKeyPair(KEM K) {
+    [K.EncapsKey, K.DecapsKey] Generate() {
+        BitString<K.Nseed> seed <- BitString<K.Nseed>;
+        return K.DeriveKeyPair(seed);
+    }
+}
+
+Game FromKeyGen(KEM K) {
+    [K.EncapsKey, K.DecapsKey] Generate() {
+        return K.KeyGen();
+    }
+}
+
+export as KeyGenEquiv;

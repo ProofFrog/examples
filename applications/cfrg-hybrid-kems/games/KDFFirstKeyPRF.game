@@ -1,0 +1,46 @@
+// Split-key PRF security of the KDF in the FIRST key position.
+//
+// The KDF is modeled as a flat single-argument function KDF: {0,1}^Nin
+// -> {0,1}^Nout. The combiners in draft section 5.1.3 place two shared
+// secrets at the start of the KDF input (ss_PQ at offset 0, ss_T at
+// offset Nss1); the rest of the input (ciphertext(s), encapsulation
+// key(s), label) is adversary-influenced.
+//
+// This game captures the assumption that when the first ss (ss_PQ) is
+// uniform and kept secret, the KDF output is pseudorandom.
+//
+// Real:   sample k1 <- {0,1}^Nss1; Lookup(key2, rest) = H(k1 || key2 || rest).
+// Random: Lookup(key2, rest) = RF([key2, rest]) for a random function RF.
+//
+// Parameterized by Nss1 (length of ss_PQ) and Nss2 (length of ss_T).
+// Adversary-queried remainder has length H.Nin - (Nss1 + Nss2).
+//
+// Used by the UK and CK IND-CCA proofs (PQ branch).
+
+import '../primitives/KDF.primitive';
+
+Game Real(KDF H, Int Nss1, Int Nss2) {
+    BitString<Nss1> k1;
+
+    Void Initialize() {
+        k1 <- BitString<Nss1>;
+    }
+
+    BitString<H.Nout> Lookup(BitString<Nss2> key2, BitString<H.Nin - (Nss1 + Nss2)> rest) {
+        return H.evaluate(k1 || key2 || rest);
+    }
+}
+
+Game Random(KDF H, Int Nss1, Int Nss2) {
+    Function<[BitString<Nss2>, BitString<H.Nin - (Nss1 + Nss2)>], BitString<H.Nout>> RF;
+
+    Void Initialize() {
+        RF <- Function<[BitString<Nss2>, BitString<H.Nin - (Nss1 + Nss2)>], BitString<H.Nout>>;
+    }
+
+    BitString<H.Nout> Lookup(BitString<Nss2> key2, BitString<H.Nin - (Nss1 + Nss2)> rest) {
+        return RF([key2, rest]);
+    }
+}
+
+export as KDFFirstKeyPRF;

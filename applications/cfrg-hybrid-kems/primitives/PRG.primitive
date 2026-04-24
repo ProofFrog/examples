@@ -1,0 +1,8 @@
+// Pseudorandom Generator (PRG) primitive.
+// Deterministic evaluate expands a seed of length lambda into lambda+stretch bytes.
+Primitive PRG(Int lambda, Int stretch) {
+    Int lambda = lambda;
+    Int stretch = stretch;
+
+    deterministic BitString<lambda + stretch> evaluate(BitString<lambda> x);
+}
