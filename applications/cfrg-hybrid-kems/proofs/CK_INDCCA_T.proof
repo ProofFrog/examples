@@ -1,0 +1,1053 @@
+// Proof that CK hybrid KEM is IND-CCA secure (T branch).
+//
+// Assumptions:
+//   - KEM_T IND-CCA (KEM_INDCCA)
+//   - KEM_T correctness, with-dk form (KEMCorrectnessWithDK)
+//   - KEM_PQ C2PRI (KEM_C2PRI)
+//   - KDF is a split-key PRF in the second key (KDFSecondKeyPRF), keyed on
+//     the length-Nss_T slot at offset Nss_PQ (i.e. ss_T).
+//   - PRG security (PRGSec)
+//   - KEM_PQ KeyGen equivalence (KeyGenEquiv)
+//   - KEM_T  KeyGen equivalence (KeyGenEquiv)
+//
+// Standard-model port of StarHunters CK_INDCCA_PreQuantum.proof. The role
+// mapping is KEM1 -> KEM_PQ (only C2PRI assumed) and KEM2 -> KEM_T (full
+// IND-CCA + correctness assumed). Adapted for the draft's seed-form Decaps
+// (bracket with PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T)) and the
+// flat-input C2PRICombiner KDF (KDFSecondKeyPRF keyed on ss_T in place of
+// TwoKeyPRF second-key security).
+//
+// The C2PRICombiner KDF input has the form
+//   EncodeSharedSecret(ss_PQ) || EncodeSharedSecret(ss_T)
+//     || EncodeCiphertext(ct_T) || EncodeEncapsKey(ek_T) || L.get()
+// (no ek_PQ, no ct_PQ -- this is exactly why the C2PRI assumption is
+// required on the PQ component).
+
+import '../primitives/KEM.primitive';
+import '../primitives/PRG.primitive';
+import '../primitives/KDF.primitive';
+import '../primitives/Label.primitive';
+import '../schemes/CK.scheme';
+import '../games/INDCCA.game';
+import '../games/CorrectnessWithDK.game';
+import '../games/C2PRI.game';
+import '../games/PRGSec.game';
+import '../games/KeyGenEquiv.game';
+import '../games/KDFSecondKeyPRF.game';
+
+// ===================================================================
+// Bracket reductions: PRG + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T).
+// Identical in shape to the bracket reductions in CK_INDCCA_PQ.proof
+// (just the inner-form games differ between PQ and T branches).
+// ===================================================================
+
+Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose PRGSec(G) against KEM_INDCCA(hybrid).Adversary {
+    BitString<G.lambda + G.stretch> seed_full;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        seed_full = challenger.Query();
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] _pq_kp_tmp = KEM_PQ.DeriveKeyPair(seed_PQ);
+        KEM_PQ.EncapsKey ek_PQ = _pq_kp_tmp[0];
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] _t_kp_tmp = KEM_T.DeriveKeyPair(seed_T);
+        KEM_T.EncapsKey ek_T = _t_kp_tmp[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        KEM_T.SharedSecret ss_T = t_enc[0];
+        KEM_T.Ciphertext ct_T = t_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys = KEM_T.DeriveKeyPair(seed_T);
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_PRG_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose PRGSec(G) against KEM_INDCCA(hybrid).Adversary {
+    BitString<G.lambda + G.stretch> seed_full;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        seed_full = challenger.Query();
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] _pq_kp_tmp = KEM_PQ.DeriveKeyPair(seed_PQ);
+        KEM_PQ.EncapsKey ek_PQ = _pq_kp_tmp[0];
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] _t_kp_tmp = KEM_T.DeriveKeyPair(seed_T);
+        KEM_T.EncapsKey ek_T = _t_kp_tmp[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys = KEM_T.DeriveKeyPair(seed_T);
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_KG_PQ_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KeyGenEquiv(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    BitString<KEM_T.Nseed> seed_T;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = challenger.Generate();
+        seed_T <- BitString<KEM_T.Nseed>;
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] _t_kp_tmp = KEM_T.DeriveKeyPair(seed_T);
+        KEM_T.EncapsKey ek_T = _t_kp_tmp[0];
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        KEM_T.SharedSecret ss_T = t_enc[0];
+        KEM_T.Ciphertext ct_T = t_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys = KEM_T.DeriveKeyPair(seed_T);
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_KG_PQ_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KeyGenEquiv(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    BitString<KEM_T.Nseed> seed_T;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = challenger.Generate();
+        seed_T <- BitString<KEM_T.Nseed>;
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] _t_kp_tmp = KEM_T.DeriveKeyPair(seed_T);
+        KEM_T.EncapsKey ek_T = _t_kp_tmp[0];
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys = KEM_T.DeriveKeyPair(seed_T);
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_KG_T_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KeyGenEquiv(KEM_T) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = challenger.Generate();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        KEM_T.SharedSecret ss_T = t_enc[0];
+        KEM_T.Ciphertext ct_T = t_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KeyGenEquiv(KEM_T) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = challenger.Generate();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// R_Correct_T_Real / R_Correct_T_Ideal: KEM_T correctness reductions.
+// Use ss_e for the challenge KDF input and ss_d (=Decaps result) for
+// Decaps queries when c2 == ct_T_star. With FromDecaps, ss_d = real
+// Decaps; with FromEncaps, ss_d = ss_e (i.e. the Encaps output is
+// stored and reused).
+// ===================================================================
+
+Reduction R_Correct_T_Real(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KEMCorrectnessWithDK(KEM_T) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_T.EncapsKey, KEM_T.DecapsKey, KEM_T.Ciphertext, KEM_T.SharedSecret, KEM_T.SharedSecret] corr;
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        corr = challenger.Compute();
+        pq_keys = KEM_PQ.KeyGen();
+        KEM_T.EncapsKey ek_T = corr[0];
+        KEM_T.Ciphertext ct_T = corr[2];
+        KEM_T.SharedSecret ss_T_e = corr[3];
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_e) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == corr[2]) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(corr[4]) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(corr[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(corr[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(corr[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_Correct_T_Ideal(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KEMCorrectnessWithDK(KEM_T) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_T.EncapsKey, KEM_T.DecapsKey, KEM_T.Ciphertext, KEM_T.SharedSecret, KEM_T.SharedSecret] corr;
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        corr = challenger.Compute();
+        pq_keys = KEM_PQ.KeyGen();
+        KEM_T.EncapsKey ek_T = corr[0];
+        KEM_T.Ciphertext ct_T = corr[2];
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == corr[2]) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(corr[4]) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(corr[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(corr[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(corr[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// G_StoredSS_T: post-correctness intermediate game with case-split
+// Decaps on c2 == kem_ct_T. Stores the real ss_T from Encaps.
+// ===================================================================
+
+Game G_StoredSS_T(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid) {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    KEM_T.SharedSecret ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        ss_T_star = t_enc[0];
+        kem_ct_T = t_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_star) || KEM_T.EncodeCiphertext(kem_ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_star) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// R_KEM_T_L / R_KEM_T_R: KEM_T IND-CCA reductions. Receive
+// (ek_T, ss_T_star, ct_T_star) from KEM_T challenger; simulate KEM_PQ
+// internally; use ss_T_star when c2 == ct_T_star; pass other Decaps
+// queries on c2 to the KEM_T challenger.
+// ===================================================================
+
+Reduction R_KEM_T_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KEM_INDCCA(KEM_T) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    KEM_T.EncapsKey ek_T;
+    KEM_T.SharedSecret ss_T_star;
+    KEM_T.Ciphertext kem_ct_T;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [KEM_T.EncapsKey, KEM_T.SharedSecret, KEM_T.Ciphertext] ch = challenger.Initialize();
+        ek_T = ch[0];
+        ss_T_star = ch[1];
+        kem_ct_T = ch[2];
+        pq_keys = KEM_PQ.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_star) || KEM_T.EncodeCiphertext(kem_ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_star) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret? dec_ss_T_opt = challenger.Decaps(c2);
+        if (dec_ss_T_opt == None) { return None; }
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T_opt) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_KEM_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KEM_INDCCA(KEM_T) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    KEM_T.EncapsKey ek_T;
+    KEM_T.SharedSecret ss_T_star;
+    KEM_T.Ciphertext kem_ct_T;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [KEM_T.EncapsKey, KEM_T.SharedSecret, KEM_T.Ciphertext] ch = challenger.Initialize();
+        ek_T = ch[0];
+        ss_T_star = ch[1];
+        kem_ct_T = ch[2];
+        pq_keys = KEM_PQ.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_star) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret? dec_ss_T_opt = challenger.Decaps(c2);
+        if (dec_ss_T_opt == None) { return None; }
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T_opt) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// G_RandSS_T: ss_T_star is a fresh uniform sample (not from Encaps).
+// ===================================================================
+
+Game G_RandSS_T(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid) {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    BitString<KEM_T.Nss> ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        kem_ct_T = t_enc[1];
+        ss_T_star <- BitString<KEM_T.Nss>;
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T_star || KEM_T.EncodeCiphertext(kem_ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || ss_T_star || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// R_C2PRI_L / R_C2PRI_R: KEM_PQ C2PRI reductions. Receive
+// (ek_PQ, dk_PQ, ct_PQ_star, ss_PQ_star) from C2PRI challenger.
+// When c2 == ct_T_star and c1 != ct_PQ_star, call Submit(c1) to
+// detect collision (KEM_PQ.Decaps(dk, c1) == ss_PQ_star); if true,
+// return random (the abort branch). Otherwise return KDF on
+// (dec_ss_PQ, ss_T_star, ...). ss_T_star is freshly sampled.
+//
+// Real -> abort fires; Ideal -> abort never fires.
+// ===================================================================
+
+Reduction R_C2PRI_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KEM_C2PRI(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
+    KEM_PQ.EncapsKey ek_PQ;
+    KEM_PQ.DecapsKey dk_PQ;
+    KEM_PQ.Ciphertext ct_PQ_star;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    BitString<KEM_T.Nss> ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.Ciphertext, KEM_PQ.SharedSecret] c2pri = challenger.Initialize();
+        ek_PQ = c2pri[0];
+        dk_PQ = c2pri[1];
+        ct_PQ_star = c2pri[2];
+        ss_PQ_star = c2pri[3];
+        t_keys = KEM_T.KeyGen();
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        kem_ct_T = t_enc[1];
+        ss_T_star <- BitString<KEM_T.Nss>;
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ_star) || ss_T_star || KEM_T.EncodeCiphertext(kem_ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ_star, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(dk_PQ, c1);
+        if (c2 == kem_ct_T) {
+            Bool isSecondPreimage = challenger.Submit(c1);
+            if (isSecondPreimage) {
+                BitString<H.Nout> r <- BitString<H.Nout>;
+                return r;
+            }
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || ss_T_star || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_C2PRI_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KEM_C2PRI(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
+    KEM_PQ.EncapsKey ek_PQ;
+    KEM_PQ.DecapsKey dk_PQ;
+    KEM_PQ.Ciphertext ct_PQ_star;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    BitString<KEM_T.Nss> ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.Ciphertext, KEM_PQ.SharedSecret] c2pri = challenger.Initialize();
+        ek_PQ = c2pri[0];
+        dk_PQ = c2pri[1];
+        ct_PQ_star = c2pri[2];
+        ss_PQ_star = c2pri[3];
+        t_keys = KEM_T.KeyGen();
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        kem_ct_T = _t_enc_tmp[1];
+        ss_T_star <- BitString<KEM_T.Nss>;
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ_star, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(dk_PQ, c1);
+        if (c2 == kem_ct_T) {
+            Bool isSecondPreimage = challenger.Submit(c1);
+            if (isSecondPreimage) {
+                BitString<H.Nout> r <- BitString<H.Nout>;
+                return r;
+            }
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || ss_T_star || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// G_Abort: abort branch present (when c2==ct_T_star and KEM_PQ.Decaps
+// of c1 hits ss_PQ_star, return random); ss_T_star fresh; challenge
+// uses ss_PQ_star directly (not dec).
+// ===================================================================
+
+Game G_Abort(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid) {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    BitString<KEM_T.Nss> ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        ss_PQ_star = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        kem_ct_T = t_enc[1];
+        ss_T_star <- BitString<KEM_T.Nss>;
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ_star) || ss_T_star || KEM_T.EncodeCiphertext(kem_ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            if (dec_ss_PQ == ss_PQ_star) {
+                BitString<H.Nout> r <- BitString<H.Nout>;
+                return r;
+            }
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || ss_T_star || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// R_PRF_Fwd / R_PRF_Rev: KDFSecondKeyPRF reductions. The challenger
+// maintains the second-key slot (ss_T) implicitly; Lookup(key1, rest)
+// returns H(key1 || k2 || rest) in Real or RF([key1, rest]) in Random.
+//
+// In R_PRF_Fwd, BOTH the challenge and the c2==kem_ct_T branch call
+// Lookup. Real -> matches G_Abort; Random -> matches G_AllRand.
+// In R_PRF_Rev, ONLY the c2==kem_ct_T branch calls Lookup; the
+// challenge ss is sampled fresh. Random -> matches G_AllRand;
+// Real -> matches G_Unwound.
+// ===================================================================
+
+Reduction R_PRF_Fwd(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        challenger.Initialize();
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        ss_PQ_star = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        kem_ct_T = t_enc[1];
+        BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)> rest = KEM_T.EncodeCiphertext(kem_ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        BitString<H.Nout> ss = challenger.Lookup(KEM_PQ.EncodeSharedSecret(ss_PQ_star), rest);
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            if (dec_ss_PQ == ss_PQ_star) {
+                BitString<H.Nout> r <- BitString<H.Nout>;
+                return r;
+            }
+            BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)> rest = KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return challenger.Lookup(KEM_PQ.EncodeSharedSecret(dec_ss_PQ), rest);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+Reduction R_PRF_Rev(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid)
+    compose KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss) against KEM_INDCCA(hybrid).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        challenger.Initialize();
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        ss_PQ_star = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        kem_ct_T = _t_enc_tmp[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            if (dec_ss_PQ == ss_PQ_star) {
+                BitString<H.Nout> r <- BitString<H.Nout>;
+                return r;
+            }
+            BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)> rest = KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return challenger.Lookup(KEM_PQ.EncodeSharedSecret(dec_ss_PQ), rest);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// G_AllRand: challenge ss is fresh; c2==kem_ct_T branch (non-abort)
+// uses RF([key1, rest]) instead of H.evaluate(...).
+// ===================================================================
+
+Game G_AllRand(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid) {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    Function<[BitString<KEM_PQ.Nss>, BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)>], BitString<H.Nout>> RF;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        RF <- Function<[BitString<KEM_PQ.Nss>, BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)>], BitString<H.Nout>>;
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        ss_PQ_star = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        kem_ct_T = _t_enc_tmp[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            if (dec_ss_PQ == ss_PQ_star) {
+                BitString<H.Nout> r <- BitString<H.Nout>;
+                return r;
+            }
+            BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)> rest = KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return RF([KEM_PQ.EncodeSharedSecret(dec_ss_PQ), rest]);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// G_Unwound: like G_Abort but the challenge ss is fresh (random).
+// Reached after PRF reverse: the c2==kem_ct_T branch's H.evaluate is
+// restored, and the abort branch is still present.
+// ===================================================================
+
+Game G_Unwound(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid) {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    BitString<KEM_T.Nss> ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        ss_PQ_star = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        kem_ct_T = _t_enc_tmp[1];
+        ss_T_star <- BitString<KEM_T.Nss>;
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            if (dec_ss_PQ == ss_PQ_star) {
+                BitString<H.Nout> r <- BitString<H.Nout>;
+                return r;
+            }
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || ss_T_star || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// G_Consolidated: abort removed, ss_T_star fresh, challenge fresh.
+// Reached after C2PRI reverse.
+// ===================================================================
+
+Game G_Consolidated(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid) {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    BitString<KEM_T.Nss> ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
+        kem_ct_T = _t_enc_tmp[1];
+        ss_T_star <- BitString<KEM_T.Nss>;
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || ss_T_star || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+// ===================================================================
+// G_StoredSS_T_R: real ss_T_star from KEM_T.Encaps stored, but the
+// challenge ss is fresh. Reached after KEM_T IND-CCA reverse.
+// ===================================================================
+
+Game G_StoredSS_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK hybrid) {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys;
+    KEM_T.Ciphertext kem_ct_T;
+    KEM_T.SharedSecret ss_T_star;
+    [KEM_PQ.Ciphertext, KEM_T.Ciphertext] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        pq_keys = KEM_PQ.KeyGen();
+        t_keys = KEM_T.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        ss_T_star = t_enc[0];
+        kem_ct_T = t_enc[1];
+        BitString<H.Nout> ss <- BitString<H.Nout>;
+        ctStar = [ct_PQ, kem_ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        KEM_T.Ciphertext c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        if (c2 == kem_ct_T) {
+            BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_star) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+            return H.evaluate(kdf_in);
+        }
+        KEM_T.SharedSecret dec_ss_T = KEM_T.Decaps(t_keys[1], c2);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || KEM_T.EncodeSharedSecret(dec_ss_T) || KEM_T.EncodeCiphertext(c2) || KEM_T.EncodeEncapsKey(t_keys[0]) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int kem_t_nseed;
+    Int kem_t_nss;
+    Int kem_t_nct;
+    Int kem_t_nek;
+    Int prg_stretch;
+    Int kdf_nout;
+    Int nlabel;
+    Set KEMPQSharedSecretSpace;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set KEMTCiphertextSpace;
+    Set KEMTEncapsKeySpace;
+    Set KEMTDecapsKeySpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     KEMPQSharedSecretSpace, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    KEM KEM_T = KEM(kem_t_nseed, kem_t_nss, kem_t_nct, kem_t_nek,
+                    BitString<kem_t_nss>, KEMTCiphertextSpace, KEMTEncapsKeySpace, KEMTDecapsKeySpace);
+    PRG G = PRG(kem_pq_nseed, prg_stretch);
+    KDF H = KDF(kem_pq_nss + kem_t_nss + kem_t_nct + kem_t_nek + nlabel, kdf_nout);
+    Label L = Label(nlabel);
+    CK hybrid = CK(KEM_PQ, KEM_T, G, H, L);
+
+assume:
+    PRGSec(G);
+    KeyGenEquiv(KEM_PQ);
+    KeyGenEquiv(KEM_T);
+    KEMCorrectnessWithDK(KEM_T);
+    KEM_INDCCA(KEM_T);
+    KEM_C2PRI(KEM_PQ);
+    KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss);
+
+theorem:
+    KEM_INDCCA(hybrid);
+
+games:
+    KEM_INDCCA(hybrid).Real against KEM_INDCCA(hybrid).Adversary;
+
+    // Open bracket: PRG, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
+    PRGSec(G).Real compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    PRGSec(G).Random compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KEM_T correctness (store ss_T_star)
+    KEMCorrectnessWithDK(KEM_T).FromDecaps compose R_Correct_T_Real(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KEMCorrectnessWithDK(KEM_T).FromEncaps compose R_Correct_T_Real(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    G_StoredSS_T(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KEM_T IND-CCA (replace ss_T_star with random)
+    KEM_INDCCA(KEM_T).Real compose R_KEM_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KEM_INDCCA(KEM_T).Random compose R_KEM_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    G_RandSS_T(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KEM_PQ C2PRI (add abort)
+    KEM_C2PRI(KEM_PQ).Ideal compose R_C2PRI_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KEM_C2PRI(KEM_PQ).Real compose R_C2PRI_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    G_Abort(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KDFSecondKeyPRF forward (replace KDF with RF on the ss_T-keyed inputs)
+    KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss).Real compose R_PRF_Fwd(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss).Random compose R_PRF_Fwd(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    G_AllRand(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KDFSecondKeyPRF reverse (restore KDF in oracle, keep challenge fresh)
+    KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss).Random compose R_PRF_Rev(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss).Real compose R_PRF_Rev(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    G_Unwound(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KEM_PQ C2PRI reverse (remove abort)
+    KEM_C2PRI(KEM_PQ).Real compose R_C2PRI_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KEM_C2PRI(KEM_PQ).Ideal compose R_C2PRI_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    G_Consolidated(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KEM_T IND-CCA reverse (replace random ss_T_star with real)
+    KEM_INDCCA(KEM_T).Random compose R_KEM_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KEM_INDCCA(KEM_T).Real compose R_KEM_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    G_StoredSS_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // KEM_T correctness reverse (replace stored ss_T with Decaps)
+    KEMCorrectnessWithDK(KEM_T).FromEncaps compose R_Correct_T_Ideal(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KEMCorrectnessWithDK(KEM_T).FromDecaps compose R_Correct_T_Ideal(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    // Close bracket: KeyGenEquiv(KEM_T), KeyGenEquiv(KEM_PQ), PRG (in reverse)
+    KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    PRGSec(G).Random compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+    PRGSec(G).Real compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
+
+    KEM_INDCCA(hybrid).Random against KEM_INDCCA(hybrid).Adversary;
