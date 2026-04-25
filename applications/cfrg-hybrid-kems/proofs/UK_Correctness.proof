@@ -43,6 +43,67 @@ import '../games/Correctness.game';
 import '../games/PRGSec.game';
 import '../games/KeyGenEquiv.game';
 
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int kem_t_nseed;
+    Int kem_t_nss;
+    Int kem_t_nct;
+    Int kem_t_nek;
+    Int prg_stretch;
+    Int kdf_nout;
+    Int nlabel;
+    Set KEMPQSharedSecretSpace;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set KEMTSharedSecretSpace;
+    Set KEMTCiphertextSpace;
+    Set KEMTEncapsKeySpace;
+    Set KEMTDecapsKeySpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     KEMPQSharedSecretSpace, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    KEM KEM_T = KEM(kem_t_nseed, kem_t_nss, kem_t_nct, kem_t_nek,
+                    KEMTSharedSecretSpace, KEMTCiphertextSpace, KEMTEncapsKeySpace, KEMTDecapsKeySpace);
+    PRG G = PRG(kem_pq_nseed, prg_stretch);
+    KDF H = KDF(kem_pq_nss + kem_t_nss + kem_pq_nct + kem_t_nct + kem_pq_nek + kem_t_nek + nlabel, kdf_nout);
+    Label L = Label(nlabel);
+    UK hybrid = UK(KEM_PQ, KEM_T, G, H, L);
+
+assume:
+    PRGSec(G);
+    KeyGenEquiv(KEM_PQ);
+    KeyGenEquiv(KEM_T);
+    KEMCorrectness(KEM_PQ);
+    KEMCorrectness(KEM_T);
+
+theorem:
+    KEMCorrectness(hybrid);
+
+games:
+    KEMCorrectness(hybrid).FromDecaps against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Real compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Random compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(KEM_PQ).FromDecaps compose R_KEM_PQ(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(KEM_PQ).FromEncaps compose R_KEM_PQ(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(KEM_T).FromDecaps compose R_KEM_T(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(KEM_T).FromEncaps compose R_KEM_T(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Random compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Real compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(hybrid).FromEncaps against KEMCorrectness(hybrid).Adversary;
+
 // Opening-bracket reductions (Decaps-side: compute both ss_e via Encaps and
 // ss_d via component Decaps, then KDF each into the hybrid shared secret).
 
@@ -222,64 +283,3 @@ Reduction R_PRG_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK hybrid)
         return [[ek_PQ, ek_T], [ct_PQ, ct_T], ss, ss];
     }
 }
-
-proof:
-
-let:
-    Int kem_pq_nseed;
-    Int kem_pq_nss;
-    Int kem_pq_nct;
-    Int kem_pq_nek;
-    Int kem_t_nseed;
-    Int kem_t_nss;
-    Int kem_t_nct;
-    Int kem_t_nek;
-    Int prg_stretch;
-    Int kdf_nout;
-    Int nlabel;
-    Set KEMPQSharedSecretSpace;
-    Set KEMPQCiphertextSpace;
-    Set KEMPQEncapsKeySpace;
-    Set KEMPQDecapsKeySpace;
-    Set KEMTSharedSecretSpace;
-    Set KEMTCiphertextSpace;
-    Set KEMTEncapsKeySpace;
-    Set KEMTDecapsKeySpace;
-    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
-                     KEMPQSharedSecretSpace, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
-    KEM KEM_T = KEM(kem_t_nseed, kem_t_nss, kem_t_nct, kem_t_nek,
-                    KEMTSharedSecretSpace, KEMTCiphertextSpace, KEMTEncapsKeySpace, KEMTDecapsKeySpace);
-    PRG G = PRG(kem_pq_nseed, prg_stretch);
-    KDF H = KDF(kem_pq_nss + kem_t_nss + kem_pq_nct + kem_t_nct + kem_pq_nek + kem_t_nek + nlabel, kdf_nout);
-    Label L = Label(nlabel);
-    UK hybrid = UK(KEM_PQ, KEM_T, G, H, L);
-
-assume:
-    PRGSec(G);
-    KeyGenEquiv(KEM_PQ);
-    KeyGenEquiv(KEM_T);
-    KEMCorrectness(KEM_PQ);
-    KEMCorrectness(KEM_T);
-
-theorem:
-    KEMCorrectness(hybrid);
-
-games:
-    KEMCorrectness(hybrid).FromDecaps against KEMCorrectness(hybrid).Adversary;
-    PRGSec(G).Real compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    PRGSec(G).Random compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KEMCorrectness(KEM_PQ).FromDecaps compose R_KEM_PQ(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KEMCorrectness(KEM_PQ).FromEncaps compose R_KEM_PQ(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KEMCorrectness(KEM_T).FromDecaps compose R_KEM_T(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KEMCorrectness(KEM_T).FromEncaps compose R_KEM_T(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    PRGSec(G).Random compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    PRGSec(G).Real compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
-    KEMCorrectness(hybrid).FromEncaps against KEMCorrectness(hybrid).Adversary;
