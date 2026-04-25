@@ -12,8 +12,11 @@
 //
 // The output is wrapped in NG.ElementToSharedSecret so the game returns
 // a BitString, which composes cleanly with hybrid-KDF input positions.
-// ElementToSharedSecret is declared `deterministic injective` so
-// wrapping is transparent to the engine.
+// ElementToSharedSecret is declared `deterministic` (but not injective:
+// the canonical X-coordinate instantiation is 2-to-1; see
+// NominalGroup.primitive for discussion). This game does not rely on
+// injectivity -- both Swap1 and Swap2 apply ElementToSharedSecret to
+// equal Element arguments, so determinism alone yields equal outputs.
 //
 // Swap1: return ElementToSharedSecret(NG.Exp(NG.Exp(g, a), b))
 // Swap2: return ElementToSharedSecret(NG.Exp(NG.Exp(g, b), a))

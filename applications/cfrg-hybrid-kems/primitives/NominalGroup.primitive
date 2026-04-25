@@ -23,7 +23,17 @@
 //   - ElementToSharedSecret(Element): the draft-specific encoding used
 //                                     to form ss_T from a group element
 //
-// Both encodings are modeled as deterministic and injective.
+// Encode is modeled as deterministic and injective (a serialization).
+// ElementToSharedSecret is modeled as deterministic but NOT injective:
+// the canonical X-coordinate instantiation (cited in draft section 4.2)
+// is 2-to-1 on short-Weierstrass / Montgomery curves -- a point and its
+// inverse share the same X-coordinate. The IETF draft does not claim
+// injectivity for this method; over-claiming would weaken our security
+// model relative to standard practice. As a consequence, an SDH-style
+// assumption phrased over ElementToSharedSecret bytes is genuinely
+// stronger than ordinary SDH (the "Gap-X-coordinate" flavour familiar
+// from HMQV / 3DH analyses) and must be stated as a separate assumption
+// rather than derived from SDH.
 Primitive NominalGroup(Int Nseed, Int Nelem, Int Nss, Set ElementSpace, Set ScalarSpace) {
     Int Nseed = Nseed;
     Int Nelem = Nelem;
@@ -35,5 +45,5 @@ Primitive NominalGroup(Int Nseed, Int Nelem, Int Nss, Set ElementSpace, Set Scal
     deterministic Element Generator();
     deterministic Scalar RandomScalar(BitString<Nseed> seed);
     deterministic injective BitString<Nelem> Encode(Element elem);
-    deterministic injective BitString<Nss> ElementToSharedSecret(Element elem);
+    deterministic BitString<Nss> ElementToSharedSecret(Element elem);
 }
