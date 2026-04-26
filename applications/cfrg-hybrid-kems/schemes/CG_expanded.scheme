@@ -1,0 +1,115 @@
+// CG_expanded: variant of CG whose DecapsKey is the expanded tuple
+// (dk_PQ, dk_T, ek_T) rather than the raw seed.
+//
+// Mechanisation purpose only: this scheme is used to mechanise LEAK-BIND-
+// {K-CT, K-PK} in the standard model (Phase 5a of the cfrg-hybrid-kems
+// LEAK-BIND plan). The seeded form CG exposes dk = seed to the binding
+// adversary, which blocks the PRGSec/KGE bracket pattern; the expanded
+// form sidesteps that by storing the component decapsulation material
+// directly. Encaps and the KDF input are unchanged from CG.
+//
+// Compared to CG:
+// - DecapsKey = [K.DecapsKey, NG.Scalar, NG.Element]
+//   (ek_T is included because Decaps needs it for the KDF input).
+// - KeyGen() calls K.KeyGen() directly for the PQ side and samples a
+//   fresh NG seed for the trans side (same NG.RandomScalar idiom as in
+//   CG).
+// - DeriveKeyPair(seed) is preserved for KEM-primitive signature
+//   compliance: it expands the seed via PRG + component DeriveKeyPair
+//   into the expanded tuple. It is not exercised by the binding proofs.
+// - Decaps reads dk_PQ, dk_T, ek_T directly from the tuple - no PRG, no
+//   DeriveKeyPair-from-seed inside.
+// - Encaps is identical to CG.
+// - EncapsKey, Ciphertext, encoders, and KDF input are unchanged.
+
+import '../primitives/KEM.primitive';
+import '../primitives/NominalGroup.primitive';
+import '../primitives/PRG.primitive';
+import '../primitives/KDF.primitive';
+import '../primitives/Label.primitive';
+
+
+Scheme CG_expanded(KEM K, NominalGroup NG, PRG G, KDF H, Label L) extends KEM {
+    requires G.lambda + G.stretch == K.Nseed + NG.Nseed;
+    requires H.Nin == K.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel;
+
+    Int Nseed = G.lambda;
+    Int Nss = H.Nout;
+    Int Nin = H.Nin;
+    Int Nct = K.Nct + NG.Nelem;
+    Int Nek = K.Nek + NG.Nelem;
+    Set SharedSecret = BitString<H.Nout>;
+    Set EncapsKey = [K.EncapsKey, NG.Element];
+    Set Ciphertext = [K.Ciphertext, NG.Element];
+    Set DecapsKey = [K.DecapsKey, NG.Scalar, NG.Element];
+
+    // Present for KEM-primitive signature compliance. Expands the seed
+    // via PRG + component DeriveKeyPair into the expanded tuple.
+    deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed) {
+        BitString<G.lambda + G.stretch> seed_full = G.evaluate(seed);
+        BitString<K.Nseed> seed_PQ = seed_full[0 : K.Nseed];
+        BitString<NG.Nseed> seed_T = seed_full[K.Nseed : K.Nseed + NG.Nseed];
+        [K.EncapsKey, K.DecapsKey] kem_keypair = K.DeriveKeyPair(seed_PQ);
+        K.EncapsKey ek_PQ = kem_keypair[0];
+        K.DecapsKey dk_PQ = kem_keypair[1];
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        return [[ek_PQ, ek_T], [dk_PQ, dk_T, ek_T]];
+    }
+
+    // Expanded-form KeyGen: K.KeyGen() called directly for the PQ side,
+    // and the trans-side scalar is derived from a freshly sampled seed.
+    [EncapsKey, DecapsKey] KeyGen() {
+        [K.EncapsKey, K.DecapsKey] kem_keypair = K.KeyGen();
+        K.EncapsKey ek_PQ = kem_keypair[0];
+        K.DecapsKey dk_PQ = kem_keypair[1];
+        BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        return [[ek_PQ, ek_T], [dk_PQ, dk_T, ek_T]];
+    }
+
+    // Encaps unchanged from CG.
+    [SharedSecret, Ciphertext] Encaps(EncapsKey ek) {
+        K.EncapsKey ek_PQ = ek[0];
+        NG.Element ek_T = ek[1];
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(ek_PQ);
+        K.SharedSecret ss_PQ = encaps_result[0];
+        K.Ciphertext ct_PQ = encaps_result[1];
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        NG.Element ss_T_elem = NG.Exp(ek_T, sk_E);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(ss_T_elem);
+        BitString<H.Nin> kdf_in = K.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        SharedSecret ss = H.evaluate(kdf_in);
+        Ciphertext ct = [ct_PQ, ct_T];
+        return [ss, ct];
+    }
+
+    deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss) {
+        return ss;
+    }
+
+    deterministic injective BitString<Nct> EncodeCiphertext(Ciphertext ct) {
+        return K.EncodeCiphertext(ct[0]) || NG.Encode(ct[1]);
+    }
+
+    deterministic injective BitString<Nek> EncodeEncapsKey(EncapsKey ek) {
+        return K.EncodeEncapsKey(ek[0]) || NG.Encode(ek[1]);
+    }
+
+    // Decaps reads dk_PQ, dk_T, ek_T directly from the expanded tuple.
+    deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct) {
+        K.DecapsKey dk_PQ = dk[0];
+        NG.Scalar dk_T = dk[1];
+        NG.Element ek_T = dk[2];
+        K.Ciphertext ct_PQ = ct[0];
+        NG.Element ct_T = ct[1];
+        K.SharedSecret ss_PQ = K.Decaps(dk_PQ, ct_PQ);
+        NG.Element ss_T_elem = NG.Exp(ct_T, dk_T);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(ss_T_elem);
+        BitString<H.Nin> kdf_in = K.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
