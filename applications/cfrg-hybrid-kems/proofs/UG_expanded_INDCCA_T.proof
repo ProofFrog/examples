@@ -1,0 +1,352 @@
+// Proof that UG_expanded hybrid KEM is IND-CCA secure in the random
+// oracle model (T branch, SDH_SS-based).
+//
+// UG_expanded differs from UG only in DecapsKey shape: it stores the
+// expanded tuple (dk_PQ, ek_PQ, dk_T, ek_T) directly instead of the raw
+// seed. KeyGen calls K.KeyGen() directly (no PRG, no DeriveKeyPair-from-
+// seed), and Decaps reads the four components straight from the tuple.
+// Encaps and the KDF input are unchanged from UG.
+//
+// Therefore the seeded UG_INDCCA_T proof's outer PRGSec + KeyGenEquiv
+// bracket (which converts seed-form Decaps to KeyGen-based form) is
+// unnecessary here: the canonical form of KEM_INDCCA_ROM(hybrid).Real
+// for UG_expanded already matches what the seeded proof reached after
+// those brackets were applied. The remainder of the proof
+// (RandomScalarDist + LazyROTwoViewsExcludedProgrammed + SDH_SS +
+// LazyROTwoViewsExcluded + RandomScalarDist reverse) carries over
+// verbatim modulo the parameter type change UG -> UG_expanded.
+//
+// Assumptions:
+//   - RandomScalarDist(NG)            (statistical helper)
+//   - SDH_SS(NG)                      (Gap-X-coordinate SDH)
+//   - LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss)
+//   - LazyROTwoViewsExcluded(P, hybrid.Nss)
+// where P = UGHashEncoding(KEM_PQ, NG, L).
+//
+// Game sequence (11 hops, 12 entries):
+//    0: KEM_INDCCA_ROM(hybrid_expanded, ...).Real
+//    1: RandomScalarDist.Honest  compose R_Dist_Real             (equiv)
+//    2: RandomScalarDist.Uniform compose R_Dist_Real             (by RSD)
+//    3: LazyROTwoViewsExcludedProgrammed.Honest compose R_Wrap_Prog    (equiv)
+//    4: LazyROTwoViewsExcludedProgrammed.Lazy   compose R_Wrap_Prog    (by ...)
+//    5: SDH_SS.Left  compose R_Combined                          (equiv)
+//    6: SDH_SS.Right compose R_Combined                          (by SDH_SS)
+//    7: LazyROTwoViewsExcluded.Lazy   compose R_Wrap_NoAbort     (equiv)
+//    8: LazyROTwoViewsExcluded.Honest compose R_Wrap_NoAbort     (by ...)
+//    9: RandomScalarDist.Uniform compose R_Dist_Random           (equiv)
+//   10: RandomScalarDist.Honest  compose R_Dist_Random           (by RSD)
+//   11: KEM_INDCCA_ROM(hybrid_expanded, ...).Random
+
+import '../primitives/KEM.primitive';
+import '../primitives/NominalGroup.primitive';
+import '../primitives/PRG.primitive';
+import '../primitives/Label.primitive';
+import '../primitives/KDF.primitive';
+import '../primitives/HashInputPacking.primitive';
+import '../schemes/UGHashEncoding.scheme';
+import '../schemes/UG_expanded.scheme';
+import '../schemes/RandomOracleKDF.scheme';
+import '../games/INDCCA_ROM.game';
+import '../games/RandomScalarDist.game';
+import '../games/SDH_SS.game';
+import '../games/LazyROTwoViewsExcludedProgrammed.game';
+import '../games/LazyROTwoViewsExcluded.game';
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int ng_nseed;
+    Int ng_nss;
+    Int ng_nelem;
+    Int Nout;
+    Int nlabel;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set NGElementSpace;
+    Set NGScalarSpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    NominalGroup NG = NominalGroup(ng_nseed, ng_nelem, ng_nss,
+                                   NGElementSpace, NGScalarSpace);
+    PRG G = PRG(kem_pq_nseed, ng_nseed);
+    Label L = Label(nlabel);
+    Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<Nout>> H <- Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<Nout>>;
+    KDF Hkdf = RandomOracleKDF(KEM_PQ, NG, L, Nout, H);
+    UG_expanded hybrid = UG_expanded(KEM_PQ, NG, G, Hkdf, L);
+    HashInputPacking P = UGHashEncoding(KEM_PQ, NG, L);
+
+assume:
+    RandomScalarDist(NG);
+    SDH_SS(NG);
+    LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss);
+    LazyROTwoViewsExcluded(P, hybrid.Nss);
+
+theorem:
+    KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H);
+
+games:
+    KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Real against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+
+    RandomScalarDist(NG).Honest  compose R_Dist_Real(KEM_PQ, NG, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+    RandomScalarDist(NG).Uniform compose R_Dist_Real(KEM_PQ, NG, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+
+    LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss).Honest compose R_Wrap_Prog(KEM_PQ, NG, P, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+    LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss).Lazy   compose R_Wrap_Prog(KEM_PQ, NG, P, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+
+    SDH_SS(NG).Left  compose R_Combined(KEM_PQ, NG, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+    SDH_SS(NG).Right compose R_Combined(KEM_PQ, NG, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+
+    LazyROTwoViewsExcluded(P, hybrid.Nss).Lazy   compose R_Wrap_NoAbort(KEM_PQ, NG, P, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+    LazyROTwoViewsExcluded(P, hybrid.Nss).Honest compose R_Wrap_NoAbort(KEM_PQ, NG, P, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+
+    RandomScalarDist(NG).Uniform compose R_Dist_Random(KEM_PQ, NG, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+    RandomScalarDist(NG).Honest  compose R_Dist_Random(KEM_PQ, NG, G, L, hybrid, H) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+
+    KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Random against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
+
+// ===================================================================
+// R_Dist_Real / R_Dist_Random: embed RandomScalarDist(NG). Bodies are
+// identical to the seeded UG_INDCCA_T versions (which already use
+// KEM_PQ.KeyGen() directly inside Initialize); only the hybrid type
+// parameter changes from UG to UG_expanded.
+// ===================================================================
+Reduction R_Dist_Real(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
+    compose RandomScalarDist(NG) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    NG.Scalar dk_T;
+    [KEM_PQ.Ciphertext, NG.Element] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [NG.Scalar, NG.Scalar] dist = challenger.Initialize();
+        dk_T = dist[0];
+        NG.Scalar sk_E = dist[1];
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        pq_keys = KEM_PQ.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        BitString<hybrid.Nin> kdf_in =
+            KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T || KEM_PQ.EncodeCiphertext(ct_PQ) || NG.Encode(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || NG.Encode(ek_T) || L.get();
+        BitString<hybrid.Nss> ss = H(kdf_in);
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        NG.Element c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        BitString<NG.Nss> dec_ss_T = NG.ElementToSharedSecret(NG.Exp(c2, dk_T));
+        BitString<hybrid.Nin> kdf_in =
+            KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || dec_ss_T || KEM_PQ.EncodeCiphertext(c1) || NG.Encode(c2) || KEM_PQ.EncodeEncapsKey(pq_keys[0]) || NG.Encode(NG.Exp(NG.Generator(), dk_T)) || L.get();
+        return H(kdf_in);
+    }
+
+    BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
+        return H(m);
+    }
+}
+
+Reduction R_Dist_Random(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
+    compose RandomScalarDist(NG) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
+    [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;
+    NG.Scalar dk_T;
+    [KEM_PQ.Ciphertext, NG.Element] ctStar;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [NG.Scalar, NG.Scalar] dist = challenger.Initialize();
+        dk_T = dist[0];
+        NG.Scalar sk_E = dist[1];
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        pq_keys = KEM_PQ.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<hybrid.Nss> ss <- BitString<hybrid.Nss>;
+        ctStar = [ct_PQ, ct_T];
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        KEM_PQ.Ciphertext c1 = c[0];
+        NG.Element c2 = c[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
+        BitString<NG.Nss> dec_ss_T = NG.ElementToSharedSecret(NG.Exp(c2, dk_T));
+        BitString<hybrid.Nin> kdf_in =
+            KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || dec_ss_T || KEM_PQ.EncodeCiphertext(c1) || NG.Encode(c2) || KEM_PQ.EncodeEncapsKey(pq_keys[0]) || NG.Encode(NG.Exp(NG.Generator(), dk_T)) || L.get();
+        return H(kdf_in);
+    }
+
+    BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
+        return H(m);
+    }
+}
+
+// ===================================================================
+// R_Wrap_Prog: embed LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss).
+// ===================================================================
+Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, Label L, UG_expanded hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
+    compose LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_PQ.DecapsKey dk_PQ = pq_keys[1];
+        NG.Scalar dk_T <- NG.Scalar;
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        NG.Scalar sk_E <- NG.Scalar;
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        [KEM_PQ.Ciphertext, NG.Element] ctStar = [ct_PQ, ct_T];
+        BitString<hybrid.Nin> m_star =
+            KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T || KEM_PQ.EncodeCiphertext(ct_PQ) || NG.Encode(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || NG.Encode(ek_T) || L.get();
+        BitString<hybrid.Nss> ss_star <- BitString<hybrid.Nss>;
+        BitString<hybrid.Nss> ss = challenger.Initialize([dk_PQ, dk_T, ek_PQ, ek_T], ctStar, m_star, ss_star);
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        return challenger.Indirect(c);
+    }
+
+    BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
+        return challenger.Direct(m);
+    }
+}
+
+// ===================================================================
+// R_Wrap_NoAbort: embed LazyROTwoViewsExcluded(P, hybrid.Nss).
+// ===================================================================
+Reduction R_Wrap_NoAbort(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, Label L, UG_expanded hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
+    compose LazyROTwoViewsExcluded(P, hybrid.Nss) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_PQ.DecapsKey dk_PQ = pq_keys[1];
+        NG.Scalar dk_T <- NG.Scalar;
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        NG.Scalar sk_E <- NG.Scalar;
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        [KEM_PQ.Ciphertext, NG.Element] ctStar = [ct_PQ, ct_T];
+        BitString<hybrid.Nss> ss = challenger.Initialize([dk_PQ, dk_T, ek_PQ, ek_T], ctStar);
+        return [[ek_PQ, ek_T], ss, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        return challenger.Indirect(c);
+    }
+
+    BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
+        return challenger.Direct(m);
+    }
+}
+
+// ===================================================================
+// R_Combined: SDH_SS reduction.
+// ===================================================================
+Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
+    compose SDH_SS(NG) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
+    KEM_PQ.DecapsKey dk_PQ;
+    KEM_PQ.EncapsKey ek_PQ;
+    NG.Element ek_T;
+    [KEM_PQ.Ciphertext, NG.Element] ctStar;
+    KEM_PQ.SharedSecret ss_PQ_star;
+    BitString<hybrid.Nss> ss_star;
+    Map<BitString<hybrid.Nin>, BitString<hybrid.Nss>> HT;
+    Map<[KEM_PQ.Ciphertext, NG.Element], BitString<hybrid.Nss>> QT;
+
+    [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
+        [NG.Element, NG.Element] chal = challenger.Initialize();
+        ek_T = chal[0];
+        NG.Element ct_T = chal[1];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
+        ek_PQ = pq_keys[0];
+        dk_PQ = pq_keys[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        ss_PQ_star = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        ctStar = [ct_PQ, ct_T];
+        ss_star <- BitString<hybrid.Nss>;
+        return [[ek_PQ, ek_T], ss_star, ctStar];
+    }
+
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
+        if (c == ctStar) { return None; }
+        if (c in QT) { return QT[c]; }
+        KEM_PQ.Ciphertext c_PQ = c[0];
+        NG.Element c_T = c[1];
+        KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, c_PQ);
+        BitString<KEM_PQ.Nss> ss_PQ_enc = KEM_PQ.EncodeSharedSecret(ss_PQ);
+        BitString<KEM_PQ.Nct> c_PQ_enc = KEM_PQ.EncodeCiphertext(c_PQ);
+        BitString<NG.Nelem> c_T_enc = NG.Encode(c_T);
+        BitString<KEM_PQ.Nek> ek_PQ_enc = KEM_PQ.EncodeEncapsKey(ek_PQ);
+        BitString<NG.Nelem> ek_T_enc = NG.Encode(ek_T);
+        BitString<L.Nlabel> label_enc = L.get();
+        for ([BitString<hybrid.Nin>, BitString<hybrid.Nss>] e in HT.entries) {
+            BitString<hybrid.Nin> m = e[0];
+            if (m[0 : KEM_PQ.Nss] == ss_PQ_enc
+                && challenger.DH(c_T, m[KEM_PQ.Nss : KEM_PQ.Nss + NG.Nss])
+                && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct] == c_PQ_enc
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem] == c_T_enc
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek] == ek_PQ_enc
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem] == ek_T_enc
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel] == label_enc) {
+                QT[c] = e[1];
+                return e[1];
+            }
+        }
+        BitString<hybrid.Nss> s <- BitString<hybrid.Nss>;
+        QT[c] = s;
+        return s;
+    }
+
+    BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
+        BitString<NG.Nss> ss_T_slot = m[KEM_PQ.Nss : KEM_PQ.Nss + NG.Nss];
+        if (m[0 : KEM_PQ.Nss] == KEM_PQ.EncodeSharedSecret(ss_PQ_star)
+            && challenger.Solve(ss_T_slot)
+            && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct] == KEM_PQ.EncodeCiphertext(ctStar[0])
+            && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem] == NG.Encode(ctStar[1])
+            && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek] == KEM_PQ.EncodeEncapsKey(ek_PQ)
+            && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem] == NG.Encode(ek_T)
+            && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel] == L.get()) {
+            return ss_star;
+        }
+        if (m in HT) { return HT[m]; }
+        for ([[KEM_PQ.Ciphertext, NG.Element], BitString<hybrid.Nss>] e in QT.entries) {
+            [KEM_PQ.Ciphertext, NG.Element] c_key = e[0];
+            KEM_PQ.Ciphertext c_PQ = c_key[0];
+            NG.Element c_T = c_key[1];
+            KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, c_PQ);
+            if (m[0 : KEM_PQ.Nss] == KEM_PQ.EncodeSharedSecret(ss_PQ)
+                && challenger.DH(c_T, ss_T_slot)
+                && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct] == KEM_PQ.EncodeCiphertext(c_PQ)
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem] == NG.Encode(c_T)
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek] == KEM_PQ.EncodeEncapsKey(ek_PQ)
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem] == NG.Encode(ek_T)
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel] == L.get()) {
+                HT[m] = e[1];
+                return e[1];
+            }
+        }
+        BitString<hybrid.Nss> r <- BitString<hybrid.Nss>;
+        HT[m] = r;
+        return r;
+    }
+}

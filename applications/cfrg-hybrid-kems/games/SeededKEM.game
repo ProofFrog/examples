@@ -1,0 +1,34 @@
+// Seeded-KEM property: a KEM is in "seeded form" when DeriveKeyPair
+// literally uses the seed as the decapsulation key, i.e.,
+// DeriveKeyPair(seed)[1] == seed.
+//
+// This is a definitional / spec-level property, not a cryptographic
+// assumption. It holds for KEMs whose specification sets dk := seed
+// (e.g., ML-KEM per FIPS 203, HQC). It is captured here as a left/right
+// game so that adding `SeededKEM(K)` to a proof's `assume:` block lets
+// the engine rewrite `K.DeriveKeyPair(seed)[1]` to `seed` via the
+// generic assumption-application machinery.
+//
+// DKIsSeed_Real:  derive (ek, dk) honestly via DeriveKeyPair and return.
+// DKIsSeed_Ideal: derive only ek via DeriveKeyPair; return the seed in
+//                 the dk slot. Equivalent to DKIsSeed_Real exactly when
+//                 DeriveKeyPair(seed)[1] == seed.
+
+import '../primitives/KEM.primitive';
+
+Game DKIsSeed_Real(KEM K) {
+    [K.EncapsKey, K.DecapsKey] Generate() {
+        BitString<K.Nseed> seed <- BitString<K.Nseed>;
+        return K.DeriveKeyPair(seed);
+    }
+}
+
+Game DKIsSeed_Ideal(KEM K) {
+    [K.EncapsKey, K.DecapsKey] Generate() {
+        BitString<K.Nseed> seed <- BitString<K.Nseed>;
+        [K.EncapsKey, K.DecapsKey] kp = K.DeriveKeyPair(seed);
+        return [kp[0], seed];
+    }
+}
+
+export as SeededKEM;
