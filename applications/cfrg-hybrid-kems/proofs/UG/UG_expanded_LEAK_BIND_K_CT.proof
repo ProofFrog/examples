@@ -1,0 +1,105 @@
+// Proof that UG_expanded hybrid KEM satisfies LEAK-BIND-K-CT.
+//
+// UniversalCombiner: ct_PQ and ct_T both appear in the KDF input via
+// injective encodings, so distinct hybrid ciphertexts always produce
+// distinct KDF inputs. Thus a binding break (matching keys, distinct
+// ciphertexts) immediately yields a KDF collision.
+//
+// Direct port of UG_LEAK_BIND_K_CT.proof to the expanded-DecapsKey form
+// (DecapsKey = [dk_PQ, ek_PQ, dk_T, ek_T] instead of seed). The
+// reduction's Initialize calls hybrid.KeyGen() (which now returns the
+// expanded tuple directly), and Challenge reads the four components
+// from the stored expanded dk rather than re-deriving from a seed.
+//
+// Assumption: KDFCollisionResistance(H).
+// Standard four-step template (one reduction).
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/PRG.primitive';
+import '../../primitives/KDF.primitive';
+import '../../primitives/Label.primitive';
+import '../../schemes/UG/UG_expanded.scheme';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT.game';
+import '../../games/KDF/KDFCollisionResistance.game';
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int ng_nseed;
+    Int ng_nss;
+    Int ng_nelem;
+    Int prg_stretch;
+    Int kdf_nout;
+    Int nlabel;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set NGElementSpace;
+    Set NGScalarSpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    NominalGroup NG = NominalGroup(ng_nseed, ng_nelem, ng_nss,
+                                   NGElementSpace, NGScalarSpace);
+    PRG G = PRG(kem_pq_nseed, ng_nseed);
+    KDF H = KDF(kem_pq_nss + ng_nss + kem_pq_nct + ng_nelem + kem_pq_nek + ng_nelem + nlabel, kdf_nout);
+    Label L = Label(nlabel);
+    UG_expanded hybrid = UG_expanded(KEM_PQ, NG, G, H, L);
+
+assume:
+    KDFCollisionResistance(H);
+
+theorem:
+    LEAK_BIND_K_CT(hybrid);
+
+games:
+    LEAK_BIND_K_CT(hybrid).Breakable against LEAK_BIND_K_CT(hybrid).Adversary;
+    KDFCollisionResistance(H).Breakable compose R(KEM_PQ, NG, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
+    KDFCollisionResistance(H).Unbreakable compose R(KEM_PQ, NG, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
+    LEAK_BIND_K_CT(hybrid).Unbreakable against LEAK_BIND_K_CT(hybrid).Adversary;
+
+Reduction R(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, UG_expanded hybrid)
+    compose KDFCollisionResistance(H) against LEAK_BIND_K_CT(hybrid).Adversary {
+
+    hybrid.DecapsKey dk0;
+    hybrid.DecapsKey dk1;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [hybrid.EncapsKey, hybrid.DecapsKey] kp0 = hybrid.KeyGen();
+        [hybrid.EncapsKey, hybrid.DecapsKey] kp1 = hybrid.KeyGen();
+        dk0 = kp0[1];
+        dk1 = kp1[1];
+        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.DecapsKey dk_PQ_0 = dk0[0];
+        KEM_PQ.EncapsKey ek_PQ_0 = dk0[1];
+        NG.Scalar dk_T_0 = dk0[2];
+        NG.Element ek_T_0 = dk0[3];
+        KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
+        NG.Element ct_T_0 = ct0[1];
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_0);
+        BitString<NG.Nss> ss_T_0 = NG.ElementToSharedSecret(NG.Exp(ct_T_0, dk_T_0));
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || ss_T_0 || KEM_PQ.EncodeCiphertext(ct_PQ_0) || NG.Encode(ct_T_0) || KEM_PQ.EncodeEncapsKey(ek_PQ_0) || NG.Encode(ek_T_0) || L.get();
+
+        KEM_PQ.DecapsKey dk_PQ_1 = dk1[0];
+        KEM_PQ.EncapsKey ek_PQ_1 = dk1[1];
+        NG.Scalar dk_T_1 = dk1[2];
+        NG.Element ek_T_1 = dk1[3];
+        KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
+        NG.Element ct_T_1 = ct1[1];
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ_1, ct_PQ_1);
+        BitString<NG.Nss> ss_T_1 = NG.ElementToSharedSecret(NG.Exp(ct_T_1, dk_T_1));
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || ss_T_1 || KEM_PQ.EncodeCiphertext(ct_PQ_1) || NG.Encode(ct_T_1) || KEM_PQ.EncodeEncapsKey(ek_PQ_1) || NG.Encode(ek_T_1) || L.get();
+
+        if (ct0 == ct1) {
+            return false;
+        }
+        return challenger.Challenge(kdf_in_0, kdf_in_1);
+    }
+}

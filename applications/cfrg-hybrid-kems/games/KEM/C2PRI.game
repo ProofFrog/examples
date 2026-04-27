@@ -1,0 +1,57 @@
+// C2PRI (Ciphertext Second Pre-Image Resistance) security for a KEM.
+//
+// The adversary receives an honestly generated key pair and a challenge
+// encapsulation (ek, dk, ct*, k*), and tries to find a distinct ciphertext
+// that decapsulates to the same shared secret.
+//
+// Reformulated as a left/right indistinguishability game (following
+// Connolly-Ounsworth-Schmieg-Stebila, "StarHunters", Definition 5):
+//  - Real:  Submit oracle truthfully reports whether ct is a second preimage.
+//  - Ideal: Submit oracle always returns false.
+//
+// The distinguishing advantage equals the probability that the adversary
+// finds a second preimage.
+//
+// Adapted from examples/applications/StarHunters-COSS26/C2PRI.game to
+// use the EncapsKey / DecapsKey naming.
+
+import '../../primitives/KEM.primitive';
+
+Game Real(KEM K) {
+    K.SharedSecret kStar;
+    K.Ciphertext ctStar;
+    K.DecapsKey dk;
+
+    [K.EncapsKey, K.DecapsKey, K.Ciphertext, K.SharedSecret] Initialize() {
+        [K.EncapsKey, K.DecapsKey] keys = K.KeyGen();
+        dk = keys[1];
+        [K.SharedSecret, K.Ciphertext] enc = K.Encaps(keys[0]);
+        kStar = enc[0];
+        ctStar = enc[1];
+        return [keys[0], keys[1], enc[1], enc[0]];
+    }
+
+    Bool Submit(K.Ciphertext ct) {
+        if (ct == ctStar) {
+            return false;
+        }
+        return K.Decaps(dk, ct) == kStar;
+    }
+}
+
+Game Ideal(KEM K) {
+    K.Ciphertext ctStar;
+
+    [K.EncapsKey, K.DecapsKey, K.Ciphertext, K.SharedSecret] Initialize() {
+        [K.EncapsKey, K.DecapsKey] keys = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] enc = K.Encaps(keys[0]);
+        ctStar = enc[1];
+        return [keys[0], keys[1], enc[1], enc[0]];
+    }
+
+    Bool Submit(K.Ciphertext ct) {
+        return false;
+    }
+}
+
+export as KEM_C2PRI;

@@ -1,0 +1,45 @@
+// Concrete HashInputPacking for the CG_seedbased-KEM hash input
+//     ss_PQ || ss_T || ct_T || ek_T || label
+// where State = [dk_PQ, dk_T, ek_T] and Query = [ct_PQ, ct_T].
+//
+// This is the C2PRICombiner analogue of UGHashEncoding: the C2PRICombiner
+// KDF input from draft section 5.1.3 omits ct_PQ and ek_PQ. As a result,
+// the underlying map (st, q) |-> Pack(st, q) is NOT genuinely injective:
+// two distinct PQ ciphertexts c_PQ and c_PQ' that decapsulate to the same
+// shared secret yield identical Pack outputs when the rest of the slots
+// agree. We declare Pack `deterministic injective` regardless because the
+// surrounding proof uses C2PRI to add an abort branch to Decaps that
+// prevents queries colliding on the ss_PQ slot from being routed to the
+// LazyRO-side helper games -- on the non-aborting query domain Pack IS
+// injective. The injectivity declaration is the proof-side promise that
+// the abort branch is in place; LazyROTwoViewsExcluded[Programmed] then
+// canonicalizes correctly under that promise.
+//
+// State carries dk_PQ and dk_T so Pack can recompute ss_PQ = K.Decaps(...)
+// and ss_T = ElementToSharedSecret(c_T^dk_T). ek_T is needed for the
+// ek_T slot of the KDF input. ek_PQ is NOT needed (it does not appear in
+// the C2PRICombiner KDF input).
+
+import '../../primitives/HashInputPacking.primitive';
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/Label.primitive';
+
+Scheme CGHashEncoding(KEM K, NominalGroup NG, Label L) extends HashInputPacking {
+    Set State = [K.DecapsKey, NG.Scalar, NG.Element];
+    Set Query = [K.Ciphertext, NG.Element];
+    Int M = K.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel;
+
+    deterministic injective BitString<M> Pack(State st, Query q) {
+        K.DecapsKey dk_PQ = st[0];
+        NG.Scalar dk_T = st[1];
+        NG.Element ek_T = st[2];
+        K.Ciphertext c_PQ = q[0];
+        NG.Element c_T = q[1];
+        return K.EncodeSharedSecret(K.Decaps(dk_PQ, c_PQ))
+            || NG.ElementToSharedSecret(NG.Exp(c_T, dk_T))
+            || NG.Encode(c_T)
+            || NG.Encode(ek_T)
+            || L.get();
+    }
+}

@@ -1,0 +1,40 @@
+// Random-oracle-style instantiation of the PRG primitive.
+//
+// Wraps a sampled FrogLang Function G_RO inside a PRG. The proof's
+// let: block samples G_RO once
+//   Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>> G_RO
+//     <- Function<...>;
+// and instantiates this scheme as the PRG argument to the hybrid KEM
+// being analysed; the same G_RO is passed to LEAK_BIND_K_CT_ROM so the
+// HashG oracle exposes the same random function the scheme uses
+// internally.
+//
+// After scheme inlining, every G.evaluate(x) reduces to G_RO(x).
+// Because G_RO is a sampled (not deterministic-by-default) Function,
+// the engine's random-function transforms (FreshInputRFToUniform,
+// LazyMapScan, MapKeyReindex, etc.) fire automatically -- which is
+// exactly the ROM reasoning the seeded LEAK_BIND_K_{CT,PK} branch
+// needs.
+//
+// Note on the parameter shape: as documented on UGRandomOracleKDF.scheme,
+// the FrogLang typechecker does not substitute Int parameters into
+// Function/BitString size expressions at instantiation. The wrapper is
+// therefore specialized to the CK_seedbased PRG output shape
+//   KEM_PQ.Nseed + KEM_T.Nseed
+// (still reusable across CK_seedbased seeded LEAK_BIND_K_CT and LEAK_BIND_K_PK).
+// A separate CGRandomOraclePRG.scheme will be needed for CG_seedbased (NG-side
+// shape).
+
+import '../../primitives/PRG.primitive';
+import '../../primitives/KEM.primitive';
+
+Scheme CKRandomOraclePRG(KEM KEM_PQ, KEM KEM_T, Int lambda,
+                       Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>> G_RO)
+        extends PRG {
+    Int lambda = lambda;
+    Int stretch = KEM_PQ.Nseed + KEM_T.Nseed - lambda;
+
+    deterministic BitString<lambda + stretch> evaluate(BitString<lambda> input) {
+        return G_RO(input);
+    }
+}

@@ -1,0 +1,104 @@
+// Helper assumption (statistical).
+//
+// Generic lazy-sampling equivalence for a random oracle
+//     H : BitString<P.M> -> BitString<n>
+// exposed via two views:
+//   - Direct(m):    direct access, returns H(m).
+//   - Indirect(q):  indirect access on an excluded domain q != qExcluded,
+//                   returns H(P.Pack(st, q)).
+// The caller supplies an injective hash-input packing
+// P : (State, Query) -> BitString<M>.
+//
+// Honest:  sample a random function RF and answer both views
+//          through it.
+//
+// Lazy:    maintain two lazy maps
+//            HT : BitString<M> -> BitString<n>  (for Direct)
+//            QT : Query        -> BitString<n>  (for Indirect)
+//          with cross-patching via P.Pack.  Fresh entries are sampled
+//          on demand; cross-view hits are routed through Pack.
+//
+// Equivalence is UNCONDITIONAL: by injectivity of Pack, an Indirect(q)
+// entry can alias a Direct(m) entry only when m == P.Pack(st, q).
+//
+// Ported verbatim from
+// extras/examples/starfortress/proof/prooffrog/games/LazyROTwoViewsExcluded.game.
+
+import '../../primitives/HashInputPacking.primitive';
+
+Game Honest(HashInputPacking P, Int n) {
+    P.State st;
+    P.Query qExcluded;
+    Function<BitString<P.M>, BitString<n>> RF;
+
+    BitString<n> Initialize(P.State st_in, P.Query qExcluded_in) {
+        st = st_in;
+        qExcluded = qExcluded_in;
+        RF <- Function<BitString<P.M>, BitString<n>>;
+        BitString<n> ss <- BitString<n>;
+        return ss;
+    }
+
+    BitString<n>? Indirect(P.Query q) {
+        if (q == qExcluded) {
+            return None;
+        }
+        BitString<P.M> m_in = P.Pack(st, q);
+        return RF(m_in);
+    }
+
+    BitString<n> Direct(BitString<P.M> m) {
+        return RF(m);
+    }
+}
+
+Game Lazy(HashInputPacking P, Int n) {
+    P.State st;
+    P.Query qExcluded;
+    Map<BitString<P.M>, BitString<n>> HT;
+    Map<P.Query, BitString<n>> QT;
+
+    BitString<n> Initialize(P.State st_in, P.Query qExcluded_in) {
+        st = st_in;
+        qExcluded = qExcluded_in;
+        BitString<n> ss <- BitString<n>;
+        return ss;
+    }
+
+    BitString<n>? Indirect(P.Query q) {
+        if (q == qExcluded) {
+            return None;
+        }
+        if (q in QT) {
+            return QT[q];
+        }
+        BitString<P.M> m_in = P.Pack(st, q);
+        for ([BitString<P.M>, BitString<n>] e in HT.entries) {
+            if (e[0] == m_in) {
+                QT[q] = e[1];
+                return e[1];
+            }
+        }
+        BitString<n> s <- BitString<n>;
+        QT[q] = s;
+        return s;
+    }
+
+    BitString<n> Direct(BitString<P.M> m) {
+        if (m in HT) {
+            return HT[m];
+        }
+        for ([P.Query, BitString<n>] e in QT.entries) {
+            BitString<P.M> m_expected = P.Pack(st, e[0]);
+            if (m == m_expected) {
+                HT[m] = e[1];
+                return e[1];
+            }
+        }
+        BitString<n> r <- BitString<n>;
+        HT[m] = r;
+        return r;
+    }
+}
+
+export as LazyROTwoViewsExcluded;

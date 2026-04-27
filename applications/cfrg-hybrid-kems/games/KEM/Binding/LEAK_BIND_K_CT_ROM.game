@@ -1,0 +1,62 @@
+// LEAK-BIND-K-CT in the random oracle model.
+//
+// ROM analogue of LEAK_BIND_K_CT.game, parameterized over a random
+// oracle Function G_RO (modelling the PRG as an RO). The proof's let:
+// block samples G_RO once and instantiates a CKRandomOraclePRG wrapper
+// around the same G_RO as the PRG argument to the hybrid KEM, so
+// scheme-internal PRG calls and the adversary's HashG queries hit the
+// same random function.
+//
+// Mirrors INDCCA_ROM.game's shape (generic over Set D, Set R), so the
+// same game serves CK_seedbased and CG_seedbased by varying the codomain at instantiation
+// time.
+
+import '../../../primitives/KEM.primitive';
+
+Game Breakable(KEM K, Set D, Set R, Function<D, R> G_RO) {
+    K.DecapsKey dk0;
+    K.DecapsKey dk1;
+
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
+        dk0 = kp0[1];
+        dk1 = kp1[1];
+        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret k0 = K.Decaps(dk0, ct0);
+        K.SharedSecret k1 = K.Decaps(dk1, ct1);
+        return k0 == k1 && ct0 != ct1;
+    }
+
+    R HashG(D x) {
+        return G_RO(x);
+    }
+}
+
+Game Unbreakable(KEM K, Set D, Set R, Function<D, R> G_RO) {
+    K.DecapsKey dk0;
+    K.DecapsKey dk1;
+
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
+        dk0 = kp0[1];
+        dk1 = kp1[1];
+        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret k0 = K.Decaps(dk0, ct0);
+        K.SharedSecret k1 = K.Decaps(dk1, ct1);
+        return false;
+    }
+
+    R HashG(D x) {
+        return G_RO(x);
+    }
+}
+
+export as LEAK_BIND_K_CT_ROM;
