@@ -4,19 +4,16 @@
 // Captures the (definitional, unconditional) fact that
 //     NG.Exp(NG.Exp(g, a), b) == NG.Exp(NG.Exp(g, b), a)
 // holds for any generator g and any pair of exponents a, b. This is a
-// statistical / structural property of the nominal-group primitive, not a
-// cryptographic assumption on any particular instantiation; it is added
-// as a separate game because the engine cannot infer the exponent swap
-// automatically when Exp is declared as an abstract deterministic
-// operation.
+// statistical / structural property of the nominal-group primitive,
+// not a cryptographic assumption on any particular instantiation. It
+// is stated as an explicit game because Exp is an opaque deterministic
+// operation in the abstract primitive.
 //
 // The output is wrapped in NG.ElementToSharedSecret so the game returns
 // a BitString, which composes cleanly with hybrid-KDF input positions.
-// ElementToSharedSecret is declared `deterministic` (but not injective:
-// the canonical X-coordinate instantiation is 2-to-1; see
-// NominalGroup.primitive for discussion). This game does not rely on
-// injectivity -- both Swap1 and Swap2 apply ElementToSharedSecret to
-// equal Element arguments, so determinism alone yields equal outputs.
+// The game does not rely on injectivity of ElementToSharedSecret: both
+// sides apply it to equal Element arguments, so determinism alone
+// yields equal outputs.
 //
 // Swap1: return ElementToSharedSecret(NG.Exp(NG.Exp(g, a), b))
 // Swap2: return ElementToSharedSecret(NG.Exp(NG.Exp(g, b), a))

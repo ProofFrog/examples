@@ -1,19 +1,21 @@
 // Proof that CG_expanded hybrid KEM is IND-CCA secure in the random
-// oracle model (T branch, SDH_SS-based, with a C2PRI case-split on
-// KEM_PQ).
+// oracle model (T branch: security follows from a Diffie-Hellman-style
+// assumption on the NominalGroup, together with a second-preimage
+// resistance assumption on KEM_PQ).
 //
-// CG_expanded differs from CG_seedbased only in DecapsKey shape: it stores the
-// expanded tuple (dk_PQ, dk_T, ek_T) directly instead of the raw seed.
-// KeyGen calls K.KeyGen() directly (no PRG, no DeriveKeyPair-from-seed),
-// and Decaps reads the three components straight from the tuple. Encaps
-// and the KDF input are unchanged from CG_seedbased.
+// CG_expanded stores the expanded tuple (dk_PQ, dk_T, ek_T) as the
+// hybrid DecapsKey: KeyGen calls KEM_PQ.KeyGen() directly, and Decaps
+// reads the three components straight from the tuple.
 //
-// Therefore the seeded CG_INDCCA_T proof's outer PRGSec + KeyGenEquiv
-// bracket (which converts seed-form Decaps to KeyGen-based form) is
-// unnecessary here. The inner core (RandomScalarDist + C2PRI add-abort
-// + LazyROTwoViewsExcludedProgrammed + SDH_SS + LazyROTwoViewsExcluded
-// + C2PRI remove-abort + RandomScalarDist reverse) carries over verbatim
-// modulo the parameter type change CG_seedbased -> CG_expanded.
+// High-level proof idea: in the ROM, the challenge shared secret is
+// H(... || ss_T || ...) where ss_T = DH(ek_T, ct_T). The proof
+// switches dk_T and the encapsulation randomness sk_E to uniform group
+// scalars (RandomScalarDist), uses C2PRI on KEM_PQ to add an abort
+// branch in Decaps that prevents the adversary from inducing a hash
+// input collision via a second-preimage on KEM_PQ ciphertexts, then
+// applies a lazy-RO bookkeeping step to expose the H-query that would
+// expose ss_T, and reduces to gap-style SDH (SDH_SS) on the
+// NominalGroup. The right half of the proof is the mirror image.
 //
 // Assumptions:
 //   - RandomScalarDist(NG)              (statistical helper)

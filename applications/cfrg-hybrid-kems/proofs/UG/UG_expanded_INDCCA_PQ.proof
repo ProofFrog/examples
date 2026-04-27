@@ -1,29 +1,25 @@
-// Proof that UG_expanded hybrid KEM is IND-CCA secure (PQ branch).
+// Proof that UG_expanded hybrid KEM is IND-CCA secure, reducing to
+// IND-CCA security of the post-quantum component KEM_PQ.
 //
-// UG_expanded differs from UG_seedbased only in DecapsKey shape: it stores the
-// expanded tuple (dk_PQ, ek_PQ, dk_T, ek_T) directly instead of the
-// raw seed. KeyGen calls K.KeyGen() directly (no PRG, no
-// DeriveKeyPair-from-seed), and Decaps reads the four components
-// straight from the tuple. Encaps, the KDF input, and EncapsKey /
-// Ciphertext are unchanged from UG_seedbased.
+// In UG_expanded, the hybrid DecapsKey directly stores the tuple
+// (dk_PQ, ek_PQ, dk_T, ek_T), so KeyGen calls KEM_PQ.KeyGen() directly
+// and Decaps reads the four components from the tuple.
 //
-// Therefore the seeded UG_INDCCA_PQ proof's outer PRGSec + KeyGenEquiv
-// bracket (which converts seed-form Decaps to KeyGen-based form) is
-// unnecessary here: the canonical form of KEM_INDCCA(hybrid).Real for
-// UG_expanded already matches what the seeded proof reached after those
-// brackets were applied. The remainder of the proof - KEMCorrectnessWithDK
-// case-split, KEM_INDCCA(K_PQ) randomization, KDFPRFSec randomization,
-// and ChallengeExclusion fresh-SS - is reused unchanged.
+// Proof outline (standard model):
+//   1. Apply KEM_PQ correctness (with-dk form, exposing dk_PQ) to
+//      replace the on-the-fly KEM_PQ.Decaps of the challenge ciphertext
+//      ct_PQ* by a direct return of the encapsulated ss_PQ*. This
+//      yields a Decaps oracle that case-splits on c1 == ct_PQ*.
+//   2. Replace ss_PQ* by a uniform key via KEM_PQ IND-CCA.
+//   3. Apply KDFPRFSec (PRF keyed on the KEM_PQ shared-secret prefix
+//      of the KDF input): the KDF output behaves like a random function
+//      RF of the remaining input. This is the GameFreshSS step.
+//   4. Reverse the three steps to land in KEM_INDCCA(hybrid).Random.
 //
 // Assumptions:
 //   - KEM_PQ IND-CCA (KEM_INDCCA)
 //   - KDF is a PRF keyed on KEM_PQ shared-secret prefix (KDFPRFSec)
 //   - KEM_PQ correctness, with-dk form (KEMCorrectnessWithDK)
-//
-// 16 hops: correctness (2) + KEMCCA (2) + KDFPRF (2) + GameFreshSS
-// + KDFPRF reverse (2) + KEMCCA reverse (2) + correctness reverse (2)
-// + (open/close framing handled by KEM_INDCCA(hybrid).Real / .Random
-// edges).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';
@@ -101,11 +97,8 @@ games:
 
 // ===================================================================
 // R_Correct_Real / R_Correct_Ideal: correctness reduction against
-// KEMCorrectnessWithDK, which exposes dk_PQ so we can decrypt
-// non-challenge ciphertexts without a separate KeyGen.
-// Bodies are identical to the seeded UG_INDCCA_PQ versions; canonical
-// forms match because hybrid_expanded's KeyGen still samples seed_T
-// and computes dk_T = NG.RandomScalar(seed_T).
+// KEMCorrectnessWithDK, which exposes dk_PQ so non-challenge
+// ciphertexts can be decrypted locally without a separate KeyGen.
 // ===================================================================
 Reduction R_Correct_Real(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_expanded hybrid)
     compose KEMCorrectnessWithDK(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
@@ -445,8 +438,10 @@ Reduction RE(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_expanded hyb
 }
 
 // ===================================================================
-// GameFreshSS: RF-valued Decaps branch on c1 == kem_ct; challenge
-// ss is a fresh uniform sample (ChallengeExclusion RF-to-uniform).
+// GameFreshSS: KDF replaced by a random function RF in the
+// c1 == kem_ct branch of Decaps; the challenge ss is a fresh uniform
+// sample (independent of RF, because the challenge KDF input is
+// excluded from any decapsulation query).
 // ===================================================================
 Game GameFreshSS(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_expanded hybrid) {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;

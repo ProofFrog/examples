@@ -1,24 +1,18 @@
 // Proof that CG_expanded hybrid KEM satisfies LEAK-BIND-K-CT.
 //
 // C2PRICombiner: ct_PQ and ek_PQ are NOT in the KDF input. So a binding
-// break (matching ss_h, distinct hybrid ct) does not directly imply a
-// KDF collision: the case where kdf_in_0 == kdf_in_1 corresponds to
-// ss_PQ_0 == ss_PQ_1, ct_T_0 == ct_T_1, ek_T_0 == ek_T_1, and forces
-// ct_PQ_0 != ct_PQ_1 (since ct0 != ct1). That case is precisely a
-// LEAK-BIND-K-CT break on KEM_PQ.
+// break (matching hybrid shared secret, distinct hybrid ciphertexts)
+// does not directly imply a KDF collision: the case where the two KDF
+// inputs are equal forces ss_PQ_0 == ss_PQ_1, ct_T_0 == ct_T_1, and
+// ek_T_0 == ek_T_1, and (since ct0 != ct1) ct_PQ_0 != ct_PQ_1 -- which
+// is precisely a LEAK-BIND-K-CT break on KEM_PQ.
 //
-// Proof strategy: a single reduction R_PQ_Bind that splits on
-// (kdf_in_0 == kdf_in_1 && ct_PQ_0 != ct_PQ_1):
-//   - Case B fires: forward (ct_PQ_0, ct_PQ_1) to the KEM_PQ binding
-//     challenger.
-//   - Otherwise: passthrough -- recompute the hybrid KDF inputs and
-//     return H(kdf_in_0) == H(kdf_in_1) && ct0 != ct1, exactly as the
-//     bare hybrid binding game would.
-//
-// Game sequence (5 hops): bare.Breakable -> KEM_PQ.LEAK_BIND.Breakable
-// compose R_PQ_Bind -> KEM_PQ.LEAK_BIND.Unbreakable compose R_PQ_Bind ->
-// KDFCR.Breakable compose R_KDF -> KDFCR.Unbreakable compose R_KDF ->
-// bare.Unbreakable.
+// Proof strategy: a single reduction R_PQ_Bind that splits on whether
+// the two KDF inputs are equal and the two PQ ciphertexts are distinct.
+// In that case it forwards the two PQ ciphertexts to the KEM_PQ
+// binding challenger; otherwise it returns the bare hybrid binding
+// predicate. After the KEM_PQ binding hop only the residual KDF
+// collision case remains, which reduces to KDF collision resistance.
 //
 // Assumptions: KEM_PQ.LEAK_BIND_K_CT, KDFCollisionResistance(H).
 

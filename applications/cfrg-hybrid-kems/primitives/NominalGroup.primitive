@@ -2,18 +2,13 @@
 // draft-irtf-cfrg-hybrid-kems-10 section 5.1.1.
 //
 // This primitive models the CFRG nominal-group abstraction as fully
-// opaque sets. The element and scalar spaces are ordinary Sets, NOT
-// native GroupElem<G> types -- the engine does not treat Element as a
-// native group element, so group-algebraic facts (commutativity of
-// double-exponentiation, power-of-power, etc.) do NOT canonicalize
-// automatically. Any group-algebraic fact used in a proof must be
-// introduced as an explicit assumption game (see NGCorrectness.game,
-// SDH.game, etc.).
-//
-// Abstract naming is deliberate. It matches the draft's nominal-group
+// opaque sets. The element and scalar spaces are ordinary Sets rather
+// than a native group type, matching the draft's nominal-group
 // abstraction (which does not require cyclic-group semantics -- e.g.
-// X25519 clamps), keeps the engine honest, and prevents a reader from
-// assuming that native group transforms will fire here.
+// X25519 clamps). Group-algebraic facts (commutativity of
+// double-exponentiation, power-of-power, etc.) are not built in; any
+// such fact used in a proof is introduced as an explicit assumption
+// game (see NGCorrectness.game, SDH.game, etc.).
 //
 // Methods:
 //   - Exp(base, exp)               : abstract "exponentiation" operation

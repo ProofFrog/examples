@@ -2,16 +2,15 @@
 //
 // Integrated-KeyGen form: the game calls K.KeyGen() internally rather
 // than taking ek/dk as adversary inputs. This is required for the
-// hybrid-KEM correctness proofs, which bracket with PRGSec + KeyGenEquiv
-// to move between seed-form and expanded-form decapsulation keys -- both
-// of those hops only apply when the seed / keys are sampled inside the
-// game rather than chosen by the adversary.
+// hybrid-KEM correctness proofs, which combine this hop with PRGSec
+// and KeyGenEquiv to move between seed-form and expanded-form
+// decapsulation keys -- both of those hops only apply when the seed
+// and keys are sampled inside the game rather than chosen by the
+// adversary.
 //
 // The game returns (ek, ct, ss_encaps, ss_decaps) so hybrid-correctness
 // reductions composed with this game can use ek in the combiner's KDF
-// input (which mixes ek into the shared-secret derivation). Intermediate
-// assignments are written with inline tuple projections so the canonical
-// form has no multi-use local bindings that would block inlining.
+// input (which mixes ek into the shared-secret derivation).
 //
 // FromDecaps: returns [ek, ct, ss_encaps, K.Decaps(dk, ct)]
 // FromEncaps: returns [ek, ct, ss_encaps, ss_encaps]

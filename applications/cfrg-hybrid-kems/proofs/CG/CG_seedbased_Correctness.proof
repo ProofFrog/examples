@@ -1,22 +1,24 @@
-// Proof that CG_seedbased (C2PRICombiner G-flavour hybrid KEM) is correct,
-// assuming KEM_PQ is correct.
+// Proof that CG_seedbased (C2PRICombiner G-flavour hybrid KEM) is
+// correct, assuming KEM_PQ is correct.
 //
-// Structure (draft section 5.5 / 5.2): identical to UG_seedbased.FromEncaps/
-// FromDecaps up to the combiner KDF input: C2PRICombiner omits ct_PQ
-// and ek_PQ, so the KDF input is
+// In CG_seedbased the hybrid DecapsKey is the raw PRG seed; KeyGen
+// expands the seed via PRG G to get (seed_PQ, seed_T) and then runs
+// KEM_PQ.DeriveKeyPair(seed_PQ) and NG.RandomScalar(seed_T). The
+// C2PRICombiner KDF input (per draft section 5.1.3) is
 //   KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T)
 //     || NG.Encode(ek_T) || L.get()
-// (compare UG_seedbased / UniversalCombiner which additionally includes
-// KEM_PQ.EncodeCiphertext(ct_PQ) and KEM_PQ.EncodeEncapsKey(ek_PQ)).
+// (it omits ct_PQ and ek_PQ).
 //
-// Proof sketch (mirrors UG_Correctness.proof): bracket with PRGSec +
-// KeyGenEquiv(KEM_PQ) to lift the seed-form dk into an expanded form
-// where ek_PQ/dk_PQ come from KEM_PQ.KeyGen(). In the expanded form the
-// two ss derivations differ only in which order a = dk_T and b = sk_E
-// are exponentiated; they coincide by DH commutativity (NGCorrectness).
-// After the swap and KEM_PQ correctness the two KDF inputs are
-// identical, matching CG_seedbased.FromEncaps. Close the bracket by reversing on
-// the FromEncaps side.
+// Proof sketch: first replace the PRG-based key derivation with direct
+// uniform sampling, using PRGSec on G; then convert the seeded form
+// KEM_PQ.DeriveKeyPair(uniform seed) to KEM_PQ.KeyGen(), using the
+// KeyGen / DeriveKeyPair equivalence assumption. In the resulting
+// expanded form the encapsulator's and decapsulator's NG shared
+// secrets differ only in the order of exponentiation of dk_T and sk_E,
+// which coincide by Diffie-Hellman commutativity (NGCorrectness).
+// Together with KEM_PQ correctness the two KDF inputs become
+// identical, matching CG_seedbased.FromEncaps. Then reverse the
+// bridging hops.
 //
 // Game sequence (each transition is either an interchangeability hop
 // or an application of one listed assumption):
@@ -98,7 +100,7 @@ games:
     PRGSec(G).Real compose R_PRG_R(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
     KEMCorrectness(hybrid).FromEncaps against KEMCorrectness(hybrid).Adversary;
 
-// Opening-bracket reductions (Decaps-side: compute both ss_e via Encaps
+// Forward reductions (Decaps-side: compute both ss_e via Encaps
 // and ss_d via component Decaps, then KDF each into the hybrid shared
 // secret).
 
@@ -203,7 +205,7 @@ Reduction R_NG(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased 
     }
 }
 
-// Closing-bracket reductions (Encaps-side: ss_e = ss_d, compute once).
+// Reverse reductions (Encaps-side: ss_e = ss_d, compute once).
 
 Reduction R_KG_PQ_R(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased hybrid)
     compose KeyGenEquiv(KEM_PQ) against KEMCorrectness(hybrid).Adversary {

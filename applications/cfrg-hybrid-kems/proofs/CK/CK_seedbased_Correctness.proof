@@ -10,13 +10,13 @@
 // (compare UK_seedbased / UniversalCombiner which additionally includes
 // KEM_PQ.EncodeCiphertext(ct_PQ) and KEM_PQ.EncodeEncapsKey(ek_PQ)).
 //
-// Proof sketch (mirrors UK_Correctness.proof): bracket with PRGSec +
-// KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) to lift the seed-form dk
-// into an expanded form where each component key pair is produced by
-// KEM_i.KeyGen(). In the expanded form the Decaps-derived shared
-// secrets equal the Encaps-derived ones by KEM_i correctness, so the
-// two KDF inputs coincide and H.evaluate dedups, matching CK_seedbased.FromEncaps.
-// Close the bracket by reversing on the FromEncaps side.
+// Proof sketch: apply PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T)
+// to lift the seed-form dk into an expanded form where each component
+// key pair is produced by KEM_i.KeyGen(). In the expanded form the
+// Decaps-derived shared secrets equal the Encaps-derived ones by KEM_i
+// correctness, so the two KDF inputs coincide and H.evaluate dedups,
+// matching CK_seedbased.FromEncaps. Then reverse the bridging hops on
+// the FromEncaps side.
 //
 // Game sequence:
 //   0  CK_seedbased.FromDecaps
@@ -108,7 +108,7 @@ games:
     PRGSec(G).Real compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
     KEMCorrectness(hybrid).FromEncaps against KEMCorrectness(hybrid).Adversary;
 
-// Opening-bracket reductions (Decaps-side: compute both ss_e via Encaps and
+// Forward reductions (Decaps-side: compute both ss_e via Encaps and
 // ss_d via component Decaps, then KDF each into the hybrid shared secret).
 
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
@@ -225,7 +225,7 @@ Reduction R_KEM_T(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hyb
     }
 }
 
-// Closing-bracket reductions (Encaps-side: ss_e = ss_d, compute once).
+// Reverse reductions (Encaps-side: ss_e = ss_d, compute once).
 
 Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
     compose KeyGenEquiv(KEM_T) against KEMCorrectness(hybrid).Adversary {

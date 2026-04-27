@@ -1,25 +1,19 @@
 // Proof that CG_expanded hybrid KEM satisfies LEAK-BIND-K-PK.
 //
 // C2PRICombiner: ek_PQ is NOT in the KDF input (only ek_T appears).
-// So a binding break (matching ss_h, distinct hybrid ek) does not
-// directly imply a KDF collision: the case where kdf_in_0 == kdf_in_1
-// corresponds to ss_PQ_0 == ss_PQ_1, ss_T_0 == ss_T_1, ct_T_0 == ct_T_1,
-// ek_T_0 == ek_T_1, and forces ek_PQ_0 != ek_PQ_1 (since ek0 != ek1).
-// That case is precisely a LEAK-BIND-K-PK break on KEM_PQ.
+// So a binding break (matching hybrid shared secret, distinct hybrid
+// encapsulation keys) does not directly imply a KDF collision: the
+// case where the two KDF inputs are equal forces ss_PQ_0 == ss_PQ_1,
+// ss_T_0 == ss_T_1, ct_T_0 == ct_T_1, ek_T_0 == ek_T_1, and (since
+// ek0 != ek1) ek_PQ_0 != ek_PQ_1 -- which is precisely a
+// LEAK-BIND-K-PK break on KEM_PQ.
 //
-// Proof strategy: a single reduction R_PQ_Bind that splits on
-// (kdf_in_0 == kdf_in_1):
-//   - Case B fires: forward (ct_PQ_0, ct_PQ_1) to the KEM_PQ binding
-//     challenger.
-//   - Otherwise: passthrough -- recompute the hybrid KDF inputs and
-//     return H(kdf_in_0) == H(kdf_in_1) && ek0 != ek1, exactly as the
-//     bare hybrid binding game would.
-//
-// When composed with KEM_PQ.LEAK_BIND_K_PK.Breakable the reduction
-// reproduces the bare hybrid Breakable game. When composed with
-// .Unbreakable, the case-B branch is killed and the residual game is
-// exactly the case-A game that R_KDF then reduces to KDF collision
-// resistance.
+// Proof strategy: a single reduction R_PQ_Bind that splits on whether
+// the two KDF inputs are equal. In that case it forwards the two PQ
+// ciphertexts to the KEM_PQ binding challenger; otherwise it returns
+// the bare hybrid binding predicate. After the KEM_PQ binding hop
+// only the residual KDF collision case remains, which reduces to KDF
+// collision resistance.
 //
 // Game sequence (6 hops):
 //   0. LEAK_BIND_K_PK(CG_expanded).Breakable
@@ -83,12 +77,10 @@ games:
     LEAK_BIND_K_PK(hybrid).Unbreakable against LEAK_BIND_K_PK(hybrid).Adversary;
 
 // R_PQ_Bind: reduction to KEM_PQ.LEAK_BIND_K_PK. The reduction case-
-// splits on (kdf_in_0 == kdf_in_1). In that branch (case B) it forwards
-// (ct_PQ_0, ct_PQ_1) to the challenger; otherwise it acts as a
-// passthrough that returns the bare hybrid binding predicate
-// H(kdf_in_0) == H(kdf_in_1) && ek0 != ek1. The passthrough is what
-// makes R_PQ_Bind compose Breakable canonicalize to the bare
-// LEAK_BIND_K_PK(CG_expanded).Breakable game.
+// splits on whether the two KDF inputs are equal. In that case it
+// forwards (ct_PQ_0, ct_PQ_1) to the challenger; otherwise it returns
+// the bare hybrid binding predicate
+// H(kdf_in_0) == H(kdf_in_1) && ek0 != ek1.
 Reduction R_PQ_Bind(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, CG_expanded hybrid)
     compose LEAK_BIND_K_PK(KEM_PQ) against LEAK_BIND_K_PK(hybrid).Adversary {
 

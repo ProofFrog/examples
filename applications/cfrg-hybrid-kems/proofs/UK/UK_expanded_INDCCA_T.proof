@@ -1,19 +1,12 @@
 // Proof that UK_expanded hybrid KEM is IND-CCA secure (T branch).
 //
-// UK_expanded differs from UK_seedbased only in DecapsKey shape: it stores the
-// expanded tuple (dk_PQ, dk_T, ek_PQ, ek_T) directly instead of the
-// raw seed. KeyGen calls component KeyGen()s directly (no PRG, no
-// DeriveKeyPair-from-seed), and Decaps reads the four components
-// straight from the tuple. Encaps and the KDF input are unchanged from
-// UK_seedbased.
+// UK_expanded stores the expanded tuple (dk_PQ, dk_T, ek_PQ, ek_T) as
+// the hybrid DecapsKey. KeyGen calls component KeyGen()s directly, and
+// Decaps reads the four components straight from the tuple.
 //
-// Therefore the seeded UK_INDCCA_T proof's outer PRGSec + KeyGenEquiv
-// brackets are unnecessary here: the canonical form of
-// KEM_INDCCA(hybrid).Real for UK_expanded already matches what the
-// seeded proof reached after those brackets were applied. The inner
-// core (KEM_T correctness case-split + KEM_T IND-CCA + KDFSecondKeyPRF
-// + GameAllRand + reverse) carries over verbatim modulo the parameter
-// type change UK_seedbased -> UK_expanded.
+// Core argument: KEM_T correctness (case-split on Decaps) + KEM_T
+// IND-CCA + KDFSecondKeyPRF (replace the KDF on ss_T-keyed inputs by a
+// random function) + reverse.
 //
 // Assumptions:
 //   - KEM_T IND-CCA (KEM_INDCCA)

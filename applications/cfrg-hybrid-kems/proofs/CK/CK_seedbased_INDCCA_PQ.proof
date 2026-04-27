@@ -9,20 +9,14 @@
 //   - KEM_PQ KeyGen equivalence (KeyGenEquiv)
 //   - KEM_T KeyGen equivalence (KeyGenEquiv)
 //
-// Standard-model port of StarHunters CK_INDCCA_PostQuantum.proof. Adapted for
-// the draft's seed-form Decaps (bracket with PRGSec + KeyGenEquiv(KEM_PQ) +
-// KeyGenEquiv(KEM_T) in place of the SeedKeyGen lemma) and the flat-input
-// C2PRI combiner KDF (KDFFirstKeyPRF keyed on ss_PQ in place of TwoKeyPRF
-// first-key security).
+// Standard-model proof. Uses PRGSec + KeyGenEquiv(KEM_PQ) +
+// KeyGenEquiv(KEM_T) to handle the draft's seed-form Decaps, and
+// KDFFirstKeyPRF (keyed on ss_PQ) for the flat-input C2PRI combiner KDF.
 //
 // CK_seedbased uses the C2PRICombiner: KDF input is
 //   EncodeSharedSecret(ss_PQ) || EncodeSharedSecret(ss_T)
 //     || EncodeCiphertext(ct_T) || EncodeEncapsKey(ek_T) || L.get()
 // (no ek_PQ, no ct_PQ -- security relies on the PQ component being C2PRI).
-//
-// Hop count: open bracket (6) + correctness (2) + KEMCCA (2) + KDFPRF (2)
-// + GameFreshSS + KDFPRF reverse (2) + KEMCCA reverse (2) + correctness
-// reverse (2) + close bracket (6) = 26 hops.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';
@@ -124,9 +118,9 @@ games:
     KEM_INDCCA(hybrid).Random against KEM_INDCCA(hybrid).Adversary;
 
 // ===================================================================
-// R_PRG_L / R_PRG_R: embed PRGSec. State stores only seed_full and
-// ctStar; Decaps recomputes DeriveKeyPair inline to match how
-// INDCCA(hybrid).Real canonicalizes the seed-form Decaps.
+// R_PRG_L / R_PRG_R: reduce to PRGSec. State stores only seed_full and
+// ctStar; Decaps recomputes DeriveKeyPair inline to match the seed-form
+// Decaps in INDCCA(hybrid).Real.
 // ===================================================================
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
     compose PRGSec(G) against KEM_INDCCA(hybrid).Adversary {
@@ -206,7 +200,7 @@ Reduction R_PRG_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hyb
 }
 
 // ===================================================================
-// R_KG_PQ_L / R_KG_PQ_R: embed KeyGenEquiv(KEM_PQ).
+// R_KG_PQ_L / R_KG_PQ_R: reduce to KeyGenEquiv(KEM_PQ).
 // ===================================================================
 Reduction R_KG_PQ_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
     compose KeyGenEquiv(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
@@ -278,7 +272,7 @@ Reduction R_KG_PQ_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased h
 }
 
 // ===================================================================
-// R_KG_T_L / R_KG_T_R: embed KeyGenEquiv(KEM_T).
+// R_KG_T_L / R_KG_T_R: reduce to KeyGenEquiv(KEM_T).
 // ===================================================================
 Reduction R_KG_T_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
     compose KeyGenEquiv(KEM_T) against KEM_INDCCA(hybrid).Adversary {
@@ -503,7 +497,7 @@ Game GameCaseSplitIdeal(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbas
 }
 
 // ===================================================================
-// RB / RC: embed KEM_PQ IND-CCA (forward / reverse).
+// RB / RC: reduce to KEM_PQ IND-CCA (forward / reverse).
 // ===================================================================
 Reduction RB(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
     compose KEM_INDCCA(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
@@ -584,7 +578,7 @@ Reduction RC(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
 }
 
 // ===================================================================
-// RD / RE: embed KDFFirstKeyPRF (forward / reverse).
+// RD / RE: reduce to KDFFirstKeyPRF (forward / reverse).
 // Lookup(key2 = ss_T, rest = ct_T || ek_T || L.get()).
 // ===================================================================
 Reduction RD(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)

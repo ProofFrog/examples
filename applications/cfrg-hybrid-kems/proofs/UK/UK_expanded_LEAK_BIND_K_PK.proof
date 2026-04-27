@@ -5,11 +5,7 @@
 // produce distinct KDF inputs. Thus a binding break (matching ss,
 // distinct encapsulation keys) immediately yields a KDF collision.
 //
-// Direct port of UK_LEAK_BIND_K_PK.proof to the expanded-DecapsKey form
-// (DecapsKey = [dk_PQ, dk_T, ek_PQ, ek_T] instead of seed).
-//
 // Assumption: KDFCollisionResistance(H).
-// Standard four-step template (one reduction).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';

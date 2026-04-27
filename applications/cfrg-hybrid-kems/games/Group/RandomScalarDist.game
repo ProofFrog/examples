@@ -7,12 +7,9 @@
 // Honest:  scalars sampled via RandomScalar(fresh BitString<Nseed>).
 // Uniform: scalars sampled uniformly from NG.Scalar.
 //
-// The cfrg-hybrid-kems analogue of starfortress's ExponentDist.game:
-// retargeted to the cfrg NominalGroup interface (RandomScalar(seed)
-// rather than SampleExponent / DeriveExponent), and supplying two
-// independent samples per query so that the UG_seedbased ROM proof can switch
-// dk_T = RandomScalar(seed_T) and sk_E = RandomScalar(seed_E) to
-// uniform NG.Scalar values in a single hop before invoking SDH_SS
+// Two independent samples are returned per query so that a proof can
+// switch both an ephemeral and a long-term scalar from seed-derived
+// to uniform in a single hop before invoking an SDH-style assumption
 // (which is naturally stated over uniform exponents).
 //
 // Advantage is bounded by twice the per-scalar statistical distance.

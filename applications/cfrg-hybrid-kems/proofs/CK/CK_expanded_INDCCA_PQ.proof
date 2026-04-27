@@ -8,8 +8,8 @@
 // unchanged from CK_seedbased.
 //
 // Therefore the seeded CK_INDCCA_PQ proof's outer PRGSec +
-// KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) bracket is unnecessary
-// here. The remainder of the proof is reused unchanged.
+// KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) hops are unnecessary here.
+// The core of the proof is the same as in the seeded version.
 //
 // Assumptions:
 //   - KEM_PQ IND-CCA (KEM_INDCCA)

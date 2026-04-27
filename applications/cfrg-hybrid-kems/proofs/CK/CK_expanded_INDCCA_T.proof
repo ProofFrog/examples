@@ -7,12 +7,11 @@
 // Encaps and the KDF input are unchanged from CK_seedbased.
 //
 // Therefore the seeded CK_INDCCA_T proof's outer PRGSec + KeyGenEquiv
-// brackets are unnecessary here: the canonical form of
-// KEM_INDCCA(hybrid).Real for CK_expanded already matches what the
-// seeded proof reached after those brackets were applied. The inner
-// core (KEM_T correctness + KEM_T IND-CCA + C2PRI add-abort +
-// KDFSecondKeyPRF + reverse) carries over verbatim modulo the
-// parameter type change CK_seedbased -> CK_expanded.
+// hops are unnecessary here: KEM_INDCCA(hybrid).Real for CK_expanded
+// already matches the form the seeded proof reached after those hops.
+// The inner core (KEM_T correctness + KEM_T IND-CCA + C2PRI add-abort
+// + KDFSecondKeyPRF + reverse) is the same as in the seeded version
+// modulo the parameter type change CK_seedbased -> CK_expanded.
 //
 // Assumptions:
 //   - KEM_T IND-CCA (KEM_INDCCA)

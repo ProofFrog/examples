@@ -1,12 +1,11 @@
 // Proof that CK_expanded (C2PRICombiner K-flavour, expanded-form
 // DecapsKey) is correct, assuming both component KEMs are correct.
 //
-// Direct port of CK_Correctness.proof to the expanded-DecapsKey form.
 // CK_expanded.KeyGen() calls KEM_PQ.KeyGen() and KEM_T.KeyGen() directly
 // and stores [dk_PQ, dk_T, ek_T] as the hybrid DecapsKey, so the
-// PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) opening/closing
-// brackets used in the seeded CK_seedbased proof are unnecessary here. The proof
-// reduces directly to component-KEM correctness.
+// PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) hops needed in the
+// seeded CK_seedbased proof are unnecessary here. The proof reduces
+// directly to component-KEM correctness.
 //
 // C2PRICombiner KDF input drops EncodeCiphertext(ct_PQ) and
 // EncodeEncapsKey(ek_PQ) compared to the UniversalCombiner.

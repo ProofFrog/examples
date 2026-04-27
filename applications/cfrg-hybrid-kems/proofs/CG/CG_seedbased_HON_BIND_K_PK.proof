@@ -2,19 +2,17 @@
 //
 // HON-BIND differs from LEAK-BIND only in that the adversary does not
 // receive the decapsulation keys directly; it only sees public ek's
-// and oracle access to Decaps0 / Decaps1. Because dk is hidden, the
-// PRGSec + KeyGenEquiv(KEM_PQ) bracket applies: we can replace
+// and oracle access to Decaps0 / Decaps1. Because dk is hidden, a
+// PRGSec + KeyGenEquiv(KEM_PQ) sequence of hops applies: we can replace
 // hybrid.Decaps's seed-form expansion (G.evaluate(seed) followed by
 // component KEM_PQ.DeriveKeyPair / NG.RandomScalar) with direct
-// KEM_PQ.KeyGen and a freshly sampled NG seed, putting the proof in
-// the expanded form used by CG_expanded_LEAK_BIND_K_CT.
+// KEM_PQ.KeyGen and a freshly sampled NG seed.
 //
 // The NG (trans) side does not need a KeyGenEquiv hop: after PRGSec
 // the trans-side derivation `dk_T = NG.RandomScalar(seed_T)` for fresh
-// uniform seed_T is exactly what CG_expanded.KeyGen produces -- no
-// further bracket step is required.
+// uniform seed_T is exactly what direct component KeyGen produces.
 //
-// Inside the bracket the proof is the C2PRICombiner case-split:
+// At the inner step the proof uses the C2PRICombiner case-split:
 // matching kdf_in's force ss_PQ_0 == ss_PQ_1, ct_T_0 == ct_T_1, and
 // ek_T_0 == ek_T_1; combined with hybrid ek0 != ek1 this forces
 // ek_PQ_0 != ek_PQ_1 -- i.e. a KEM_PQ HON-BIND-K-PK break. We forward
@@ -110,7 +108,7 @@ games:
     HON_BIND_K_PK(hybrid).Unbreakable against HON_BIND_K_PK(hybrid).Adversary;
 
 // ===================================================================
-// Bracket reductions (left).
+// Reductions for the forward direction.
 // ===================================================================
 
 Reduction R_PRG_L(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased hybrid)
@@ -346,8 +344,8 @@ Reduction R_KDF(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, CG_seedbased hybrid
 }
 
 // ===================================================================
-// Bracket reductions (right): mirror the left versions but with
-// Challenge always returning false (Unbreakable side).
+// Reductions for the reverse direction: mirror the forward versions
+// but with Challenge always returning false (Unbreakable side).
 // ===================================================================
 
 Reduction R_KG_PQ_R(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased hybrid)

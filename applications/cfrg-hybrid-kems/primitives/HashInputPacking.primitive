@@ -9,9 +9,6 @@
 // Indirect(q) = H(Pack(st, q)).  Concrete protocols supply a Scheme
 // extending this primitive that realises Pack with the actual
 // hash-input construction.
-//
-// Ported verbatim from
-// extras/examples/starfortress/proof/prooffrog/primitives/HashInputPacking.primitive.
 
 Primitive HashInputPacking(Set StateSpace, Set QuerySpace, Int M) {
     Set State = StateSpace;

@@ -6,21 +6,20 @@
 // hybrid scheme is instantiated with a CGRandomOracleKDF wrapper Hkdf
 // that exposes that same H to the engine's RF transforms.
 //
-// CG_seedbased (C2PRICombiner per draft section 5.5) drops ct_PQ and ek_PQ from
-// the KDF input compared to UG_seedbased. Two distinct PQ ciphertexts that
+// CG_seedbased (C2PRICombiner per draft section 5.5) omits ct_PQ and
+// ek_PQ from the KDF input. Two distinct PQ ciphertexts that
 // decapsulate to the same shared secret therefore produce identical
 // KDF inputs, which would violate the injectivity assumed by
 // LazyROTwoViewsExcluded[Programmed]. The C2PRI assumption on KEM_PQ
 // is used to add an abort branch to Decaps that fences off precisely
 // those collision queries; on the non-aborting domain, Pack is
-// injective and the SDH_SS / LazyRO bracket from UG_INDCCA_T applies
-// verbatim.
+// injective and the SDH_SS / LazyRO sequence of hops applies.
 //
 // Assumptions:
 //   - PRGSec(G)
 //   - KeyGenEquiv(KEM_PQ)
 //   - RandomScalarDist(NG)              (statistical helper)
-//   - KEM_C2PRI(KEM_PQ)                 (NEW vs UG_INDCCA_T)
+//   - KEM_C2PRI(KEM_PQ)
 //   - SDH_SS(NG)                        (Gap-X-coordinate SDH)
 //   - LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss)
 //   - LazyROTwoViewsExcluded(P, hybrid.Nss)
@@ -149,12 +148,11 @@ games:
     KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Random against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
 
 // ===================================================================
-// R_PRG_L / R_PRG_R: embed PRGSec(G). State stores seed_full (the
+// R_PRG_L / R_PRG_R: reduce to PRGSec(G). State stores seed_full (the
 // PRG output) and ctStar; Decaps recomputes DeriveKeyPair / RandomScalar
-// inline from seed_full to match how INDCCA_ROM(hybrid).Real canonicalizes
-// the seed-form Decaps. Hash routes through Hkdf.evaluate, which inlines
-// to the let-bound sampled Function H, matching the IND-CCA-ROM Hash.
-// (CG_seedbased variant: KDF input drops ct_PQ and ek_PQ slots compared to UG_seedbased.)
+// inline from seed_full to match the seed-form Decaps in INDCCA_ROM
+// (hybrid).Real. Hash routes through Hkdf.evaluate, which resolves to
+// the let-bound sampled Function H, matching the IND-CCA-ROM Hash.
 // ===================================================================
 Reduction R_PRG_L(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
     compose PRGSec(G) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
@@ -247,7 +245,7 @@ Reduction R_PRG_R(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hybr
 }
 
 // ===================================================================
-// R_KG_L / R_KG_R: embed KeyGenEquiv(KEM_PQ).
+// R_KG_L / R_KG_R: reduce to KeyGenEquiv(KEM_PQ).
 // ===================================================================
 Reduction R_KG_L(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
     compose KeyGenEquiv(KEM_PQ) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
@@ -332,7 +330,7 @@ Reduction R_KG_R(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hybri
 }
 
 // ===================================================================
-// R_Dist_Real / R_Dist_Random: embed RandomScalarDist(NG).
+// R_Dist_Real / R_Dist_Random: reduce to RandomScalarDist(NG).
 // ===================================================================
 Reduction R_Dist_Real(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
     compose RandomScalarDist(NG) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
@@ -420,7 +418,7 @@ Reduction R_Dist_Random(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbase
 //
 // Ideal -> abort never fires (matches RandomScalarDist Uniform branch).
 // Real -> abort fires whenever K.Decaps(dk, c1) == ss_PQ_star and
-//         c1 != ct_PQ_star (matches the LazyRO bracket entry point).
+//         c1 != ct_PQ_star (matches the LazyRO entry point).
 // ===================================================================
 
 Reduction R_C2PRI_L(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
@@ -521,19 +519,17 @@ Reduction R_C2PRI_R(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hy
 }
 
 // ===================================================================
-// R_Wrap_Prog: embed LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss).
+// R_Wrap_Prog: reduce to LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss).
 //
 // In Honest mode, the challenger samples a fresh random function RF and
 // returns RF(m_star) for the challenge; Indirect(c) returns RF(Pack(st, c))
 // for c != qExcluded. Routing scheme.evaluate / Hash through RF is
 // equivalent to routing through the let-block H (both are independent
-// fresh random functions of matching type and the engine canonicalizes
-// them to the same form).
+// fresh random functions of matching type).
 //
-// The abort branch is replicated explicitly here using the locally-stored
-// dk_PQ and ss_PQ_star: the previous game (after C2PRI add-abort) has the
-// abort branch, so this reduction must include it for canonicalization
-// to match.
+// The abort branch is replicated here using the locally-stored dk_PQ
+// and ss_PQ_star, matching the abort branch introduced by the
+// preceding C2PRI hop.
 // ===================================================================
 Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, Label L, CG_seedbased hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
     compose LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
@@ -581,7 +577,7 @@ Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, La
 }
 
 // ===================================================================
-// R_Wrap_NoAbort: embed LazyROTwoViewsExcluded(P, hybrid.Nss).
+// R_Wrap_NoAbort: reduce to LazyROTwoViewsExcluded(P, hybrid.Nss).
 // Same shape as R_Wrap_Prog but the LazyRO challenger no longer
 // programs ss; the challenge ss is sampled fresh in this reduction.
 // Reached after SDH_SS removes the SDH-success branch in Direct.
@@ -636,7 +632,6 @@ Reduction R_Wrap_NoAbort(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G,
 // Decaps queries with c2 == ct_T_star and dec_ss_PQ == ss_PQ_star
 // take the abort branch (random output); other queries scan HT for
 // a matching DH-witness entry, otherwise sample fresh.
-// (CG_seedbased variant: KDF input has 5 slots instead of UG_seedbased's 7.)
 // ===================================================================
 Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
     compose SDH_SS(NG) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {

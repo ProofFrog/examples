@@ -1,15 +1,13 @@
 // Proof that CG_expanded (C2PRICombiner G-flavour, expanded-form
 // DecapsKey) is correct, assuming KEM_PQ is correct.
 //
-// Direct port of CG_Correctness.proof to the expanded-DecapsKey form.
 // CG_expanded.KeyGen() calls KEM_PQ.KeyGen() directly and stores the
-// expanded tuple [dk_PQ, dk_T, ek_T] as the hybrid DecapsKey, so the
-// PRGSec + KeyGenEquiv(KEM_PQ) opening/closing brackets used in the
-// seeded CG_seedbased proof are unnecessary here. The proof reduces directly to
-// KEM_PQ correctness composed with NominalGroup commutativity.
+// expanded tuple [dk_PQ, dk_T, ek_T] as the hybrid DecapsKey. The proof
+// reduces directly to KEM_PQ correctness composed with NominalGroup
+// commutativity.
 //
-// C2PRICombiner KDF input drops EncodeCiphertext(ct_PQ) and
-// EncodeEncapsKey(ek_PQ) compared to the UniversalCombiner.
+// C2PRICombiner KDF input (per draft section 5.1.3) does not include
+// EncodeCiphertext(ct_PQ) or EncodeEncapsKey(ek_PQ).
 //
 // Game sequence (each transition is either an interchangeability hop or
 // an application of one listed assumption):
