@@ -15,14 +15,15 @@ correctness, IND-CCA security, LEAK-BIND-K-{CT,PK}, and HON-BIND-K-{CT,PK}.
 
 ## Contents
 
-- [Modelling caveats](#modelling-caveats--please-read-before-citing-these-results)
-- [Scope](#scope)
-- [Directory layout](#directory-layout)
-- [Mapping from draft sections to files](#mapping-from-draft-sections-to-files)
-- [Assumption table](#assumption-table)
-- [Deviations from the draft](#deviations-from-the-draft)
-- [Verification](#verification)
-- [Out of scope](#out-of-scope)
+- [ProofFrog Analysis of draft-irtf-cfrg-hybrid-kems-10](#prooffrog-analysis-of-draft-irtf-cfrg-hybrid-kems-10)
+  - [Contents](#contents)
+  - [Modelling caveats — please read before citing these results](#modelling-caveats--please-read-before-citing-these-results)
+  - [Directory layout](#directory-layout)
+  - [Mapping from draft sections to files](#mapping-from-draft-sections-to-files)
+  - [Assumption table](#assumption-table)
+  - [Deviations from the draft](#deviations-from-the-draft)
+  - [Verification](#verification)
+  - [Out of scope](#out-of-scope)
 
 ## Modelling caveats — please read before citing these results
 
@@ -140,7 +141,7 @@ assumption.
 |---|---|---|---|
 | KEM correctness | `KEM` | [`Correctness`](games/KEM/Correctness.game) | Correctness proofs; IND-CCA via Decaps-rewrite hops |
 | KEM IND-CCA | `KEM` | [`INDCCA`](games/KEM/INDCCA.game) / [`INDCCA_ROM`](games/KEM/INDCCA_ROM.game) | All `*_INDCCA_*` proofs |
-| KEM C2PRI (ciphertext-to-plaintext rejection-immunity) | `KEM` (the PQ component) | [`C2PRI`](games/KEM/C2PRI.game) | `CK_*_INDCCA_T`, `CG_*_INDCCA_T`, expanded-form `{CG,CK}_LEAK_BIND_*` |
+| KEM C2PRI (ciphertext 2nd preimage resistance) | `KEM` (the PQ component) | [`C2PRI`](games/KEM/C2PRI.game) | `CK_*_INDCCA_T`, `CG_*_INDCCA_T`, expanded-form `{CG,CK}_LEAK_BIND_*` |
 | KEM `KeyGenEquiv` | `KEM` | [`KeyGenEquiv`](games/KEM/KeyGenEquiv.game) | Bridging seed-form ↔ expanded-form (treated as a free fact for spec-compliant KEMs; see [Deviation 8](#deviation-8)) |
 | KEM LEAK-BIND-K-{CT,PK} | `KEM` (the PQ component) | [`LEAK_BIND_K_CT`](games/KEM/Binding/LEAK_BIND_K_CT.game) / [`LEAK_BIND_K_PK`](games/KEM/Binding/LEAK_BIND_K_PK.game) (plus ROM variants) | All `{CG,CK}_*_LEAK_BIND_K_*` |
 | PRG security | `PRG` | [`PRGSec`](games/PRG/PRGSec.game) | All seed-form proofs (used together with `KeyGenEquiv` to bridge seed and expanded forms) |
@@ -283,7 +284,7 @@ assumption.
     but still require `KEM_PQ` to behave well enough that adversarial
     ciphertexts cannot induce shared-secret collisions on the PQ side.
     We capture this with `KEM_C2PRI(KEM_PQ)`
-    (ciphertext-to-plaintext-rejection-immunity), a property strictly
+    (ciphertext 2nd preimage resistance), a property strictly
     weaker than IND-CCA. The draft alludes to such a residual
     requirement on `KEM_PQ` in §6.2.1 but does not name a specific
     assumption; we pin it down to C2PRI, which is a known assumption
