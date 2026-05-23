@@ -1,23 +1,39 @@
 // Nominal group primitive, matching the interface used in
-// draft-irtf-cfrg-hybrid-kems-10 section 5.1.1. Provides a generator, an
-// exponentiation operation, a scalar-sampling operation, a deterministic
-// seed-to-scalar derivation, and two encoding operations:
-//   - Encode(GroupElem) -> byte string (generic serialization)
-//   - ElementToSharedSecret(GroupElem) -> byte string (the draft-specific
-//     encoding used to form ss_T from a group element).
+// draft-irtf-cfrg-hybrid-kems-10 section 5.1.1.
+//
+// This primitive models the CFRG nominal-group abstraction as fully
+// opaque sets. The element and scalar spaces are ordinary Sets, NOT
+// native GroupElem<G> types -- the engine does not treat Element as a
+// native group element, so group-algebraic facts (commutativity of
+// double-exponentiation, power-of-power, etc.) do NOT canonicalize
+// automatically. Any group-algebraic fact used in a proof must be
+// introduced as an explicit assumption game (see NGCorrectness.game,
+// SDH.game, etc.).
+//
+// Abstract naming is deliberate. It matches the draft's nominal-group
+// abstraction (which does not require cyclic-group semantics -- e.g.
+// X25519 clamps), keeps the engine honest, and prevents a reader from
+// assuming that native group transforms will fire here.
+//
+// Methods:
+//   - Exp(base, exp)               : abstract "exponentiation" operation
+//   - Generator()                  : fixed generator element
+//   - RandomScalar(seed)           : deterministic seed-to-scalar derivation
+//   - Encode(Element)              : generic serialization to bytes
+//   - ElementToSharedSecret(Element): the draft-specific encoding used
+//                                     to form ss_T from a group element
 //
 // Both encodings are modeled as deterministic and injective.
-Primitive NominalGroup(Int Nseed, Int NGelem, Int Nss, Set GroupElemSpace, Set ExponentSpace) {
+Primitive NominalGroup(Int Nseed, Int Nelem, Int Nss, Set ElementSpace, Set ScalarSpace) {
     Int Nseed = Nseed;
-    Int NGelem = NGelem;
+    Int Nelem = Nelem;
     Int Nss = Nss;
-    Set GroupElem = GroupElemSpace;
-    Set Exponent = ExponentSpace;
+    Set Element = ElementSpace;
+    Set Scalar = ScalarSpace;
 
-    deterministic GroupElem Exp(GroupElem base, Exponent exp);
-    deterministic GroupElem Generator();
-    Exponent SampleExponent();
-    deterministic Exponent DeriveExponent(BitString<Nseed> seed);
-    deterministic injective BitString<NGelem> Encode(GroupElem elem);
-    deterministic injective BitString<Nss> ElementToSharedSecret(GroupElem elem);
+    deterministic Element Exp(Element base, Scalar exp);
+    deterministic Element Generator();
+    deterministic Scalar RandomScalar(BitString<Nseed> seed);
+    deterministic injective BitString<Nelem> Encode(Element elem);
+    deterministic injective BitString<Nss> ElementToSharedSecret(Element elem);
 }

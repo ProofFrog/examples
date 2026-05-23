@@ -1,0 +1,250 @@
+// Proof that CG (C2PRICombiner G-flavour hybrid KEM) is correct,
+// assuming KEM_PQ is correct.
+//
+// Structure (draft section 5.5 / 5.2): identical to UG.FromEncaps/
+// FromDecaps up to the combiner KDF input: C2PRICombiner omits ct_PQ
+// and ek_PQ, so the KDF input is
+//   KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T)
+//     || NG.Encode(ek_T) || L.get()
+// (compare UG / UniversalCombiner which additionally includes
+// KEM_PQ.EncodeCiphertext(ct_PQ) and KEM_PQ.EncodeEncapsKey(ek_PQ)).
+//
+// Proof sketch (mirrors UG_Correctness.proof): bracket with PRGSec +
+// KeyGenEquiv(KEM_PQ) to lift the seed-form dk into an expanded form
+// where ek_PQ/dk_PQ come from KEM_PQ.KeyGen(). In the expanded form the
+// two ss derivations differ only in which order a = dk_T and b = sk_E
+// are exponentiated; they coincide by DH commutativity (NGCorrectness).
+// After the swap and KEM_PQ correctness the two KDF inputs are
+// identical, matching CG.FromEncaps. Close the bracket by reversing on
+// the FromEncaps side.
+//
+// Game sequence (each transition is either an interchangeability hop
+// or an application of one listed assumption):
+//    0  CG.FromDecaps
+//    1  PRGSec.Real                          compose R_PRG_L    (== 0)
+//    2  PRGSec.Random                        compose R_PRG_L    (by PRGSec)
+//    3  KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L (== 2)
+//    4  KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_PQ_L (by KeyGenEquiv)
+//    5  KEMCorrectness(KEM_PQ).FromDecaps    compose R_KEM_PQ   (== 4)
+//    6  KEMCorrectness(KEM_PQ).FromEncaps    compose R_KEM_PQ   (by Correctness(KEM_PQ))
+//    7  NGCorrectness(NG).Swap1              compose R_NG       (== 6)
+//    8  NGCorrectness(NG).Swap2              compose R_NG       (by NGCorrectness)
+//    9  KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_PQ_R (== 8)
+//   10  KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R (by KeyGenEquiv)
+//   11  PRGSec.Random                        compose R_PRG_R    (== 10)
+//   12  PRGSec.Real                          compose R_PRG_R    (by PRGSec)
+//   13  CG.FromEncaps
+
+import '../primitives/KEM.primitive';
+import '../primitives/NominalGroup.primitive';
+import '../primitives/PRG.primitive';
+import '../primitives/KDF.primitive';
+import '../primitives/Label.primitive';
+import '../schemes/CG.scheme';
+import '../games/Correctness.game';
+import '../games/PRGSec.game';
+import '../games/KeyGenEquiv.game';
+import '../games/NGCorrectness.game';
+
+// Opening-bracket reductions (Decaps-side: compute both ss_e via Encaps
+// and ss_d via component Decaps, then KDF each into the hybrid shared
+// secret).
+
+Reduction R_PRG_L(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG hybrid)
+    compose PRGSec(G) against KEMCorrectness(hybrid).Adversary {
+    [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
+        BitString<G.lambda + G.stretch> seed_full = challenger.Query();
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<NG.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.DeriveKeyPair(seed_PQ);
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_PQ.DecapsKey dk_PQ = pq_keys[1];
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ_e = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T_e = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        KEM_PQ.SharedSecret ss_PQ_d = KEM_PQ.Decaps(dk_PQ, ct_PQ);
+        BitString<NG.Nss> ss_T_d = NG.ElementToSharedSecret(NG.Exp(ct_T, dk_T));
+        BitString<H.Nin> kdf_in_e = KEM_PQ.EncodeSharedSecret(ss_PQ_e) || ss_T_e || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        BitString<H.Nin> kdf_in_d = KEM_PQ.EncodeSharedSecret(ss_PQ_d) || ss_T_d || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        return [[ek_PQ, ek_T], [ct_PQ, ct_T], H.evaluate(kdf_in_e), H.evaluate(kdf_in_d)];
+    }
+}
+
+Reduction R_KG_PQ_L(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG hybrid)
+    compose KeyGenEquiv(KEM_PQ) against KEMCorrectness(hybrid).Adversary {
+    [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Generate();
+        BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        KEM_PQ.DecapsKey dk_PQ = pq_keys[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ_e = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T_e = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        KEM_PQ.SharedSecret ss_PQ_d = KEM_PQ.Decaps(dk_PQ, ct_PQ);
+        BitString<NG.Nss> ss_T_d = NG.ElementToSharedSecret(NG.Exp(ct_T, dk_T));
+        BitString<H.Nin> kdf_in_e = KEM_PQ.EncodeSharedSecret(ss_PQ_e) || ss_T_e || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        BitString<H.Nin> kdf_in_d = KEM_PQ.EncodeSharedSecret(ss_PQ_d) || ss_T_d || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        return [[ek_PQ, ek_T], [ct_PQ, ct_T], H.evaluate(kdf_in_e), H.evaluate(kdf_in_d)];
+    }
+}
+
+// Middle: KEM_PQ correctness reduction (expanded form).
+
+Reduction R_KEM_PQ(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG hybrid)
+    compose KEMCorrectness(KEM_PQ) against KEMCorrectness(hybrid).Adversary {
+    [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
+        [KEM_PQ.EncapsKey, KEM_PQ.Ciphertext, KEM_PQ.SharedSecret, KEM_PQ.SharedSecret] pq_result = challenger.Compute();
+        KEM_PQ.EncapsKey ek_PQ = pq_result[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_result[1];
+        KEM_PQ.SharedSecret ss_PQ_e = pq_result[2];
+        KEM_PQ.SharedSecret ss_PQ_d = pq_result[3];
+        BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T_e = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        BitString<NG.Nss> ss_T_d = NG.ElementToSharedSecret(NG.Exp(ct_T, dk_T));
+        BitString<H.Nin> kdf_in_e = KEM_PQ.EncodeSharedSecret(ss_PQ_e) || ss_T_e || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        BitString<H.Nin> kdf_in_d = KEM_PQ.EncodeSharedSecret(ss_PQ_d) || ss_T_d || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        return [[ek_PQ, ek_T], [ct_PQ, ct_T], H.evaluate(kdf_in_e), H.evaluate(kdf_in_d)];
+    }
+}
+
+// Middle: NG commutativity reduction. ss_T_e is kept in its native
+// Encaps form locally; ss_T_d is delegated to the challenger with
+// (a, b) = (sk_E, dk_T) so Swap1 returns (g^sk_E)^dk_T matching the
+// local Decaps form, and Swap2 returns (g^dk_T)^sk_E matching ss_T_e.
+
+Reduction R_NG(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG hybrid)
+    compose NGCorrectness(NG) against KEMCorrectness(hybrid).Adversary {
+    [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T_e = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        BitString<NG.Nss> ss_T_d = challenger.Compute(sk_E, dk_T);
+        BitString<H.Nin> kdf_in_e = KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T_e || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        BitString<H.Nin> kdf_in_d = KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T_d || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        return [[ek_PQ, ek_T], [ct_PQ, ct_T], H.evaluate(kdf_in_e), H.evaluate(kdf_in_d)];
+    }
+}
+
+// Closing-bracket reductions (Encaps-side: ss_e = ss_d, compute once).
+
+Reduction R_KG_PQ_R(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG hybrid)
+    compose KeyGenEquiv(KEM_PQ) against KEMCorrectness(hybrid).Adversary {
+    [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Generate();
+        BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        return [[ek_PQ, ek_T], [ct_PQ, ct_T], ss, ss];
+    }
+}
+
+Reduction R_PRG_R(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG hybrid)
+    compose PRGSec(G) against KEMCorrectness(hybrid).Adversary {
+    [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
+        BitString<G.lambda + G.stretch> seed_full = challenger.Query();
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<NG.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.DeriveKeyPair(seed_PQ);
+        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(NG.Exp(ek_T, sk_E));
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        BitString<H.Nout> ss = H.evaluate(kdf_in);
+        return [[ek_PQ, ek_T], [ct_PQ, ct_T], ss, ss];
+    }
+}
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int ng_nseed;
+    Int ng_nss;
+    Int ng_nelem;
+    Int kdf_nout;
+    Int nlabel;
+    Set KEMPQSharedSecretSpace;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set NGElementSpace;
+    Set NGScalarSpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     KEMPQSharedSecretSpace, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    NominalGroup NG = NominalGroup(ng_nseed, ng_nelem, ng_nss,
+                                   NGElementSpace, NGScalarSpace);
+    PRG G = PRG(kem_pq_nseed, ng_nseed);
+    KDF H = KDF(kem_pq_nss + ng_nss + ng_nelem + ng_nelem + nlabel, kdf_nout);
+    Label L = Label(nlabel);
+    CG hybrid = CG(KEM_PQ, NG, G, H, L);
+
+assume:
+    PRGSec(G);
+    KeyGenEquiv(KEM_PQ);
+    KEMCorrectness(KEM_PQ);
+    NGCorrectness(NG);
+
+theorem:
+    KEMCorrectness(hybrid);
+
+games:
+    KEMCorrectness(hybrid).FromDecaps against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Real compose R_PRG_L(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Random compose R_PRG_L(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_L(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(KEM_PQ).FromDecaps compose R_KEM_PQ(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(KEM_PQ).FromEncaps compose R_KEM_PQ(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    NGCorrectness(NG).Swap1 compose R_NG(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    NGCorrectness(NG).Swap2 compose R_NG(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen compose R_KG_PQ_R(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Random compose R_PRG_R(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    PRGSec(G).Real compose R_PRG_R(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
+    KEMCorrectness(hybrid).FromEncaps against KEMCorrectness(hybrid).Adversary;

@@ -1,0 +1,14 @@
+// Domain-separation label, per draft-irtf-cfrg-hybrid-kems-10 section 5.1.3.
+//
+// The draft specifies a fixed-length label appended to the KDF input for
+// each hybrid KEM instantiation (the exact bytes live in an IANA registry).
+// FrogLang scheme parameters cannot directly accept a BitString<n> value,
+// so we wrap the label in a zero-cost primitive whose single deterministic
+// method returns the fixed label bytes. The scheme calls `L.get()` to form
+// its KDF input; the proof treats the returned bytes as an arbitrary but
+// fixed public constant.
+Primitive Label(Int Nlabel) {
+    Int Nlabel = Nlabel;
+
+    deterministic BitString<Nlabel> get();
+}
