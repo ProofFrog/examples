@@ -1,0 +1,36 @@
+// Random-oracle instantiation of the KDF primitive for the
+// UniversalCombiner KDF input shape used by UG_seedbased.
+//
+// Wraps a sampled FrogLang Function H inside a KDF. The proof's let:
+// block samples H once (Function<...> H <- Function<...>) and instantiates
+// this scheme as the KDF parameter to the hybrid KEM being analysed; the
+// same H is passed to the ROM-style game so its random oracle exposes
+// the same random function the scheme uses internally. After inlining,
+// every Hkdf.evaluate(x) reduces to H(x), so calls to the hash inside
+// the scheme and queries to the ROM-side oracle agree by construction.
+//
+// Note on the parameter shape: ideally one would write a generic
+//   UGRandomOracleKDF(Int Nin, Int Nout, Function<BitString<Nin>, BitString<Nout>> H)
+// but the FrogLang typechecker does not substitute Int parameters into
+// Function/BitString size expressions at instantiation, so a generic
+// wrapper cannot accept any concrete Function. The wrapper is therefore
+// specialized to the UniversalCombiner hybrid KDF input shape
+//   K.Nss + NG.Nss + K.Nct + NG.Nelem + K.Nek + NG.Nelem + L.Nlabel
+// (NG-agnostic). The Function output length Nout is passed as an Int and
+// matched literally by name at the call site.
+
+import '../../primitives/KDF.primitive';
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/Label.primitive';
+
+Scheme UGRandomOracleKDF(KEM KEM_PQ, NominalGroup NG, Label L, Int Nout,
+                       Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<Nout>> H)
+        extends KDF {
+    Int Nin = KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel;
+    Int Nout = Nout;
+
+    deterministic BitString<Nout> evaluate(BitString<Nin> input) {
+        return H(input);
+    }
+}

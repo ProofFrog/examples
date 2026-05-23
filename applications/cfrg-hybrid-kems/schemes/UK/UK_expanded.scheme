@@ -1,0 +1,106 @@
+// UK_expanded: variant of UK_seedbased whose DecapsKey is the expanded tuple
+// (dk_PQ, dk_T, ek_PQ, ek_T) rather than the raw seed.
+//
+// In the seed-form scheme of draft section 5.2, the decapsulation key is
+// the seed and Decaps re-derives the component keys via the PRG on every
+// call. For LEAK-BIND-style proofs (where the adversary is given dk),
+// exposing the seed complicates the argument because the adversary then
+// effectively learns the PRG randomness used to derive both component
+// secret keys. Storing the expanded component material as the DecapsKey
+// avoids that entanglement. Encaps and the KDF input are unchanged from
+// UK_seedbased.
+//
+// Compared to UK_seedbased:
+// - DecapsKey = [KEM_PQ.DecapsKey, KEM_T.DecapsKey, KEM_PQ.EncapsKey,
+//   KEM_T.EncapsKey] (ek_PQ and ek_T are included because the
+//   UniversalCombiner KDF input in Decaps needs them).
+// - KeyGen() calls the component KeyGen routines directly (no PRG, no
+//   DeriveKeyPair).
+// - DeriveKeyPair(seed) is preserved for KEM-primitive signature
+//   compliance: it expands the seed via PRG + component DeriveKeyPair
+//   into the expanded tuple.
+// - Decaps reads dk_PQ, dk_T, ek_PQ, ek_T directly from the tuple - no
+//   PRG, no DeriveKeyPair-from-seed inside.
+// - Encaps is identical to UK_seedbased.
+// - EncapsKey, Ciphertext, encoders, and KDF input are unchanged.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/PRG.primitive';
+import '../../primitives/KDF.primitive';
+import '../../primitives/Label.primitive';
+
+
+Scheme UK_expanded(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L) extends KEM {
+    requires G.lambda + G.stretch == KEM_PQ.Nseed + KEM_T.Nseed;
+    requires H.Nin == KEM_PQ.Nss + KEM_T.Nss + KEM_PQ.Nct + KEM_T.Nct + KEM_PQ.Nek + KEM_T.Nek + L.Nlabel;
+
+    Int Nseed = G.lambda;
+    Int Nss = H.Nout;
+    Int Nct = KEM_PQ.Nct + KEM_T.Nct;
+    Int Nek = KEM_PQ.Nek + KEM_T.Nek;
+    Set SharedSecret = BitString<H.Nout>;
+    Set EncapsKey = [KEM_PQ.EncapsKey, KEM_T.EncapsKey];
+    Set Ciphertext = [KEM_PQ.Ciphertext, KEM_T.Ciphertext];
+    Set DecapsKey = [KEM_PQ.DecapsKey, KEM_T.DecapsKey, KEM_PQ.EncapsKey, KEM_T.EncapsKey];
+
+    // Present for KEM-primitive signature compliance. Expands the seed
+    // via PRG + component DeriveKeyPair into the expanded tuple.
+    deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed) {
+        BitString<G.lambda + G.stretch> seed_full = G.evaluate(seed);
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keypair = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keypair = KEM_T.DeriveKeyPair(seed_T);
+        return [[pq_keypair[0], t_keypair[0]], [pq_keypair[1], t_keypair[1], pq_keypair[0], t_keypair[0]]];
+    }
+
+    // Expanded-form KeyGen: component KeyGens called directly, with no
+    // PRG / DeriveKeyPair indirection.
+    [EncapsKey, DecapsKey] KeyGen() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keypair = KEM_PQ.KeyGen();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keypair = KEM_T.KeyGen();
+        return [[pq_keypair[0], t_keypair[0]], [pq_keypair[1], t_keypair[1], pq_keypair[0], t_keypair[0]]];
+    }
+
+    // Encaps unchanged from UK_seedbased.
+    [SharedSecret, Ciphertext] Encaps(EncapsKey ek) {
+        KEM_PQ.EncapsKey ek_PQ = ek[0];
+        KEM_T.EncapsKey ek_T = ek[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        KEM_T.SharedSecret ss_T = t_enc[0];
+        KEM_T.Ciphertext ct_T = t_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_PQ.EncodeCiphertext(ct_PQ) || KEM_T.EncodeCiphertext(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        SharedSecret ss = H.evaluate(kdf_in);
+        return [ss, [ct_PQ, ct_T]];
+    }
+
+    deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss) {
+        return ss;
+    }
+
+    deterministic injective BitString<Nct> EncodeCiphertext(Ciphertext ct) {
+        return KEM_PQ.EncodeCiphertext(ct[0]) || KEM_T.EncodeCiphertext(ct[1]);
+    }
+
+    deterministic injective BitString<Nek> EncodeEncapsKey(EncapsKey ek) {
+        return KEM_PQ.EncodeEncapsKey(ek[0]) || KEM_T.EncodeEncapsKey(ek[1]);
+    }
+
+    // Decaps reads dk_PQ, dk_T, ek_PQ, ek_T directly from the expanded
+    // tuple.
+    deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct) {
+        KEM_PQ.DecapsKey dk_PQ = dk[0];
+        KEM_T.DecapsKey dk_T = dk[1];
+        KEM_PQ.EncapsKey ek_PQ = dk[2];
+        KEM_T.EncapsKey ek_T = dk[3];
+        KEM_PQ.Ciphertext ct_PQ = ct[0];
+        KEM_T.Ciphertext ct_T = ct[1];
+        KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ);
+        KEM_T.SharedSecret ss_T = KEM_T.Decaps(dk_T, ct_T);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_PQ.EncodeCiphertext(ct_PQ) || KEM_T.EncodeCiphertext(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}

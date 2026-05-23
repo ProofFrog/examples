@@ -1,0 +1,61 @@
+// LEAK-BIND-K-CT: the output key K leakage-binds the ciphertext CT.
+//
+// In CDM24 ("Keeping Up with the KEMs", CCS 2024) notation this is
+// X-BIND-P-Q with X=LEAK, P={K}, Q={CT}: given knowledge of two
+// honestly-generated secret keys, the adversary must construct two
+// distinct ciphertexts that decapsulate to the same shared secret.
+//
+// This is the notion targeted by draft-irtf-cfrg-hybrid-kems-10
+// section 6.2.2 / 6.4.2.
+//
+// Implicit-rejection assumption: CDM24 Fig. 5 includes the guard
+// "if k_0 = bot or k_1 = bot: return 0". We omit it because
+// KEM.primitive declares Decaps as total (SharedSecret, not
+// SharedSecret?) -- there is no bot symbol to test against. This is
+// sound under the assumption that the KEM is implicitly rejecting,
+// which is the case for the FO-style KEMs targeted by
+// draft-irtf-cfrg-hybrid-kems-10 (Decaps always returns a
+// pseudo-random shared secret, never bot). Explicit-rejection KEMs
+// would require extending KEM.primitive.
+
+import '../../../primitives/KEM.primitive';
+
+Game Breakable(KEM K) {
+    K.DecapsKey dk0;
+    K.DecapsKey dk1;
+
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
+        dk0 = kp0[1];
+        dk1 = kp1[1];
+        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret k0 = K.Decaps(dk0, ct0);
+        K.SharedSecret k1 = K.Decaps(dk1, ct1);
+        return k0 == k1 && ct0 != ct1;
+    }
+}
+
+Game Unbreakable(KEM K) {
+    K.DecapsKey dk0;
+    K.DecapsKey dk1;
+
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
+        dk0 = kp0[1];
+        dk1 = kp1[1];
+        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret k0 = K.Decaps(dk0, ct0);
+        K.SharedSecret k1 = K.Decaps(dk1, ct1);
+        return false;
+    }
+}
+
+export as LEAK_BIND_K_CT;

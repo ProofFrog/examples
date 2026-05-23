@@ -1,0 +1,19 @@
+// A state-indexed family of injective packings of (state, query) pairs
+// into BitString<M>.  For each fixed state st, q |-> Pack(st, q) is
+// injective.
+//
+// The LazyROTwoViewsExcluded and LazyROTwoViewsExcludedProgrammed helper
+// games consume this primitive to express lazy-sampling equivalences
+// for a random oracle H : BitString<M> -> BitString<n> accessed via two
+// views: directly as Direct(m), and indirectly as
+// Indirect(q) = H(Pack(st, q)).  Concrete protocols supply a Scheme
+// extending this primitive that realises Pack with the actual
+// hash-input construction.
+
+Primitive HashInputPacking(Set StateSpace, Set QuerySpace, Int M) {
+    Set State = StateSpace;
+    Set Query = QuerySpace;
+    Int M = M;
+
+    deterministic injective BitString<M> Pack(State st, Query q);
+}

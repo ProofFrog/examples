@@ -1,0 +1,35 @@
+// NominalGroup Diffie-Hellman commutativity, expressed as an
+// interchangeability between two games.
+//
+// Captures the (definitional, unconditional) fact that
+//     NG.Exp(NG.Exp(g, a), b) == NG.Exp(NG.Exp(g, b), a)
+// holds for any generator g and any pair of exponents a, b. This is a
+// statistical / structural property of the nominal-group primitive,
+// not a cryptographic assumption on any particular instantiation. It
+// is stated as an explicit game because Exp is an opaque deterministic
+// operation in the abstract primitive.
+//
+// The output is wrapped in NG.ElementToSharedSecret so the game returns
+// a BitString, which composes cleanly with hybrid-KDF input positions.
+// The game does not rely on injectivity of ElementToSharedSecret: both
+// sides apply it to equal Element arguments, so determinism alone
+// yields equal outputs.
+//
+// Swap1: return ElementToSharedSecret(NG.Exp(NG.Exp(g, a), b))
+// Swap2: return ElementToSharedSecret(NG.Exp(NG.Exp(g, b), a))
+
+import '../../primitives/NominalGroup.primitive';
+
+Game Swap1(NominalGroup NG) {
+    BitString<NG.Nss> Compute(NG.Scalar a, NG.Scalar b) {
+        return NG.ElementToSharedSecret(NG.Exp(NG.Exp(NG.Generator(), a), b));
+    }
+}
+
+Game Swap2(NominalGroup NG) {
+    BitString<NG.Nss> Compute(NG.Scalar a, NG.Scalar b) {
+        return NG.ElementToSharedSecret(NG.Exp(NG.Exp(NG.Generator(), b), a));
+    }
+}
+
+export as NGCorrectness;

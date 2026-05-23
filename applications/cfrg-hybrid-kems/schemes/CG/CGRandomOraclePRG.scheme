@@ -1,0 +1,27 @@
+// Random-oracle instantiation of the PRG primitive, specialized to
+// the CG_seedbased hybrid PRG output shape:
+//   BitString<KEM_PQ.Nseed + NG.Nseed>
+// (post-quantum seed half + nominal-group seed half).
+//
+// The FrogLang typechecker does not substitute Int parameters into
+// Function/BitString size expressions at instantiation, so a fully
+// generic wrapper cannot accept any concrete Function; the wrapper is
+// therefore specialized by name to the CG_seedbased output shape. The
+// proof's let: block samples a Function G_RO of the matching shape and
+// instantiates this scheme as the PRG argument to the CG_seedbased
+// hybrid being analysed.
+
+import '../../primitives/PRG.primitive';
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+
+Scheme CGRandomOraclePRG(KEM KEM_PQ, NominalGroup NG, Int lambda,
+                         Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO)
+        extends PRG {
+    Int lambda = lambda;
+    Int stretch = KEM_PQ.Nseed + NG.Nseed - lambda;
+
+    deterministic BitString<lambda + stretch> evaluate(BitString<lambda> input) {
+        return G_RO(input);
+    }
+}

@@ -1,0 +1,37 @@
+// Scalar-distribution switch for a nominal group.
+//
+// Models the statistical distance between the seed-derived scalar
+// distribution (NG.RandomScalar(fresh seed), draft section 4.2) and the
+// uniform distribution over NG.Scalar.
+//
+// Honest:  scalars sampled via RandomScalar(fresh BitString<Nseed>).
+// Uniform: scalars sampled uniformly from NG.Scalar.
+//
+// Two independent samples are returned per query so that a proof can
+// switch both an ephemeral and a long-term scalar from seed-derived
+// to uniform in a single hop before invoking an SDH-style assumption
+// (which is naturally stated over uniform exponents).
+//
+// Advantage is bounded by twice the per-scalar statistical distance.
+
+import '../../primitives/NominalGroup.primitive';
+
+Game Honest(NominalGroup NG) {
+    [NG.Scalar, NG.Scalar] Initialize() {
+        BitString<NG.Nseed> seed_x <- BitString<NG.Nseed>;
+        BitString<NG.Nseed> seed_y <- BitString<NG.Nseed>;
+        NG.Scalar x = NG.RandomScalar(seed_x);
+        NG.Scalar y = NG.RandomScalar(seed_y);
+        return [x, y];
+    }
+}
+
+Game Uniform(NominalGroup NG) {
+    [NG.Scalar, NG.Scalar] Initialize() {
+        NG.Scalar x <- NG.Scalar;
+        NG.Scalar y <- NG.Scalar;
+        return [x, y];
+    }
+}
+
+export as RandomScalarDist;

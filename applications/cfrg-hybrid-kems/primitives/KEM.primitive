@@ -1,0 +1,25 @@
+// Key Encapsulation Mechanism (KEM) primitive with seed-based key
+// generation and explicit byte-length fields.
+//
+// Matches the interface used in draft-irtf-cfrg-hybrid-kems-10: KeyGen,
+// DeriveKeyPair(seed), Encaps, Decaps, with Nseed / Nss / Nct / Nek as
+// byte-length parameters and injective encodings for each value type.
+// Naming (EncapsKey / DecapsKey) aligns with the draft's ek / dk.
+Primitive KEM(Int Nseed, Int Nss, Int Nct, Int Nek, Set SharedSecretSpace, Set CiphertextSpace, Set EncapsKeySpace, Set DecapsKeySpace) {
+    Int Nseed = Nseed;
+    Int Nss = Nss;
+    Int Nct = Nct;
+    Int Nek = Nek;
+    Set SharedSecret = SharedSecretSpace;
+    Set Ciphertext = CiphertextSpace;
+    Set EncapsKey = EncapsKeySpace;
+    Set DecapsKey = DecapsKeySpace;
+
+    [EncapsKey, DecapsKey] KeyGen();
+    deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed);
+    [SharedSecret, Ciphertext] Encaps(EncapsKey ek);
+    deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct);
+    deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss);
+    deterministic injective BitString<Nct> EncodeCiphertext(Ciphertext ct);
+    deterministic injective BitString<Nek> EncodeEncapsKey(EncapsKey ek);
+}

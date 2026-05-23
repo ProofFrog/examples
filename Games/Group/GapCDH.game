@@ -1,0 +1,54 @@
+// Gap-CDH assumption: CDH remains hard even when the adversary is
+// given a DDH oracle for the fixed secret key.
+//
+// Initialize returns [pk, xStar] where pk = g^sk and xStar = g^b.
+// TestOracle(U, V) decides whether V == U^sk (equivalently, whether
+// (g, pk, U, V) is a DDH tuple). Solve on the Left returns true iff
+// y == xStar^sk = g^{sk*b} (the CDH answer); Solve on the Right is
+// constantly false, so adversary advantage is the probability of
+// submitting a correct CDH answer.
+//
+// Standard assumption under which Hashed ElGamal KEM is IND-CCA secure
+// in the ROM (Abdalla-Bellare-Rogaway, DHIES, 2001).
+
+Game Left(Group G) {
+    ModInt<G.order> sk;
+    GroupElem<G> xStar;
+
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        sk <- ModInt<G.order>;
+        ModInt<G.order> b <- ModInt<G.order>;
+        xStar = G.generator ^ b;
+        return [G.generator ^ sk, xStar];
+    }
+
+    Bool TestOracle(GroupElem<G> x, GroupElem<G> y) {
+        return y == x ^ sk;
+    }
+
+    Bool Solve(GroupElem<G> y) {
+        return y == xStar ^ sk;
+    }
+}
+
+Game Right(Group G) {
+    ModInt<G.order> sk;
+    GroupElem<G> xStar;
+
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        sk <- ModInt<G.order>;
+        ModInt<G.order> b <- ModInt<G.order>;
+        xStar = G.generator ^ b;
+        return [G.generator ^ sk, xStar];
+    }
+
+    Bool TestOracle(GroupElem<G> x, GroupElem<G> y) {
+        return y == x ^ sk;
+    }
+
+    Bool Solve(GroupElem<G> y) {
+        return false;
+    }
+}
+
+export as GapCDH;

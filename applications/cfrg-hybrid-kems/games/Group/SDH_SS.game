@@ -1,0 +1,66 @@
+// Strong Diffie-Hellman keyed on the shared-secret encoding.
+//
+// Sibling of SDH.game, but with both the Solve target and the DH-oracle
+// witness phrased over BitString<NG.Nss> = NG.ElementToSharedSecret(...)
+// rather than BitString<NG.Nelem> = NG.Encode(...). This matches the way
+// the hybrid schemes feed ss_T into the KDF input (draft section 5.1.1
+// / 5.1.3): the bytes appearing in the KDF input slot are the
+// ElementToSharedSecret encoding, not the raw element encoding.
+//
+// Because NG.ElementToSharedSecret is not injective (the canonical
+// X-coordinate instantiation cited in draft section 4.2 is 2-to-1),
+// this game is genuinely STRONGER than ordinary SDH: an adversary need
+// only produce some bit string equal to the shared-secret encoding of
+// g^(xy), of which there can be multiple group-element preimages. This
+// corresponds to the Gap-X-coordinate flavour of Strong-DH familiar
+// from analyses of HMQV / 3DH-style protocols. It is treated as an
+// independent assumption, not derived from SDH.
+//
+// Left:  Solve(Zenc) returns true iff Zenc == ElementToSharedSecret(g^(xy)).
+// Right: Solve(Zenc) always returns false.
+
+import '../../primitives/NominalGroup.primitive';
+
+Game Left(NominalGroup NG) {
+    NG.Scalar x;
+    BitString<NG.Nss> dhSS;
+
+    [NG.Element, NG.Element] Initialize() {
+        x <- NG.Scalar;
+        NG.Scalar y <- NG.Scalar;
+        NG.Element g = NG.Generator();
+        NG.Element X = NG.Exp(g, x);
+        NG.Element Y = NG.Exp(g, y);
+        dhSS = NG.ElementToSharedSecret(NG.Exp(X, y));
+        return [X, Y];
+    }
+
+    Bool DH(NG.Element U, BitString<NG.Nss> Vss) {
+        return NG.ElementToSharedSecret(NG.Exp(U, x)) == Vss;
+    }
+
+    Bool Solve(BitString<NG.Nss> Zss) {
+        return Zss == dhSS;
+    }
+}
+
+Game Right(NominalGroup NG) {
+    NG.Scalar x;
+
+    [NG.Element, NG.Element] Initialize() {
+        x <- NG.Scalar;
+        NG.Scalar y <- NG.Scalar;
+        NG.Element g = NG.Generator();
+        return [NG.Exp(g, x), NG.Exp(g, y)];
+    }
+
+    Bool DH(NG.Element U, BitString<NG.Nss> Vss) {
+        return NG.ElementToSharedSecret(NG.Exp(U, x)) == Vss;
+    }
+
+    Bool Solve(BitString<NG.Nss> Zss) {
+        return false;
+    }
+}
+
+export as SDH_SS;

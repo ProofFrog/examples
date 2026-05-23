@@ -1,0 +1,37 @@
+// KEM correctness, expressed as an interchangeability between two games.
+//
+// Integrated-KeyGen form: the game calls K.KeyGen() internally rather
+// than taking ek/dk as adversary inputs. This is required for the
+// hybrid-KEM correctness proofs, which combine this hop with PRGSec
+// and KeyGenEquiv to move between seed-form and expanded-form
+// decapsulation keys -- both of those hops only apply when the seed
+// and keys are sampled inside the game rather than chosen by the
+// adversary.
+//
+// The game returns (ek, ct, ss_encaps, ss_decaps) so hybrid-correctness
+// reductions composed with this game can use ek in the combiner's KDF
+// input (which mixes ek into the shared-secret derivation).
+//
+// FromDecaps: returns [ek, ct, ss_encaps, K.Decaps(dk, ct)]
+// FromEncaps: returns [ek, ct, ss_encaps, ss_encaps]
+
+import '../../primitives/KEM.primitive';
+
+Game FromDecaps(KEM K) {
+    [K.EncapsKey, K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute() {
+        [K.EncapsKey, K.DecapsKey] keys = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(keys[0]);
+        K.SharedSecret ss_d = K.Decaps(keys[1], encaps_result[1]);
+        return [keys[0], encaps_result[1], encaps_result[0], ss_d];
+    }
+}
+
+Game FromEncaps(KEM K) {
+    [K.EncapsKey, K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute() {
+        [K.EncapsKey, K.DecapsKey] keys = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(keys[0]);
+        return [keys[0], encaps_result[1], encaps_result[0], encaps_result[0]];
+    }
+}
+
+export as KEMCorrectness;
