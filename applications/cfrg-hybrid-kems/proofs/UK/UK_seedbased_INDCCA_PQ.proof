@@ -1,5 +1,21 @@
 // Proof that UK_seedbased hybrid KEM is IND-CCA secure (PQ branch).
 //
+// UK_seedbased uses the UniversalCombiner: the KDF input is
+//   EncodeSharedSecret(ss_PQ) || EncodeSharedSecret(ss_T)
+//     || EncodeCiphertext(ct_PQ) || EncodeCiphertext(ct_T)
+//     || EncodeEncapsKey(ek_PQ)  || EncodeEncapsKey(ek_T) || L.get()
+// Since ss_PQ occupies the length-Nss prefix, KDFFirstKeyPRF (split-key
+// PRF in the first key) applies; the wider "rest" portion carries the
+// remaining adversary-influenced bytes.
+//
+// Proof outline: lift the seed-form Decaps to KeyGen-based form via
+// PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T); apply
+// KEMCorrectnessWithDK(KEM_PQ) (case-split on ciphertext equality with
+// the challenge); apply KEM_PQ IND-CCA to randomize ss_PQ; apply
+// KDFFirstKeyPRF to replace H by a random function on the ss_PQ key;
+// arrive at a game where the challenge shared secret is fresh; then
+// reverse all steps on the Random side.
+//
 // Assumptions:
 //   - KEM_PQ IND-CCA (KEM_INDCCA)
 //   - KDF is a split-key PRF in the first key (KDFFirstKeyPRF), keyed on
@@ -8,20 +24,6 @@
 //   - KEM_PQ correctness, with-dk form (KEMCorrectnessWithDK)
 //   - KEM_PQ KeyGen equivalence (KeyGenEquiv)
 //   - KEM_T KeyGen equivalence (KeyGenEquiv)
-//
-// Standard-model port of CK_INDCCA_PQ.proof. The only structural difference
-// is that UK_seedbased uses the UniversalCombiner: the KDF input is
-//   EncodeSharedSecret(ss_PQ) || EncodeSharedSecret(ss_T)
-//     || EncodeCiphertext(ct_PQ) || EncodeCiphertext(ct_T)
-//     || EncodeEncapsKey(ek_PQ)  || EncodeEncapsKey(ek_T) || L.get()
-// (i.e. ct_PQ and ek_PQ are also part of the KDF input, in contrast to
-// CK_seedbased's C2PRICombiner). Since ss_PQ still occupies the length-Nss prefix,
-// the same KDFFirstKeyPRF assumption applies; the wider "rest" portion
-// just carries more adversary-influenced bytes.
-//
-// Hop count: open bracket (6) + correctness (2) + KEMCCA (2) + KDFPRF (2)
-// + GameFreshSS + KDFPRF reverse (2) + KEMCCA reverse (2) + correctness
-// reverse (2) + close bracket (6) = 28 entries (initial + 26 hops + final).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';

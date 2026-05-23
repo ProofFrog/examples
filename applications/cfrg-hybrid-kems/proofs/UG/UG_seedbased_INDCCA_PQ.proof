@@ -8,14 +8,13 @@
 //   - KEM_PQ correctness, with-dk form (KEMCorrectnessWithDK)
 //   - KEM_PQ KeyGen equivalence (KeyGenEquiv)
 //
-// Standard-model port of StarFortress UG_seedbased-KEM-CCA.proof. Adapted for the
-// draft's seed-form Decaps (bracket with PRGSec + KeyGenEquiv in place
-// of the SeedKeyGen lemma) and the flat-input KDF (KDFPRFSec keyed on
-// the length-Nss prefix in place of two-arg PRF).
+// The proof handles the draft's seed-form Decaps via a forward/reverse
+// pair of PRGSec + KeyGenEquiv hops, and uses a flat-input KDF
+// (KDFPRFSec keyed on the length-Nss prefix).
 //
-// 24 hops: open-bracket (4) + correctness (2) + KEMCCA (2) + KDFPRF (2)
-// + GameFreshSS + KDFPRF reverse (2) + KEMCCA reverse (2) + correctness
-// reverse (2) + close-bracket (4).
+// 24 hops: forward PRGSec/KGE (4) + correctness (2) + KEMCCA (2)
+// + KDFPRF (2) + GameFreshSS + KDFPRF reverse (2) + KEMCCA reverse (2)
+// + correctness reverse (2) + reverse PRGSec/KGE (4).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';
@@ -109,8 +108,7 @@ games:
 
 // ===================================================================
 // R_PRG_L / R_PRG_R: embed PRGSec. State stores only seed_full and
-// ctStar; Decaps recomputes DeriveKeyPair / RandomScalar inline to
-// match how INDCCA(hybrid).Real canonicalizes the seed-form Decaps.
+// ctStar; Decaps recomputes DeriveKeyPair / RandomScalar inline.
 // ===================================================================
 Reduction R_PRG_L(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased hybrid)
     compose PRGSec(G) against KEM_INDCCA(hybrid).Adversary {
@@ -525,8 +523,8 @@ Reduction RC(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased hy
 
 // ===================================================================
 // RD / RE: embed KDF PRF (forward / reverse).
-// Associativity matters: build `rest` first so the KDF input is
-// literally `k || rest` (matching KDFPRFSec.Real's shape).
+// The `rest` suffix is built first so the KDF input has the form
+// `k || rest` matching KDFPRFSec.Real.
 // ===================================================================
 Reduction RD(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased hybrid)
     compose KDFPRFSec(H, KEM_PQ.Nss) against KEM_INDCCA(hybrid).Adversary {
@@ -612,7 +610,7 @@ Reduction RE(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased hy
 
 // ===================================================================
 // GameFreshSS: RF-valued Decaps branch on c1 == kem_ct; challenge
-// ss is a fresh uniform sample (ChallengeExclusion RF-to-uniform).
+// ss is a fresh uniform sample.
 // ===================================================================
 Game GameFreshSS(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased hybrid) {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys;

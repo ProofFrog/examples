@@ -1,5 +1,5 @@
-// Helper assumption (statistical, free fact). CG_seedbased-shape variant of
-// LazyROTwoSeeded.game (NG-side instead of KEM_T-side).
+// Helper game: statistical equivalence (free fact). CG_seedbased-shape
+// variant of LazyROTwoSeeded.game (NG-side instead of KEM_T-side).
 //
 // Two-point lazy-sampling equivalence for a random oracle
 //     H : BitString<lambda> -> BitString<KEM_PQ.Nseed + NG.Nseed>
@@ -21,13 +21,11 @@
 // Distinguishing advantage <= 2^-lambda (collision probability that
 // the independently-sampled s0, s1 in Honest happen to coincide;
 // concatenation of independent uniform halves is exactly uniform over
-// the joint length, so that step is loss-free). Same character as the
-// existing examples/Games/Helpers/Probability/UniqueSampling.game
-// helper.
+// the joint length, so that step is loss-free).
 //
-// Used by the seeded-form ROM proofs of LEAK-BIND-K-{CT,PK} on the CG_seedbased
-// hybrid KEM (Phase 5c of the cfrg-hybrid-kems plan), which program
-// the PRG-as-RO at two seed points to embed a K_PQ binding challenge.
+// Used by the seeded-form ROM proofs of LEAK-BIND-K-{CT,PK} on the
+// CG_seedbased hybrid KEM, which program the PRG-as-RO at two seed
+// points to embed a K_PQ binding challenge.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';

@@ -8,9 +8,6 @@
 // This is the second binding notion targeted by
 // draft-irtf-cfrg-hybrid-kems-10 section 6.2.2 / 6.4.2.
 //
-// Note: TUE2026's LEAK_BIND_K_PK__CT.game is a DIFFERENT notion
-// (X-BIND-{K,PK}-{CT}) and should not be confused with this one.
-//
 // Implicit-rejection assumption: CDM24 Fig. 5 includes the guard
 // "if k_0 = bot or k_1 = bot: return 0". We omit it because
 // KEM.primitive declares Decaps as total (SharedSecret, not

@@ -2,11 +2,11 @@
 //
 // HON-BIND-K-PK differs from HON-BIND-K-CT only in the binding
 // predicate: the adversary wins on `K == K' && ek != ek'` rather than
-// `K == K' && ct != ct'`. The bracket structure (PRGSec + KeyGenEquiv
-// x2) is identical to CK_HON_BIND_K_CT, since it depends only on the
+// `K == K' && ct != ct'`. The sequence of hops (PRGSec + KeyGenEquiv
+// x2) is the same as in CK_HON_BIND_K_CT, since it depends only on the
 // hidden-dk structure of HON.
 //
-// Inside the bracket the proof is the C2PRICombiner case-split:
+// At the inner step the proof uses the C2PRICombiner case-split:
 // matching kdf_in forces ss_PQ_0 == ss_PQ_1, ss_T_0 == ss_T_1,
 // ct_T_0 == ct_T_1, and ek_T_0 == ek_T_1. Combined with hybrid
 // ek0 != ek1 this forces ek_PQ_0 != ek_PQ_1 -- a KEM_PQ HON-BIND-K-PK
@@ -87,7 +87,7 @@ theorem:
 games:
     HON_BIND_K_PK(hybrid).Breakable against HON_BIND_K_PK(hybrid).Adversary;
 
-    // Open bracket: PRGSec, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
+    // Forward direction: PRGSec, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
     PRGSec(G).Real    compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_PK(hybrid).Adversary;
     PRGSec(G).Random  compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_PK(hybrid).Adversary;
 
@@ -105,7 +105,7 @@ games:
     KDFCollisionResistance(H).Breakable   compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_PK(hybrid).Adversary;
     KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_PK(hybrid).Adversary;
 
-    // Close bracket (reverse, Unbreakable side)
+    // Reverse direction (Unbreakable side)
     KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_PK(hybrid).Adversary;
     KeyGenEquiv(KEM_T).FromDeriveKeyPair  compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_PK(hybrid).Adversary;
 
@@ -118,8 +118,8 @@ games:
     HON_BIND_K_PK(hybrid).Unbreakable against HON_BIND_K_PK(hybrid).Adversary;
 
 // ===================================================================
-// Bracket reductions (left). Identical to CK_HON_BIND_K_CT except the
-// Challenge predicate uses `ek0 != ek1` instead of `ct0 != ct1`.
+// Reductions for the forward direction. Identical to CK_HON_BIND_K_CT
+// except the Challenge predicate uses `ek0 != ek1` instead of `ct0 != ct1`.
 // ===================================================================
 
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
@@ -386,8 +386,8 @@ Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_seedbased hybrid)
 }
 
 // ===================================================================
-// Bracket reductions (right): mirror the left versions but with
-// Challenge always returning false (Unbreakable side).
+// Reductions for the reverse direction: mirror the forward versions
+// but with Challenge always returning false (Unbreakable side).
 // ===================================================================
 
 Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)

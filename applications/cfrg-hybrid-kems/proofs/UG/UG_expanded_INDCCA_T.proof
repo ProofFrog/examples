@@ -1,27 +1,33 @@
 // Proof that UG_expanded hybrid KEM is IND-CCA secure in the random
-// oracle model (T branch, SDH_SS-based).
+// oracle model, reducing to the gap-Diffie-Hellman security of the
+// traditional component (T branch).
 //
-// UG_expanded differs from UG_seedbased only in DecapsKey shape: it stores the
-// expanded tuple (dk_PQ, ek_PQ, dk_T, ek_T) directly instead of the raw
-// seed. KeyGen calls K.KeyGen() directly (no PRG, no DeriveKeyPair-from-
-// seed), and Decaps reads the four components straight from the tuple.
-// Encaps and the KDF input are unchanged from UG_seedbased.
+// In UG_expanded, the hybrid DecapsKey directly stores the tuple
+// (dk_PQ, ek_PQ, dk_T, ek_T), so KeyGen calls KEM_PQ.KeyGen() directly
+// and Decaps reads the four components from the tuple. The KDF is
+// modelled as a random oracle H sampled in the proof's let block; the
+// scheme accesses H via a thin KDF wrapper UGRandomOracleKDF.
 //
-// Therefore the seeded UG_INDCCA_T proof's outer PRGSec + KeyGenEquiv
-// bracket (which converts seed-form Decaps to KeyGen-based form) is
-// unnecessary here: the canonical form of KEM_INDCCA_ROM(hybrid).Real
-// for UG_expanded already matches what the seeded proof reached after
-// those brackets were applied. The remainder of the proof
-// (RandomScalarDist + LazyROTwoViewsExcludedProgrammed + SDH_SS +
-// LazyROTwoViewsExcluded + RandomScalarDist reverse) carries over
-// verbatim modulo the parameter type change UG_seedbased -> UG_expanded.
+// Proof outline:
+//   1. RandomScalarDist: replace NG.RandomScalar(seed) by a uniform
+//      Scalar (statistical helper, no algebraic content).
+//   2. Switch the random oracle's view to a lazy table programmed at
+//      the challenge input m_star (LazyROTwoViewsExcludedProgrammed).
+//   3. SDH_SS: replace ss_T* (= ek_T^sk_E) inside the challenge KDF
+//      input by a uniform string. The reduction simulates the random
+//      oracle and recognizes "would-be" queries on ss_T* (= DH(ek_T,
+//      ct_T)) and on Decaps queries (= DH(c_T, dk_T)) using the gap
+//      DH oracle. This is gap-x-coordinate-DH (see SDH_SS.game).
+//   4. Drop the programming step (LazyROTwoViewsExcluded) and reverse
+//      the RandomScalarDist replacement.
 //
 // Assumptions:
 //   - RandomScalarDist(NG)            (statistical helper)
 //   - SDH_SS(NG)                      (Gap-X-coordinate SDH)
 //   - LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss)
 //   - LazyROTwoViewsExcluded(P, hybrid.Nss)
-// where P = UGHashEncoding(KEM_PQ, NG, L).
+// where P = UGHashEncoding(KEM_PQ, NG, L) describes how the KDF input
+// is packed.
 //
 // Game sequence (11 hops, 12 entries):
 //    0: KEM_INDCCA_ROM(hybrid_expanded, ...).Real
@@ -110,10 +116,7 @@ games:
     KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Random against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
 
 // ===================================================================
-// R_Dist_Real / R_Dist_Random: embed RandomScalarDist(NG). Bodies are
-// identical to the seeded UG_INDCCA_T versions (which already use
-// KEM_PQ.KeyGen() directly inside Initialize); only the hybrid type
-// parameter changes from UG_seedbased to UG_expanded.
+// R_Dist_Real / R_Dist_Random: embed RandomScalarDist(NG).
 // ===================================================================
 Reduction R_Dist_Real(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
     compose RandomScalarDist(NG) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {

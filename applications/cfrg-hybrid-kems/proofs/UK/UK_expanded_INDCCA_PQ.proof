@@ -1,26 +1,14 @@
 // Proof that UK_expanded hybrid KEM is IND-CCA secure (PQ branch).
 //
-// UK_expanded differs from UK_seedbased only in DecapsKey shape: it stores the
-// expanded tuple (dk_PQ, dk_T, ek_PQ, ek_T) directly instead of the
-// raw seed. KeyGen calls KEM_PQ.KeyGen() / KEM_T.KeyGen() directly (no
-// PRG, no DeriveKeyPair-from-seed), and Decaps reads the four
-// components straight from the tuple. Encaps and the KDF input are
-// unchanged from UK_seedbased.
-//
-// Therefore the seeded UK_INDCCA_PQ proof's outer PRGSec +
-// KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) bracket (which converts
-// seed-form Decaps to KeyGen-based form) is unnecessary here: the
-// canonical form of KEM_INDCCA(hybrid).Real for UK_expanded already
-// matches what the seeded proof reached after those brackets were
-// applied. The remainder of the proof is reused unchanged.
+// UK_expanded stores the expanded tuple (dk_PQ, dk_T, ek_PQ, ek_T) as
+// the hybrid DecapsKey. KeyGen calls KEM_PQ.KeyGen() / KEM_T.KeyGen()
+// directly, and Decaps reads the four components straight from the
+// tuple.
 //
 // Assumptions:
 //   - KEM_PQ IND-CCA (KEM_INDCCA)
 //   - KDF is a split-key PRF in the first key (KDFFirstKeyPRF)
 //   - KEM_PQ correctness, with-dk form (KEMCorrectnessWithDK)
-//
-// 16 hops: correctness (2) + KEMCCA (2) + KDFPRF (2) + GameFreshSS
-// + KDFPRF reverse (2) + KEMCCA reverse (2) + correctness reverse (2).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';

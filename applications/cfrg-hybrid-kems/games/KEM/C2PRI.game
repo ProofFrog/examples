@@ -5,15 +5,12 @@
 // that decapsulates to the same shared secret.
 //
 // Reformulated as a left/right indistinguishability game (following
-// Connolly-Ounsworth-Schmieg-Stebila, "StarHunters", Definition 5):
+// Connolly-Ounsworth-Schmieg-Stebila, Definition 5):
 //  - Real:  Submit oracle truthfully reports whether ct is a second preimage.
 //  - Ideal: Submit oracle always returns false.
 //
 // The distinguishing advantage equals the probability that the adversary
 // finds a second preimage.
-//
-// Adapted from examples/applications/StarHunters-COSS26/C2PRI.game to
-// use the EncapsKey / DecapsKey naming.
 
 import '../../primitives/KEM.primitive';
 

@@ -10,12 +10,11 @@
 //   - KEM_PQ KeyGen equivalence (KeyGenEquiv)
 //   - KEM_T  KeyGen equivalence (KeyGenEquiv)
 //
-// Standard-model port of StarHunters CK_INDCCA_PreQuantum.proof. The role
-// mapping is KEM1 -> KEM_PQ (only C2PRI assumed) and KEM2 -> KEM_T (full
-// IND-CCA + correctness assumed). Adapted for the draft's seed-form Decaps
-// (bracket with PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T)) and the
-// flat-input C2PRICombiner KDF (KDFSecondKeyPRF keyed on ss_T in place of
-// TwoKeyPRF second-key security).
+// Role mapping: KEM_PQ is treated as only-C2PRI; KEM_T is the
+// fully-secure (IND-CCA + correctness) component. The seed-form Decaps
+// is handled by a forward/reverse pair of PRGSec + KeyGenEquiv(KEM_PQ)
+// + KeyGenEquiv(KEM_T) hops. The flat-input C2PRICombiner KDF is
+// handled by KDFSecondKeyPRF keyed on ss_T.
 //
 // The C2PRICombiner KDF input has the form
 //   EncodeSharedSecret(ss_PQ) || EncodeSharedSecret(ss_T)
@@ -80,7 +79,7 @@ theorem:
 games:
     KEM_INDCCA(hybrid).Real against KEM_INDCCA(hybrid).Adversary;
 
-    // Open bracket: PRG, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
+    // Forward: PRG, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
     PRGSec(G).Real compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
     PRGSec(G).Random compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
 
@@ -136,7 +135,7 @@ games:
     KEMCorrectnessWithDK(KEM_T).FromEncaps compose R_Correct_T_Ideal(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
     KEMCorrectnessWithDK(KEM_T).FromDecaps compose R_Correct_T_Ideal(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
 
-    // Close bracket: KeyGenEquiv(KEM_T), KeyGenEquiv(KEM_PQ), PRG (in reverse)
+    // Reverse: KeyGenEquiv(KEM_T), KeyGenEquiv(KEM_PQ), PRG
     KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
     KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
 
@@ -149,9 +148,7 @@ games:
     KEM_INDCCA(hybrid).Random against KEM_INDCCA(hybrid).Adversary;
 
 // ===================================================================
-// Bracket reductions: PRG + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T).
-// Identical in shape to the bracket reductions in CK_INDCCA_PQ.proof
-// (just the inner-form games differ between PQ and T branches).
+// PRG + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) reductions.
 // ===================================================================
 
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)

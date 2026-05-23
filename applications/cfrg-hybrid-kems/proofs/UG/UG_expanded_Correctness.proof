@@ -1,12 +1,10 @@
 // Proof that UG_expanded (UniversalCombiner G-flavour, expanded-form
 // DecapsKey) is correct, assuming KEM_PQ is correct.
 //
-// Direct port of UG_Correctness.proof to the expanded-DecapsKey form.
-// UG_expanded.KeyGen() calls KEM_PQ.KeyGen() directly and stores the
-// expanded tuple [dk_PQ, ek_PQ, dk_T, ek_T] as the hybrid DecapsKey, so
-// the PRGSec + KeyGenEquiv(KEM_PQ) opening/closing brackets used in the
-// seeded UG_seedbased proof are unnecessary here. The proof reduces directly to
-// KEM_PQ correctness composed with NominalGroup commutativity.
+// In the expanded-DecapsKey form, KeyGen calls KEM_PQ.KeyGen() directly
+// and stores the tuple [dk_PQ, ek_PQ, dk_T, ek_T] as the hybrid
+// DecapsKey. The proof reduces directly to KEM_PQ correctness composed
+// with NominalGroup (DH) commutativity.
 //
 // Game sequence (each transition is either an interchangeability hop or
 // an application of one listed assumption):
@@ -68,8 +66,9 @@ games:
     NGCorrectness(NG).Swap2 compose R_NG(KEM_PQ, NG, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
     KEMCorrectness(hybrid).FromEncaps against KEMCorrectness(hybrid).Adversary;
 
-// KEM_PQ correctness reduction (expanded form: KEM_PQ keypair comes
-// from the challenger; trans-side is sampled fresh).
+// KEM_PQ correctness reduction: KEM_PQ keypair and Encaps/Decaps result
+// come from the KEMCorrectness(KEM_PQ) challenger; the traditional
+// (NG) side is generated locally.
 Reduction R_KEM_PQ(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, UG_expanded hybrid)
     compose KEMCorrectness(KEM_PQ) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {

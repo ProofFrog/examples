@@ -1,4 +1,4 @@
-// Helper assumption (statistical, free fact).
+// Helper game: a statistical equivalence (free fact).
 //
 // Two-point lazy-sampling equivalence for a random oracle
 //     H : BitString<lambda> -> BitString<KEM_PQ.Nseed + KEM_T.Nseed>
@@ -20,21 +20,14 @@
 // Distinguishing advantage <= 2^-lambda (collision probability that
 // the independently-sampled s0, s1 in Honest happen to coincide;
 // concatenation of independent uniform halves is exactly uniform over
-// the joint length, so that step is loss-free). Same character as the
-// existing examples/Games/Helpers/Probability/UniqueSampling.game
-// helper, and a two-point generalization of
-// examples/Games/Helpers/Probability/ROMProgramming.game with the
-// KEM_PQ/KEM_T half-split baked in (so that the canonical form of Lazy
-// composed with a reduction matches the canonical form of a
-// downstream KeyGenEquiv-style hop that samples each half
-// independently).
+// the joint length, so that step is loss-free).
 //
-// Used by the seeded-form ROM proofs of LEAK-BIND-K-{CT,PK} on the CK_seedbased
-// hybrid KEM (Phase 5c of the cfrg-hybrid-kems plan), which program
-// the PRG-as-RO at two seed points to embed a K_PQ binding challenge.
-// A CG_seedbased-shape variant will be needed for CG_seedbased (NG-side instead of
-// KEM_T-side); same Honest/Lazy split, different output-shape
-// parameter.
+// Used by the seeded-form ROM proofs of LEAK-BIND-K-{CT,PK} on the
+// CK_seedbased hybrid KEM, which program the PRG-as-RO at two seed
+// points to embed a K_PQ binding challenge. The KEM_PQ/KEM_T half-split
+// in the output shape ensures the canonical form of Lazy composed with
+// a reduction matches a downstream KeyGenEquiv-style hop that samples
+// each half independently.
 
 import '../../primitives/KEM.primitive';
 

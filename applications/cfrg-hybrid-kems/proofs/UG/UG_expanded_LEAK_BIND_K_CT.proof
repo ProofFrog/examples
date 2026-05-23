@@ -2,17 +2,14 @@
 //
 // UniversalCombiner: ct_PQ and ct_T both appear in the KDF input via
 // injective encodings, so distinct hybrid ciphertexts always produce
-// distinct KDF inputs. Thus a binding break (matching keys, distinct
-// ciphertexts) immediately yields a KDF collision.
+// distinct KDF inputs. A binding break (matching shared secrets,
+// distinct ciphertexts) therefore immediately yields a KDF collision.
 //
-// Direct port of UG_LEAK_BIND_K_CT.proof to the expanded-DecapsKey form
-// (DecapsKey = [dk_PQ, ek_PQ, dk_T, ek_T] instead of seed). The
-// reduction's Initialize calls hybrid.KeyGen() (which now returns the
-// expanded tuple directly), and Challenge reads the four components
-// from the stored expanded dk rather than re-deriving from a seed.
+// In the expanded-DecapsKey form, hybrid.KeyGen returns the tuple
+// (dk_PQ, ek_PQ, dk_T, ek_T) directly, and the reduction reads the
+// four components from this tuple to recompute the two KDF inputs.
 //
 // Assumption: KDFCollisionResistance(H).
-// Standard four-step template (one reduction).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';

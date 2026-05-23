@@ -6,12 +6,13 @@
 //   UK_seedbased.Encaps(ek): run each component Encaps; apply UniversalCombiner KDF.
 //   UK_seedbased.Decaps(dk, ct): re-run expandDecapsKeyK(dk); run each component Decaps; KDF.
 //
-// Proof sketch: bracket with PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) to
-// lift the seed-form dk into an expanded form where each component key pair is
-// produced by KEM_i.KeyGen(). In the expanded form, the Decaps-derived shared
-// secrets equal the Encaps-derived ones by KEM_i correctness, so the two KDF
-// inputs coincide and H.evaluate dedups, matching UK_seedbased.FromEncaps. Close the
-// bracket by reversing on the FromEncaps side.
+// Proof sketch: use PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) to
+// lift the seed-form dk into an expanded form where each component key
+// pair is produced by KEM_i.KeyGen(). In the expanded form, the
+// Decaps-derived shared secrets equal the Encaps-derived ones by KEM_i
+// correctness, so the two KDF inputs coincide and H.evaluate produces
+// the same value, matching UK_seedbased.FromEncaps. Then reverse the
+// PRGSec/KeyGenEquiv hops on the FromEncaps side.
 //
 // Game sequence (each transition is either an interchangeability hop or an
 // application of one listed assumption):
@@ -104,7 +105,7 @@ games:
     PRGSec(G).Real compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;
     KEMCorrectness(hybrid).FromEncaps against KEMCorrectness(hybrid).Adversary;
 
-// Opening-bracket reductions (Decaps-side: compute both ss_e via Encaps and
+// Forward reductions (Decaps-side: compute both ss_e via Encaps and
 // ss_d via component Decaps, then KDF each into the hybrid shared secret).
 
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_seedbased hybrid)
@@ -221,7 +222,7 @@ Reduction R_KEM_T(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_seedbased hyb
     }
 }
 
-// Closing-bracket reductions (Encaps-side: ss_e = ss_d, compute once).
+// Reverse reductions (Encaps-side: ss_e = ss_d, compute once).
 
 Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_seedbased hybrid)
     compose KeyGenEquiv(KEM_T) against KEMCorrectness(hybrid).Adversary {

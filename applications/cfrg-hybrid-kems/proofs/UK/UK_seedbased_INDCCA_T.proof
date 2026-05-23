@@ -9,19 +9,17 @@
 //   - KEM_PQ KeyGen equivalence (KeyGenEquiv)
 //   - KEM_T  KeyGen equivalence (KeyGenEquiv)
 //
-// Standard-model port of CK_INDCCA_T.proof. The role mapping is the same
-// (KEM_T is the assumed-secure component; KEM_PQ is treated generically),
-// but UK_seedbased uses the UniversalCombiner: the KDF input is
+// KEM_T is the assumed-secure component; KEM_PQ is treated generically.
+// UK_seedbased uses the UniversalCombiner, so the KDF input is
 //   EncodeSharedSecret(ss_PQ) || EncodeSharedSecret(ss_T)
 //     || EncodeCiphertext(ct_PQ) || EncodeCiphertext(ct_T)
 //     || EncodeEncapsKey(ek_PQ)  || EncodeEncapsKey(ek_T) || L.get()
 // (i.e. ct_PQ and ek_PQ are also part of the KDF input, in contrast to
 // CK_seedbased's C2PRICombiner). Because c != ctStar with c[1] == ct_T_star forces
-// c[0] != ct_PQ_star, the KDF input differs in the ct_PQ slot, so the
-// C2PRI assumption on KEM_PQ is unnecessary -- no abort branch is
-// required. The proof is therefore a direct port of GHP18_INDCCA_Second
-// adapted to the flat KDF input shape and wrapped in the cfrg PRGSec +
-// KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) bracket.
+// c[0] != ct_PQ_star, the KDF input differs in the ct_PQ slot, so no
+// C2PRI assumption on KEM_PQ is needed -- no abort branch is required.
+// The seed-form Decaps is handled by a forward/reverse pair of PRGSec +
+// KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) hops surrounding the core.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';
@@ -78,7 +76,7 @@ theorem:
 games:
     KEM_INDCCA(hybrid).Real against KEM_INDCCA(hybrid).Adversary;
 
-    // Open bracket: PRG, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
+    // Forward: PRG, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
     PRGSec(G).Real compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
     PRGSec(G).Random compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
 
@@ -122,7 +120,7 @@ games:
     KEMCorrectnessWithDK(KEM_T).FromEncaps compose R_Correct_T_Ideal(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
     KEMCorrectnessWithDK(KEM_T).FromDecaps compose R_Correct_T_Ideal(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
 
-    // Close bracket: KeyGenEquiv(KEM_T), KeyGenEquiv(KEM_PQ), PRG (in reverse)
+    // Reverse: KeyGenEquiv(KEM_T), KeyGenEquiv(KEM_PQ), PRG
     KeyGenEquiv(KEM_T).FromKeyGen compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
     KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against KEM_INDCCA(hybrid).Adversary;
 
@@ -135,8 +133,7 @@ games:
     KEM_INDCCA(hybrid).Random against KEM_INDCCA(hybrid).Adversary;
 
 // ===================================================================
-// Bracket reductions: PRG + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T).
-// Identical in shape to the bracket reductions in UK_INDCCA_PQ.proof.
+// PRG + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) reductions.
 // ===================================================================
 
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_seedbased hybrid)

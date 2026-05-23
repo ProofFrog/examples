@@ -8,16 +8,10 @@
 //   - KEM_PQ correctness, with-dk form (KEMCorrectnessWithDK)
 //   - KEM_PQ KeyGen equivalence (KeyGenEquiv)
 //
-// Standard-model port: structurally mirrors UG_INDCCA_PQ.proof (same
-// NG-based bracketing and same single-key KDFPRFSec assumption), with
-// the C2PRICombiner KDF input shape (drop EncodeCiphertext(ct_PQ) and
-// EncodeEncapsKey(ek_PQ) -- they are absent from C2PRICombiner per draft
-// section 5.1.3). No assumption on the NominalGroup is required for the
-// PQ branch (matches the StarHunters PQ-branch shape).
-//
-// Hop count: open-bracket (4) + correctness (2) + KEMCCA (2) + KDFPRF (2)
-// + GameFreshSS + KDFPRF reverse (2) + KEMCCA reverse (2) + correctness
-// reverse (2) + close-bracket (4) = 24 hops.
+// Standard-model proof. Uses the C2PRICombiner KDF input shape (drops
+// EncodeCiphertext(ct_PQ) and EncodeEncapsKey(ek_PQ), which are absent
+// from C2PRICombiner per draft section 5.1.3). No assumption on the
+// NominalGroup is required for the PQ branch.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';
@@ -110,7 +104,7 @@ games:
     KEM_INDCCA(hybrid).Random against KEM_INDCCA(hybrid).Adversary;
 
 // ===================================================================
-// R_PRG_L / R_PRG_R: embed PRGSec.
+// R_PRG_L / R_PRG_R: reductions to PRGSec.
 // ===================================================================
 Reduction R_PRG_L(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased hybrid)
     compose PRGSec(G) against KEM_INDCCA(hybrid).Adversary {
@@ -192,7 +186,7 @@ Reduction R_PRG_R(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbas
 }
 
 // ===================================================================
-// R_KG_L / R_KG_R: embed KeyGenEquiv(KEM_PQ).
+// R_KG_L / R_KG_R: reductions to KeyGenEquiv(KEM_PQ).
 // ===================================================================
 Reduction R_KG_L(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased hybrid)
     compose KeyGenEquiv(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
@@ -434,7 +428,7 @@ Game GameCaseSplitIdeal(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_s
 }
 
 // ===================================================================
-// RB / RC: embed KEM_PQ IND-CCA (forward / reverse).
+// RB / RC: reductions to KEM_PQ IND-CCA (forward / reverse).
 // ===================================================================
 Reduction RB(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased hybrid)
     compose KEM_INDCCA(KEM_PQ) against KEM_INDCCA(hybrid).Adversary {
@@ -521,7 +515,7 @@ Reduction RC(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_seedbased hy
 }
 
 // ===================================================================
-// RD / RE: embed KDFPRFSec (forward / reverse).
+// RD / RE: reductions to KDFPRFSec (forward / reverse).
 // rest = ss_T || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get()
 //      of length H.Nin - KEM_PQ.Nss.
 // ===================================================================

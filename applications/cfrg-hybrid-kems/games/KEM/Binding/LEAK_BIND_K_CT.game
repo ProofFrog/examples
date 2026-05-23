@@ -8,9 +8,6 @@
 // This is the notion targeted by draft-irtf-cfrg-hybrid-kems-10
 // section 6.2.2 / 6.4.2.
 //
-// Adapted from extras/examples/TUE2026/KEM/Games/LEAK_BIND_K__CT.game
-// to use the EncapsKey / DecapsKey naming.
-//
 // Implicit-rejection assumption: CDM24 Fig. 5 includes the guard
 // "if k_0 = bot or k_1 = bot: return 0". We omit it because
 // KEM.primitive declares Decaps as total (SharedSecret, not

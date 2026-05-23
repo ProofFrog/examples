@@ -2,26 +2,23 @@
 // in the random oracle model, where the PRG G is modelled as a
 // programmable random oracle.
 //
-// Why ROM: in seeded form CK_seedbased.DecapsKey = seed (the raw PRG seed). A
-// LEAK-BIND-K-PK adversary therefore receives the seed dk = seed,
-// which under PRGSec would also reveal everything the PRG expands to
-// -- making the standard-model PRGSec + KGE bracket used by Phase 5a
-// expanded-form proofs unavailable. We instead model G as an RO and
-// PROGRAM G_RO(seed_i) := s_PQ_i || s_T_i so that the K_PQ challenger's
+// Why ROM: in seeded form CK_seedbased.DecapsKey = seed (the raw PRG
+// seed), so a LEAK-BIND-K-PK adversary receives the seed dk = seed.
+// Under PRGSec this would also reveal everything the PRG expands to,
+// so the standard-model approach used for the expanded form does not
+// apply. We instead model G as a random oracle and program
+// G_RO(seed_i) := s_PQ_i || s_T_i so that the K_PQ challenger's
 // (ek_PQ_i, dk_PQ_i = s_PQ_i) embeds into the hybrid adversary's view
 // at the PRG output stage.
 //
 // K_PQ assumption shape: this proof assumes seeded-form
-// LEAK_BIND_K_PK(KEM_PQ) -- KEM_PQ.DecapsKey = BitString<Nseed> -- which
-// is strictly stronger than the expanded-form variant assumed in Phase
-// 5a. For KEMs whose KeyGen is *defined* as DeriveKeyPair(uniform seed)
-// (ML-KEM per FIPS 203, HQC, ...) seeded-form binding is the
-// spec-natural form; the apparent strength gap is purely an artefact
-// of ProofFrog's inability to formalize one-way function inversion.
+// LEAK_BIND_K_PK(KEM_PQ) -- KEM_PQ.DecapsKey = BitString<Nseed>. For
+// KEMs whose KeyGen is defined as DeriveKeyPair(uniform seed) (ML-KEM
+// per FIPS 203, HQC, ...) this is the spec-natural form.
 //
-// C2PRICombiner shape (vs UK_seedbased/UG_seedbased): in CK_seedbased the KDF input omits ek_PQ
-// (only ek_T appears), so a binding break (matching ss_h, distinct
-// hybrid ek) does not directly imply a KDF collision: the case where
+// C2PRICombiner shape: in CK_seedbased the KDF input omits ek_PQ (only
+// ek_T appears), so a binding break (matching ss_h, distinct hybrid
+// ek) does not directly imply a KDF collision: the case where
 // kdf_in_0 == kdf_in_1 forces ek_PQ_0 != ek_PQ_1 (since ek0 != ek1 and
 // ek_T_0 must match). That case is precisely a LEAK-BIND-K-PK break on
 // KEM_PQ, handled by the case-B branch of R_PQ_Bind.
@@ -42,22 +39,20 @@
 //   12. LazyROTwoSeeded.Honest               compose R_LazyRO_R  (assumption, free fact)
 //   13. LEAK_BIND_K_PK_ROM(hybrid).Unbreakable
 //
-// The LazyROTwoSeeded bracket is a free statistical fact (collision
+// The LazyROTwoSeeded pair of hops is a statistical fact (collision
 // term 2^-lambda) that switches between the bare-game form (G_RO
-// applied to fresh seeds, exposed via HashG) and the
-// programmed-table form (independent uniform y0, y1 with HashG looking
-// up programmed values at s0, s1) -- closing the canonicalization gap
-// the engine cannot bridge automatically because the seeds are exposed
-// to the adversary AND the RO is exposed via HashG.
+// applied to fresh seeds, exposed via HashG) and the programmed-table
+// form (independent uniform y0, y1 with HashG looking up programmed
+// values at s0, s1).
 //
-// The KeyGenEquiv bracket then bridges KEM_PQ.DeriveKeyPair(uniform)
+// The KeyGenEquiv pair of hops then bridges KEM_PQ.DeriveKeyPair(uniform)
 // (which the lazy form's split y0_pq exposes) and KEM_PQ.KeyGen()
 // (which the LEAK_BIND_K_PK challenger calls).
 //
 // Assumptions: seeded-form LEAK_BIND_K_PK(KEM_PQ), KDFCollisionResistance(H),
 // KeyGenEquiv(KEM_PQ), LazyROTwoSeeded(BitString<lambda>,
 // BitString<KEM_PQ.Nseed + KEM_T.Nseed>, G_RO). The latter two are
-// statistical helpers (free facts).
+// statistical helpers.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';
@@ -94,8 +89,7 @@ let:
     Set KEMTDecapsKeySpace;
     // KEM_PQ is the seeded-form view (DecapsKey = BitString<Nseed>) of
     // an underlying abstract KEM_PQ_inner. The wrapper provides a
-    // concrete DeriveKeyPair body where dk = seed literally, closing
-    // the canonicalization gap at hops 3/11 without engine extensions.
+    // concrete DeriveKeyPair body where dk = seed literally.
     // Assumptions on KEM_PQ are interpreted on this seeded view.
     KEM KEM_PQ_inner = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
                            BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
@@ -170,10 +164,10 @@ games:
     LEAK_BIND_K_PK_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>, G_RO).Unbreakable
         against LEAK_BIND_K_PK_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>, G_RO).Adversary;
 
-// R_LazyRO_L / R_LazyRO_R: bracket the bare-game vs. lazy-RO form via
-// the LazyROTwoSeeded helper game. Stores ek_PQ_0/1 (in addition to
-// dk_PQ_0/1 and ek_T_0/1, dk_T_0/1) so the K_PK binding predicate
-// ek0 != ek1 can be expressed.
+// R_LazyRO_L / R_LazyRO_R: switch between the bare-game and lazy-RO
+// forms via the LazyROTwoSeeded helper game. Stores ek_PQ_0/1 (in
+// addition to dk_PQ_0/1 and ek_T_0/1, dk_T_0/1) so the K_PK binding
+// predicate ek0 != ek1 can be expressed.
 Reduction R_LazyRO_L(KEM KEM_PQ, KEM KEM_T, Int lambda,
                      Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>> G_RO,
                      KDF H, Label L, CK_seedbased hybrid)

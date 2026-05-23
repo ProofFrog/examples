@@ -1,12 +1,9 @@
 // Proof that UK_expanded (UniversalCombiner K-flavour, expanded-form
 // DecapsKey) is correct, assuming both component KEMs are correct.
 //
-// Direct port of UK_Correctness.proof to the expanded-DecapsKey form.
 // UK_expanded.KeyGen() calls KEM_PQ.KeyGen() and KEM_T.KeyGen() directly
-// and stores [dk_PQ, dk_T, ek_PQ, ek_T] as the hybrid DecapsKey, so the
-// PRGSec + KeyGenEquiv(KEM_PQ) + KeyGenEquiv(KEM_T) opening/closing
-// brackets used in the seeded UK_seedbased proof are unnecessary here. The proof
-// reduces directly to component-KEM correctness.
+// and stores [dk_PQ, dk_T, ek_PQ, ek_T] as the hybrid DecapsKey. The
+// proof reduces directly to component-KEM correctness.
 //
 // Game sequence (each transition is either an interchangeability hop or
 // an application of one listed assumption):

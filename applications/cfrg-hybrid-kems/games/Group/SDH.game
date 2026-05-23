@@ -20,8 +20,6 @@
 // coming from hash-input bitstrings. Encode is deterministic + injective
 // so encoded-form equality is equivalent to group-element equality, and
 // this avoids requiring a Decode operation on NominalGroup.
-//
-// Reused verbatim from extras/examples/starfortress/proof/prooffrog/games/SDH.game.
 
 import '../../primitives/NominalGroup.primitive';
 

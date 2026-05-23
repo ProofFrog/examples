@@ -1,12 +1,14 @@
 // UK_expanded: variant of UK_seedbased whose DecapsKey is the expanded tuple
 // (dk_PQ, dk_T, ek_PQ, ek_T) rather than the raw seed.
 //
-// Mechanisation purpose only: this scheme is used to mechanise LEAK-BIND-
-// {K-CT, K-PK} in the standard model for UK_seedbased without an informal-footnote
-// hand-wave. The seeded form UK_seedbased exposes dk = seed to the binding
-// adversary, which complicates the direct LEAK-BIND argument; the
-// expanded form sidesteps that by storing the component decapsulation
-// material directly. Encaps and the KDF input are unchanged from UK_seedbased.
+// In the seed-form scheme of draft section 5.2, the decapsulation key is
+// the seed and Decaps re-derives the component keys via the PRG on every
+// call. For LEAK-BIND-style proofs (where the adversary is given dk),
+// exposing the seed complicates the argument because the adversary then
+// effectively learns the PRG randomness used to derive both component
+// secret keys. Storing the expanded component material as the DecapsKey
+// avoids that entanglement. Encaps and the KDF input are unchanged from
+// UK_seedbased.
 //
 // Compared to UK_seedbased:
 // - DecapsKey = [KEM_PQ.DecapsKey, KEM_T.DecapsKey, KEM_PQ.EncapsKey,
@@ -16,7 +18,7 @@
 //   DeriveKeyPair).
 // - DeriveKeyPair(seed) is preserved for KEM-primitive signature
 //   compliance: it expands the seed via PRG + component DeriveKeyPair
-//   into the expanded tuple. It is not exercised by the binding proofs.
+//   into the expanded tuple.
 // - Decaps reads dk_PQ, dk_T, ek_PQ, ek_T directly from the tuple - no
 //   PRG, no DeriveKeyPair-from-seed inside.
 // - Encaps is identical to UK_seedbased.

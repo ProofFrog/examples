@@ -1,22 +1,20 @@
-// Proof that CG_expanded hybrid KEM is IND-CCA secure (PQ branch).
+// Proof that CG_expanded hybrid KEM is IND-CCA secure (PQ branch:
+// security follows from IND-CCA security of the post-quantum KEM
+// component KEM_PQ).
 //
-// CG_expanded differs from CG_seedbased only in DecapsKey shape: it stores the
-// expanded tuple (dk_PQ, dk_T, ek_T) directly instead of the raw seed.
-// KeyGen calls K.KeyGen() directly for the PQ side (no PRG, no
-// DeriveKeyPair-from-seed), and Decaps reads dk_PQ, dk_T, ek_T
-// straight from the tuple. Encaps and the C2PRI KDF input are
-// unchanged from CG_seedbased.
+// CG_expanded stores the expanded tuple (dk_PQ, dk_T, ek_T) as the
+// hybrid DecapsKey: KeyGen calls KEM_PQ.KeyGen() directly, and Decaps
+// reads dk_PQ, dk_T, ek_T straight from the tuple.
 //
-// Therefore the seeded CG_INDCCA_PQ proof's outer PRGSec +
-// KeyGenEquiv(KEM_PQ) bracket is unnecessary here. The remainder of
-// the proof is reused unchanged.
+// High-level proof idea: replace the PQ shared secret ss_PQ with a
+// uniform value (using IND-CCA on KEM_PQ), then replace the KDF output
+// with a fresh uniform shared secret (using KDF PRF security keyed on
+// the ss_PQ prefix), then reverse the steps.
 //
 // Assumptions:
 //   - KEM_PQ IND-CCA (KEM_INDCCA)
 //   - KDF is a PRF keyed on KEM_PQ shared-secret prefix (KDFPRFSec)
 //   - KEM_PQ correctness, with-dk form (KEMCorrectnessWithDK)
-//
-// 16 hops.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';

@@ -2,14 +2,13 @@
 //
 // HON-BIND differs from LEAK-BIND only in that the adversary does not
 // receive the decapsulation keys directly; it only sees public ek's
-// and oracle access to Decaps0 / Decaps1. Because dk is hidden, the
-// PRGSec + KeyGenEquiv x2 bracket applies: we can replace
-// hybrid.Decaps's seed-form expansion (G.evaluate(seed) followed by
-// component DeriveKeyPair calls) by direct KEM_PQ.KeyGen and
-// KEM_T.KeyGen, putting the proof in the expanded form used by
-// CK_expanded_LEAK_BIND_K_CT.
+// and oracle access to Decaps0 / Decaps1. Because dk is hidden, we can
+// apply PRGSec + KeyGenEquiv twice to replace hybrid.Decaps's seed-form
+// expansion (G.evaluate(seed) followed by component DeriveKeyPair
+// calls) by direct KEM_PQ.KeyGen and KEM_T.KeyGen, putting the proof
+// in the expanded form used by CK_expanded_LEAK_BIND_K_CT.
 //
-// Inside the bracket the proof is the C2PRICombiner case-split:
+// In the expanded form, the proof is the C2PRICombiner case-split:
 // matching kdf_in's force ss_PQ_0 == ss_PQ_1 and (since ct_T_0,
 // ek_T_0 also match) ct_PQ_0 != ct_PQ_1 -- i.e. a KEM_PQ binding
 // break. We forward to KEM_PQ.HON_BIND_K_CT (Case B), and otherwise
@@ -89,7 +88,7 @@ theorem:
 games:
     HON_BIND_K_CT(hybrid).Breakable against HON_BIND_K_CT(hybrid).Adversary;
 
-    // Open bracket: PRGSec, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
+    // Forward: PRGSec, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
     PRGSec(G).Real    compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
     PRGSec(G).Random  compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
 
@@ -107,7 +106,7 @@ games:
     KDFCollisionResistance(H).Breakable   compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
     KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
 
-    // Close bracket (reverse, Unbreakable side)
+    // Reverse (Unbreakable side)
     KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
     KeyGenEquiv(KEM_T).FromDeriveKeyPair  compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
 
@@ -120,10 +119,10 @@ games:
     HON_BIND_K_CT(hybrid).Unbreakable against HON_BIND_K_CT(hybrid).Adversary;
 
 // ===================================================================
-// Bracket reductions (left): two queries to the bracket challenger,
-// one per honest key. Adapted from CK_INDCCA_T's R_PRG_L / R_KG_*_L
-// to HON_BIND_K_CT's interface (no challenge ciphertext; two Decaps
-// oracles plus a Challenge oracle that returns the binding predicate).
+// Forward reductions: two queries to the challenger, one per honest
+// key. Tailored to HON_BIND_K_CT's interface (no challenge ciphertext;
+// two Decaps oracles plus a Challenge oracle that returns the binding
+// predicate).
 // ===================================================================
 
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
@@ -384,9 +383,9 @@ Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_seedbased hybrid)
 }
 
 // ===================================================================
-// Bracket reductions (right): mirror the left versions but with
-// Challenge always returning false (Unbreakable side). Decaps0/Decaps1
-// behavior is identical to the left versions.
+// Reverse reductions: mirror the forward versions but with Challenge
+// always returning false (Unbreakable side). Decaps0/Decaps1 behavior
+// is identical to the forward versions.
 // ===================================================================
 
 Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)

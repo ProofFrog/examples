@@ -1,12 +1,11 @@
 // CK_expanded: variant of CK_seedbased whose DecapsKey is the expanded tuple
 // (dk_PQ, dk_T, ek_T) rather than the raw seed.
 //
-// Mechanisation purpose only: this scheme is used to mechanise LEAK-BIND-
-// {K-CT, K-PK} in the standard model (Phase 5a of the cfrg-hybrid-kems
-// LEAK-BIND plan). The seeded form CK_seedbased exposes dk = seed to the binding
-// adversary, which blocks the PRGSec/KGE bracket pattern; the expanded
-// form sidesteps that by storing the component decapsulation keys
-// directly. Encaps and the KDF input are unchanged from CK_seedbased.
+// This expanded form is used to analyze LEAK-BIND-{K-CT, K-PK} in the
+// standard model. In the seeded form CK_seedbased, dk = seed is given
+// directly to the binding adversary; in the expanded form the component
+// decapsulation keys are stored directly instead. Encaps and the KDF
+// input are unchanged from CK_seedbased.
 //
 // Compared to CK_seedbased:
 // - DecapsKey = [K_PQ.DecapsKey, K_T.DecapsKey, K_T.EncapsKey]
