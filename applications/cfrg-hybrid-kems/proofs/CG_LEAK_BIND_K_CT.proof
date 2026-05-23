@@ -1,0 +1,502 @@
+// Proof that the CG hybrid KEM (seeded form) satisfies LEAK-BIND-K-CT
+// in the random oracle model, where the PRG G is modelled as a
+// programmable random oracle.
+//
+// Why ROM: in seeded form CG.DecapsKey = seed (the raw PRG seed). A
+// LEAK-BIND-K-CT adversary therefore receives the seed dk = seed,
+// which under PRGSec would also reveal everything the PRG expands to
+// -- making the standard-model PRGSec + KGE bracket used by Phase 5a
+// expanded-form proofs unavailable. We instead model G as an RO and
+// PROGRAM G_RO(seed_i) := s_PQ_i || s_T_i so that the K_PQ challenger's
+// (ek_PQ_i, dk_PQ_i = s_PQ_i) embeds into the hybrid adversary's view
+// at the PRG output stage.
+//
+// K_PQ assumption shape: this proof assumes seeded-form
+// LEAK_BIND_K_CT(KEM_PQ) -- KEM_PQ.DecapsKey = BitString<Nseed> -- which
+// is strictly stronger than the expanded-form variant assumed in Phase
+// 5a. For KEMs whose KeyGen is *defined* as DeriveKeyPair(uniform seed)
+// (ML-KEM per FIPS 203, HQC, ...) seeded-form binding is the
+// spec-natural form; the apparent strength gap is purely an artefact
+// of ProofFrog's inability to formalize one-way function inversion.
+//
+// Game sequence (14 entries, 13 hops):
+//   0.  LEAK_BIND_K_CT_ROM(hybrid).Breakable
+//   1.  CGLazyROTwoSeeded.Honest             compose R_LazyRO_L  (equiv)
+//   2.  CGLazyROTwoSeeded.Lazy               compose R_LazyRO_L  (assumption, free fact)
+//   3.  KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_L     (equiv)
+//   4.  KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_L     (assumption)
+//   5.  LEAK_BIND_K_CT(KEM_PQ).Breakable    compose R_PQ_Bind    (equiv)
+//   6.  LEAK_BIND_K_CT(KEM_PQ).Unbreakable  compose R_PQ_Bind    (assumption)
+//   7.  KDFCollisionResistance(H).Breakable    compose R_KDF     (equiv)
+//   8.  KDFCollisionResistance(H).Unbreakable  compose R_KDF     (assumption)
+//   9.  KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_R     (equiv)
+//   10. KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_R     (assumption)
+//   11. CGLazyROTwoSeeded.Lazy               compose R_LazyRO_R  (equiv)
+//   12. CGLazyROTwoSeeded.Honest             compose R_LazyRO_R  (assumption, free fact)
+//   13. LEAK_BIND_K_CT_ROM(hybrid).Unbreakable
+//
+// The CGLazyROTwoSeeded bracket is a free statistical fact (collision
+// term 2^-lambda) that switches between the bare-game form (G_RO
+// applied to fresh seeds, exposed via HashG) and the
+// programmed-table form (independent uniform y0, y1 with HashG looking
+// up programmed values at s0, s1).
+//
+// The KeyGenEquiv bracket then bridges KEM_PQ.DeriveKeyPair(uniform)
+// (which the lazy form's split y0_pq exposes) and KEM_PQ.KeyGen()
+// (which the LEAK_BIND_K_CT challenger calls).
+//
+// Note on the C2PRICombiner case-split: unlike UG/UK whose KDF input
+// includes ct_PQ and ek_PQ, CG's KDF input is
+//   ss_PQ || ss_T || ct_T || ek_T || label
+// and so a binding break with kdf_in_0 == kdf_in_1 forces ss_PQ_0 ==
+// ss_PQ_1 and ct_T_0 == ct_T_1, ek_T_0 == ek_T_1. Combined with
+// ct0 != ct1 this implies ct_PQ_0 != ct_PQ_1 -- which is precisely a
+// LEAK_BIND_K_CT break on KEM_PQ. R_PQ_Bind forwards (ct_PQ_0, ct_PQ_1)
+// in that case; otherwise the residual is the KDF-collision case.
+//
+// Assumptions: seeded-form LEAK_BIND_K_CT(KEM_PQ),
+// KDFCollisionResistance(H), KeyGenEquiv(KEM_PQ),
+// CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO). The latter two are
+// statistical helpers (free facts).
+
+import '../primitives/KEM.primitive';
+import '../primitives/NominalGroup.primitive';
+import '../primitives/PRG.primitive';
+import '../primitives/KDF.primitive';
+import '../primitives/Label.primitive';
+import '../schemes/CG.scheme';
+import '../schemes/CGRandomOraclePRG.scheme';
+import '../schemes/SeededKEMWrapper.scheme';
+import '../games/LEAK_BIND_K_CT_ROM.game';
+import '../games/LEAK_BIND_K_CT.game';
+import '../games/KDFCollisionResistance.game';
+import '../games/KeyGenEquiv.game';
+import '../games/CGLazyROTwoSeeded.game';
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int ng_nseed;
+    Int ng_nss;
+    Int ng_nelem;
+    Int lambda;
+    Int kdf_nout;
+    Int nlabel;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set NGElementSpace;
+    Set NGScalarSpace;
+    // KEM_PQ is the seeded-form view (DecapsKey = BitString<Nseed>) of
+    // an underlying abstract KEM_PQ_inner. The wrapper provides a
+    // concrete DeriveKeyPair body where dk = seed literally, closing
+    // the canonicalization gap at hops 3/11 without engine extensions.
+    // Assumptions on KEM_PQ are interpreted on this seeded view.
+    KEM KEM_PQ_inner = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                           BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    KEM KEM_PQ = SeededKEMWrapper(KEM_PQ_inner);
+    NominalGroup NG = NominalGroup(ng_nseed, ng_nelem, ng_nss,
+                                   NGElementSpace, NGScalarSpace);
+    // Sample G_RO once; pass the same Function to CGRandomOraclePRG (so
+    // the scheme's PRG calls hit it) and to LEAK_BIND_K_CT_ROM (so the
+    // adversary's HashG queries hit the same RO).
+    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO
+        <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>>;
+    PRG G = CGRandomOraclePRG(KEM_PQ, NG, lambda, G_RO);
+    KDF H = KDF(kem_pq_nss + ng_nss + ng_nelem + ng_nelem + nlabel, kdf_nout);
+    Label L = Label(nlabel);
+    CG hybrid = CG(KEM_PQ, NG, G, H, L);
+
+assume:
+    LEAK_BIND_K_CT(KEM_PQ);
+    KDFCollisionResistance(H);
+    KeyGenEquiv(KEM_PQ);
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO);
+
+theorem:
+    LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO);
+
+games:
+    LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Breakable
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Honest
+        compose R_LazyRO_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Lazy
+        compose R_LazyRO_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair
+        compose R_KG_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen
+        compose R_KG_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+    LEAK_BIND_K_CT(KEM_PQ).Breakable
+        compose R_PQ_Bind(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    LEAK_BIND_K_CT(KEM_PQ).Unbreakable
+        compose R_PQ_Bind(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+    KDFCollisionResistance(H).Breakable
+        compose R_KDF(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    KDFCollisionResistance(H).Unbreakable
+        compose R_KDF(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+    KeyGenEquiv(KEM_PQ).FromKeyGen
+        compose R_KG_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair
+        compose R_KG_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Lazy
+        compose R_LazyRO_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Honest
+        compose R_LazyRO_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+    LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Unbreakable
+        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+
+// R_LazyRO_L / R_LazyRO_R: bracket the bare-game vs. lazy-RO form via
+// the CGLazyROTwoSeeded helper game (free fact, statistical
+// equivalence up to 2^-lambda collision term).
+Reduction R_LazyRO_L(KEM KEM_PQ, NominalGroup NG, Int lambda,
+                     Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
+                     KDF H, Label L, CG hybrid)
+    compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO)
+    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_PQ.DecapsKey dk_PQ_1;
+    NG.Scalar dk_T_0;
+    NG.Scalar dk_T_1;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [BitString<lambda>, BitString<lambda>] seeds = challenger.Initialize();
+        BitString<lambda> seed_0 = seeds[0];
+        BitString<lambda> seed_1 = seeds[1];
+        BitString<KEM_PQ.Nseed + NG.Nseed> y_0 = challenger.Hash(seed_0);
+        BitString<KEM_PQ.Nseed + NG.Nseed> y_1 = challenger.Hash(seed_1);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.DeriveKeyPair(y_0[0 : KEM_PQ.Nseed]);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.DeriveKeyPair(y_1[0 : KEM_PQ.Nseed]);
+        dk_PQ_0 = pq_kp_0[1];
+        dk_PQ_1 = pq_kp_1[1];
+        dk_T_0 = NG.RandomScalar(y_0[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed]);
+        dk_T_1 = NG.RandomScalar(y_1[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed]);
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), dk_T_1);
+        return [[pq_kp_0[0], ek_T_0], seed_0, [pq_kp_1[0], ek_T_1], seed_1];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ_1, ct1[0]);
+        BitString<NG.Nss>   ss_T_1  = NG.ElementToSharedSecret(NG.Exp(ct1[1], dk_T_1));
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ_0, ct0[0]);
+        BitString<NG.Nss>   ss_T_0  = NG.ElementToSharedSecret(NG.Exp(ct0[1], dk_T_0));
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || ss_T_1 || NG.Encode(ct1[1]) || NG.Encode(NG.Exp(NG.Generator(), dk_T_1)) || L.get();
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || ss_T_0 || NG.Encode(ct0[1]) || NG.Encode(NG.Exp(NG.Generator(), dk_T_0)) || L.get();
+        return H.evaluate(kdf_in_1) == H.evaluate(kdf_in_0) && ct0 != ct1;
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> HashG(BitString<lambda> x) {
+        return challenger.Hash(x);
+    }
+}
+
+Reduction R_LazyRO_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
+                     Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
+                     KDF H, Label L, CG hybrid)
+    compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO)
+    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_PQ.DecapsKey dk_PQ_1;
+    NG.Scalar dk_T_0;
+    NG.Scalar dk_T_1;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [BitString<lambda>, BitString<lambda>] seeds = challenger.Initialize();
+        BitString<lambda> seed_0 = seeds[0];
+        BitString<lambda> seed_1 = seeds[1];
+        BitString<KEM_PQ.Nseed + NG.Nseed> y_0 = challenger.Hash(seed_0);
+        BitString<KEM_PQ.Nseed + NG.Nseed> y_1 = challenger.Hash(seed_1);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.DeriveKeyPair(y_0[0 : KEM_PQ.Nseed]);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.DeriveKeyPair(y_1[0 : KEM_PQ.Nseed]);
+        dk_PQ_0 = pq_kp_0[1];
+        dk_PQ_1 = pq_kp_1[1];
+        dk_T_0 = NG.RandomScalar(y_0[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed]);
+        dk_T_1 = NG.RandomScalar(y_1[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed]);
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), dk_T_1);
+        return [[pq_kp_0[0], ek_T_0], seed_0, [pq_kp_1[0], ek_T_1], seed_1];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        return false;
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> HashG(BitString<lambda> x) {
+        return challenger.Hash(x);
+    }
+}
+
+// R_KG_L / R_KG_R: bridge KEM_PQ.KeyGen() (used by the LEAK_BIND_K_CT
+// challenger) and KEM_PQ.DeriveKeyPair(uniform_seed) (which CG.KeyGen()
+// expands to). Each reduction calls challenger.Generate() twice to
+// produce the two hybrid keypairs the binding game expects.
+Reduction R_KG_L(KEM KEM_PQ, NominalGroup NG, Int lambda,
+                 Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
+                 KDF H, Label L, CG hybrid)
+    compose KeyGenEquiv(KEM_PQ)
+    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_PQ.DecapsKey dk_PQ_1;
+    BitString<NG.Nseed> s_T_0;
+    BitString<NG.Nseed> s_T_1;
+    NG.Scalar dk_T_0;
+    NG.Scalar dk_T_1;
+    BitString<lambda> seed_0;
+    BitString<lambda> seed_1;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = challenger.Generate();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = challenger.Generate();
+        KEM_PQ.EncapsKey ek_PQ_0 = pq_kp_0[0];
+        dk_PQ_0 = pq_kp_0[1];
+        KEM_PQ.EncapsKey ek_PQ_1 = pq_kp_1[0];
+        dk_PQ_1 = pq_kp_1[1];
+        seed_0 <- BitString<lambda>;
+        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        s_T_0 <- BitString<NG.Nseed>;
+        s_T_1 <- BitString<NG.Nseed>;
+        dk_T_0 = NG.RandomScalar(s_T_0);
+        dk_T_1 = NG.RandomScalar(s_T_1);
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), dk_T_1);
+        return [[ek_PQ_0, ek_T_0], seed_0, [ek_PQ_1, ek_T_1], seed_1];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
+        NG.Element        ct_T_0  = ct0[1];
+        KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
+        NG.Element        ct_T_1  = ct1[1];
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_0);
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ_1, ct_PQ_1);
+        BitString<NG.Nss>   ss_T_0  = NG.ElementToSharedSecret(NG.Exp(ct_T_0, dk_T_0));
+        BitString<NG.Nss>   ss_T_1  = NG.ElementToSharedSecret(NG.Exp(ct_T_1, dk_T_1));
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || ss_T_0 || NG.Encode(ct_T_0) || NG.Encode(NG.Exp(NG.Generator(), dk_T_0)) || L.get();
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || ss_T_1 || NG.Encode(ct_T_1) || NG.Encode(NG.Exp(NG.Generator(), dk_T_1)) || L.get();
+        return H.evaluate(kdf_in_0) == H.evaluate(kdf_in_1) && ct0 != ct1;
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> HashG(BitString<lambda> x) {
+        if (x == seed_0) {
+            return dk_PQ_0 || s_T_0;
+        }
+        if (x == seed_1) {
+            return dk_PQ_1 || s_T_1;
+        }
+        return G_RO(x);
+    }
+}
+
+Reduction R_KG_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
+                 Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
+                 KDF H, Label L, CG hybrid)
+    compose KeyGenEquiv(KEM_PQ)
+    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_PQ.DecapsKey dk_PQ_1;
+    BitString<NG.Nseed> s_T_0;
+    BitString<NG.Nseed> s_T_1;
+    NG.Scalar dk_T_0;
+    NG.Scalar dk_T_1;
+    BitString<lambda> seed_0;
+    BitString<lambda> seed_1;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = challenger.Generate();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = challenger.Generate();
+        KEM_PQ.EncapsKey ek_PQ_0 = pq_kp_0[0];
+        dk_PQ_0 = pq_kp_0[1];
+        KEM_PQ.EncapsKey ek_PQ_1 = pq_kp_1[0];
+        dk_PQ_1 = pq_kp_1[1];
+        seed_0 <- BitString<lambda>;
+        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        s_T_0 <- BitString<NG.Nseed>;
+        s_T_1 <- BitString<NG.Nseed>;
+        dk_T_0 = NG.RandomScalar(s_T_0);
+        dk_T_1 = NG.RandomScalar(s_T_1);
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), dk_T_1);
+        return [[ek_PQ_0, ek_T_0], seed_0, [ek_PQ_1, ek_T_1], seed_1];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        return false;
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> HashG(BitString<lambda> x) {
+        if (x == seed_0) {
+            return dk_PQ_0 || s_T_0;
+        }
+        if (x == seed_1) {
+            return dk_PQ_1 || s_T_1;
+        }
+        return G_RO(x);
+    }
+}
+
+// R_PQ_Bind: reduction to seeded-form K_PQ.LEAK_BIND_K_CT.
+//
+// Programs G_RO(seed_i) := s_PQ_i || s_T_i where s_PQ_i is the K_PQ
+// challenger's dk_PQ_i (seeded form) and s_T_i is sampled internally.
+// HashG simulates G_RO faithfully on non-programmed inputs and returns
+// the programmed value at seed_i. On Challenge: case-splits on
+// (kdf_in_0 == kdf_in_1 && ct_PQ_0 != ct_PQ_1) -- forwards (ct_PQ_0,
+// ct_PQ_1) to the K_PQ challenger on case B; otherwise returns the
+// hybrid binding predicate computed locally.
+Reduction R_PQ_Bind(KEM KEM_PQ, NominalGroup NG, Int lambda,
+                    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
+                    KDF H, Label L, CG hybrid)
+    compose LEAK_BIND_K_CT(KEM_PQ)
+    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+
+    KEM_PQ.DecapsKey s_PQ_0;
+    KEM_PQ.DecapsKey s_PQ_1;
+    BitString<NG.Nseed> s_T_0;
+    BitString<NG.Nseed> s_T_1;
+    NG.Scalar dk_T_0;
+    NG.Scalar dk_T_1;
+    BitString<lambda> seed_0;
+    BitString<lambda> seed_1;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Initialize();
+        KEM_PQ.EncapsKey ek_PQ_0 = pq_keys[0];
+        s_PQ_0 = pq_keys[1];
+        KEM_PQ.EncapsKey ek_PQ_1 = pq_keys[2];
+        s_PQ_1 = pq_keys[3];
+        seed_0 <- BitString<lambda>;
+        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        s_T_0 <- BitString<NG.Nseed>;
+        s_T_1 <- BitString<NG.Nseed>;
+        dk_T_0 = NG.RandomScalar(s_T_0);
+        dk_T_1 = NG.RandomScalar(s_T_1);
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), dk_T_1);
+        return [[ek_PQ_0, ek_T_0], seed_0, [ek_PQ_1, ek_T_1], seed_1];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
+        NG.Element        ct_T_0  = ct0[1];
+        KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
+        NG.Element        ct_T_1  = ct1[1];
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(s_PQ_0, ct_PQ_0);
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(s_PQ_1, ct_PQ_1);
+        BitString<NG.Nss>   ss_T_0  = NG.ElementToSharedSecret(NG.Exp(ct_T_0, dk_T_0));
+        BitString<NG.Nss>   ss_T_1  = NG.ElementToSharedSecret(NG.Exp(ct_T_1, dk_T_1));
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || ss_T_0 || NG.Encode(ct_T_0) || NG.Encode(NG.Exp(NG.Generator(), dk_T_0)) || L.get();
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || ss_T_1 || NG.Encode(ct_T_1) || NG.Encode(NG.Exp(NG.Generator(), dk_T_1)) || L.get();
+
+        if (kdf_in_0 == kdf_in_1 && ct_PQ_0 != ct_PQ_1) {
+            return challenger.Challenge(ct_PQ_0, ct_PQ_1);
+        }
+        return H.evaluate(kdf_in_0) == H.evaluate(kdf_in_1) && ct0 != ct1;
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> HashG(BitString<lambda> x) {
+        if (x == seed_0) {
+            return s_PQ_0 || s_T_0;
+        }
+        if (x == seed_1) {
+            return s_PQ_1 || s_T_1;
+        }
+        return G_RO(x);
+    }
+}
+
+// R_KDF: reduction to KDFCollisionResistance(H). After the K_PQ hop
+// the case-B branch is dead; the residual game is exactly the case-A
+// "two distinct hybrid ciphertexts collide under H" game.
+Reduction R_KDF(KEM KEM_PQ, NominalGroup NG, Int lambda,
+                Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
+                KDF H, Label L, CG hybrid)
+    compose KDFCollisionResistance(H)
+    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+
+    BitString<KEM_PQ.Nseed> s_PQ_0;
+    BitString<KEM_PQ.Nseed> s_PQ_1;
+    BitString<NG.Nseed> s_T_0;
+    BitString<NG.Nseed> s_T_1;
+    KEM_PQ.EncapsKey ek_PQ_0;
+    KEM_PQ.EncapsKey ek_PQ_1;
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_PQ.DecapsKey dk_PQ_1;
+    NG.Scalar dk_T_0;
+    NG.Scalar dk_T_1;
+    BitString<lambda> seed_0;
+    BitString<lambda> seed_1;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        seed_0 <- BitString<lambda>;
+        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        s_PQ_0 <- BitString<KEM_PQ.Nseed>;
+        s_PQ_1 <- BitString<KEM_PQ.Nseed>;
+        s_T_0 <- BitString<NG.Nseed>;
+        s_T_1 <- BitString<NG.Nseed>;
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.DeriveKeyPair(s_PQ_0);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.DeriveKeyPair(s_PQ_1);
+        ek_PQ_0 = pq_kp_0[0]; dk_PQ_0 = pq_kp_0[1];
+        ek_PQ_1 = pq_kp_1[0]; dk_PQ_1 = pq_kp_1[1];
+        dk_T_0 = NG.RandomScalar(s_T_0);
+        dk_T_1 = NG.RandomScalar(s_T_1);
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), dk_T_1);
+        return [[ek_PQ_0, ek_T_0], seed_0, [ek_PQ_1, ek_T_1], seed_1];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
+        NG.Element        ct_T_0  = ct0[1];
+        KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
+        NG.Element        ct_T_1  = ct1[1];
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_0);
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ_1, ct_PQ_1);
+        BitString<NG.Nss>   ss_T_0  = NG.ElementToSharedSecret(NG.Exp(ct_T_0, dk_T_0));
+        BitString<NG.Nss>   ss_T_1  = NG.ElementToSharedSecret(NG.Exp(ct_T_1, dk_T_1));
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || ss_T_0 || NG.Encode(ct_T_0) || NG.Encode(NG.Exp(NG.Generator(), dk_T_0)) || L.get();
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || ss_T_1 || NG.Encode(ct_T_1) || NG.Encode(NG.Exp(NG.Generator(), dk_T_1)) || L.get();
+
+        if (ct0 == ct1) {
+            return false;
+        }
+        return challenger.Challenge(kdf_in_0, kdf_in_1);
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> HashG(BitString<lambda> x) {
+        if (x == seed_0) {
+            return s_PQ_0 || s_T_0;
+        }
+        if (x == seed_1) {
+            return s_PQ_1 || s_T_1;
+        }
+        return G_RO(x);
+    }
+}
