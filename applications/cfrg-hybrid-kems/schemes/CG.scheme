@@ -27,6 +27,7 @@ Scheme CG(KEM K, NominalGroup NG, PRG G, KDF H, Label L) extends KEM {
 
     Int Nseed = G.lambda;
     Int Nss = H.Nout;
+    Int Nin = H.Nin;
     Int Nct = K.Nct + NG.Nelem;
     Int Nek = K.Nek + NG.Nelem;
     Set SharedSecret = BitString<H.Nout>;
