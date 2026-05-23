@@ -1,0 +1,33 @@
+// Hashed ElGamal as a KEM in the random oracle model.
+// Encaps samples r, sends g^r as the ciphertext, and uses H(pk^r)
+// as the shared secret. Decaps recovers H(c^sk). H is supplied by
+// the proof's let: block, matching the pattern in
+// Schemes/PubKeyEnc/HashedElGamal.scheme.
+//
+// Note: KeyGen samples sk from ModInt<G.order> \ {0}. This matches the
+// GapCDH_NZ formulation used in the IND-CCA proof; see
+// Games/Group/GapCDH_NZ.game for why nonzero is required.
+
+import '../../Primitives/KEM.primitive';
+
+Scheme HashedElGamalKEM(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) extends KEM {
+    Set SharedSecret = BitString<n>;
+    Set Ciphertext = GroupElem<G>;
+    Set PublicKey = GroupElem<G>;
+    Set SecretKey = ModInt<G.order>;
+
+    [PublicKey, SecretKey] KeyGen() {
+        ModInt<G.order> a <- ModInt<G.order> \ {0};
+        return [G.generator ^ a, a];
+    }
+
+    [SharedSecret, Ciphertext] Encaps(PublicKey pk) {
+        ModInt<G.order> r <- ModInt<G.order>;
+        BitString<n> ss = H(pk ^ r);
+        return [ss, G.generator ^ r];
+    }
+
+    deterministic SharedSecret Decaps(SecretKey sk, Ciphertext c) {
+        return H(c ^ sk);
+    }
+}

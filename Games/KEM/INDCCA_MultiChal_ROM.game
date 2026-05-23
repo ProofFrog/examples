@@ -1,0 +1,60 @@
+// CCA security for a KEM in the random oracle model. Mirrors
+// INDCCA_MultiChal.game, but parameterized additionally over the
+// hash domain/range and the random oracle Function H, with an extra
+// Hash oracle exposing H to the adversary. The proof's let: block is
+// expected to share H between the scheme and the game, so scheme
+// calls to H(...) are the same random function the adversary queries
+// via Hash.
+
+import '../../Primitives/KEM.primitive';
+
+Game Real(KEM K, Set D, Set R, Function<D, R> H) {
+    K.SecretKey sk;
+    K.Ciphertext ctStar;
+
+    [K.PublicKey, K.SharedSecret, K.Ciphertext] Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
+        sk = k[1];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        ctStar = rsp[1];
+        return [k[0], rsp[0], rsp[1]];
+    }
+
+    R Hash(D m) {
+        return H(m);
+    }
+
+    K.SharedSecret? Decaps(K.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return K.Decaps(sk, c);
+    }
+}
+
+Game Random(KEM K, Set D, Set R, Function<D, R> H) {
+    K.SecretKey sk;
+    K.Ciphertext ctStar;
+
+    [K.PublicKey, K.SharedSecret, K.Ciphertext] Initialize() {
+        [K.PublicKey, K.SecretKey] k = K.KeyGen();
+        sk = k[1];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        K.SharedSecret ss <- K.SharedSecret;
+        ctStar = rsp[1];
+        return [k[0], ss, rsp[1]];
+    }
+
+    R Hash(D m) {
+        return H(m);
+    }
+
+    K.SharedSecret? Decaps(K.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return K.Decaps(sk, c);
+    }
+}
+
+export as KEM_INDCCA_MultiChal_ROM;

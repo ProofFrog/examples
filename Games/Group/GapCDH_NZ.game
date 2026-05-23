@@ -1,0 +1,51 @@
+// Gap-CDH with non-zero secret key.
+//
+// Identical to GapCDH except sk is sampled uniformly from
+// ModInt<G.order> \ {0}. This is the formulation required by the
+// ProofFrog engine's canonicalization of g^sk as an injective encoding,
+// which only fires when sk is known-nonzero. Under prime-order G the
+// two variants differ by statistical distance at most 1/|G|, so
+// GapCDH(G) => GapCDH_NZ(G) is proven as a lemma via the
+// UniqueSampling helper (see Proofs/Group/GapCDH_implies_GapCDH_NZ.proof).
+
+Game Left(Group G) {
+    ModInt<G.order> sk;
+    GroupElem<G> xStar;
+
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        sk <- ModInt<G.order> \ {0};
+        ModInt<G.order> b <- ModInt<G.order>;
+        xStar = G.generator ^ b;
+        return [G.generator ^ sk, xStar];
+    }
+
+    Bool TestOracle(GroupElem<G> x, GroupElem<G> y) {
+        return y == x ^ sk;
+    }
+
+    Bool Solve(GroupElem<G> y) {
+        return y == xStar ^ sk;
+    }
+}
+
+Game Right(Group G) {
+    ModInt<G.order> sk;
+    GroupElem<G> xStar;
+
+    [GroupElem<G>, GroupElem<G>] Initialize() {
+        sk <- ModInt<G.order> \ {0};
+        ModInt<G.order> b <- ModInt<G.order>;
+        xStar = G.generator ^ b;
+        return [G.generator ^ sk, xStar];
+    }
+
+    Bool TestOracle(GroupElem<G> x, GroupElem<G> y) {
+        return y == x ^ sk;
+    }
+
+    Bool Solve(GroupElem<G> y) {
+        return false;
+    }
+}
+
+export as GapCDH_NZ;
