@@ -1,0 +1,31 @@
+// KEM correctness, expressed as an interchangeability between two games.
+//
+// FromDecaps: returns [ct, ss_encaps, K.Decaps(dk, ct)]
+// FromEncaps: returns [ct, ss_encaps, ss_encaps]
+//
+// A correct KEM is one where these two games are indistinguishable.
+// Both games return the encapsulated shared secret and the decapsulated
+// one together so the reduction can use each where needed.
+
+import '../primitives/KEM.primitive';
+
+Game FromDecaps(KEM K) {
+    [K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute(K.EncapsKey ek, K.DecapsKey dk) {
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(ek);
+        K.SharedSecret ss_e = encaps_result[0];
+        K.Ciphertext ct = encaps_result[1];
+        K.SharedSecret ss_d = K.Decaps(dk, ct);
+        return [ct, ss_e, ss_d];
+    }
+}
+
+Game FromEncaps(KEM K) {
+    [K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute(K.EncapsKey ek, K.DecapsKey dk) {
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(ek);
+        K.Ciphertext ct = encaps_result[1];
+        K.SharedSecret ss = encaps_result[0];
+        return [ct, ss, ss];
+    }
+}
+
+export as KEMCorrectness;

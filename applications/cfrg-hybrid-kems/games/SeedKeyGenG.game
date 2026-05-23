@@ -1,0 +1,49 @@
+// Seed-based keygen indistinguishability for the G-flavoured frameworks
+// (UG, CG) where the traditional component is a nominal group.
+//
+// Real:         derive both keypairs from a single seed via PRG expansion,
+//               matching expandDecapsKeyG in draft section 5.1.1.
+// FromKeyGen:   call K.KeyGen() for the PQ component, sample a fresh seed
+//               for the nominal group component and run DeriveExponent.
+//
+// The two games are indistinguishable assuming PRGSec(G) and
+// KeyGenEquiv(K); this is proven as a lemma in SeedKeyGenG.proof.
+//
+// The returned compound structure matches the expanded-form key storage
+// used inside the UG / CG proof bodies (after the SeedKeyGen bracketing
+// hop):
+//    ek = [ek_PQ, ek_T]
+//    dk = [dk_PQ, dk_T, ek_PQ]
+
+import '../primitives/KEM.primitive';
+import '../primitives/NominalGroup.primitive';
+import '../primitives/PRG.primitive';
+
+Game Real(KEM K, NominalGroup NG, PRG G) {
+    [[K.EncapsKey, NG.GroupElem], [K.DecapsKey, NG.Exponent, K.EncapsKey]] Query() {
+        BitString<G.lambda> seed <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> seed_full = G.evaluate(seed);
+        BitString<K.Nseed> seed_PQ = seed_full[0 : K.Nseed];
+        BitString<NG.Nseed> seed_T = seed_full[K.Nseed : K.Nseed + NG.Nseed];
+        [K.EncapsKey, K.DecapsKey] kem_keypair = K.DeriveKeyPair(seed_PQ);
+        K.EncapsKey ek_PQ = kem_keypair[0];
+        K.DecapsKey dk_PQ = kem_keypair[1];
+        NG.Exponent dk_T = NG.DeriveExponent(seed_T);
+        NG.GroupElem ek_T = NG.Exp(NG.Generator(), dk_T);
+        return [[ek_PQ, ek_T], [dk_PQ, dk_T, ek_PQ]];
+    }
+}
+
+Game FromKeyGen(KEM K, NominalGroup NG, PRG G) {
+    [[K.EncapsKey, NG.GroupElem], [K.DecapsKey, NG.Exponent, K.EncapsKey]] Query() {
+        [K.EncapsKey, K.DecapsKey] kem_keypair = K.KeyGen();
+        K.EncapsKey ek_PQ = kem_keypair[0];
+        K.DecapsKey dk_PQ = kem_keypair[1];
+        BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
+        NG.Exponent dk_T = NG.DeriveExponent(seed_T);
+        NG.GroupElem ek_T = NG.Exp(NG.Generator(), dk_T);
+        return [[ek_PQ, ek_T], [dk_PQ, dk_T, ek_PQ]];
+    }
+}
+
+export as SeedKeyGenG;

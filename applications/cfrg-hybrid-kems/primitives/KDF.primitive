@@ -1,0 +1,15 @@
+// Key Derivation Function (KDF) primitive.
+//
+// Matches draft-irtf-cfrg-hybrid-kems-10 section 4.4: a deterministic
+// function from a single flat byte string of length Nin to a byte string
+// of length Nout. The hybrid KEM combiners (draft section 5.1.3) form
+// the input by concatenating component shared secrets, ciphertexts,
+// encapsulation keys, and the domain-separation label; all fields are
+// fixed-length per draft section 6.5.2, so direct concatenation is
+// unambiguous.
+Primitive KDF(Int Nin, Int Nout) {
+    Int Nin = Nin;
+    Int Nout = Nout;
+
+    deterministic BitString<Nout> evaluate(BitString<Nin> input);
+}

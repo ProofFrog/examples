@@ -1,0 +1,23 @@
+// Nominal group primitive, matching the interface used in
+// draft-irtf-cfrg-hybrid-kems-10 section 5.1.1. Provides a generator, an
+// exponentiation operation, a scalar-sampling operation, a deterministic
+// seed-to-scalar derivation, and two encoding operations:
+//   - Encode(GroupElem) -> byte string (generic serialization)
+//   - ElementToSharedSecret(GroupElem) -> byte string (the draft-specific
+//     encoding used to form ss_T from a group element).
+//
+// Both encodings are modeled as deterministic and injective.
+Primitive NominalGroup(Int Nseed, Int NGelem, Int Nss, Set GroupElemSpace, Set ExponentSpace) {
+    Int Nseed = Nseed;
+    Int NGelem = NGelem;
+    Int Nss = Nss;
+    Set GroupElem = GroupElemSpace;
+    Set Exponent = ExponentSpace;
+
+    deterministic GroupElem Exp(GroupElem base, Exponent exp);
+    deterministic GroupElem Generator();
+    Exponent SampleExponent();
+    deterministic Exponent DeriveExponent(BitString<Nseed> seed);
+    deterministic injective BitString<NGelem> Encode(GroupElem elem);
+    deterministic injective BitString<Nss> ElementToSharedSecret(GroupElem elem);
+}

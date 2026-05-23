@@ -1,0 +1,14 @@
+// Two-key Pseudorandom Function primitive, used to model the split-key
+// PRF assumption for the UK and CK hybrid KEM frameworks.
+//
+// evaluate takes two independent keys (ss_PQ, ss_T in the draft) and an
+// input (the remaining combiner-input bytes), and returns a deterministic
+// fixed-length output.
+Primitive TwoKeyPRF(Int lambda1, Int lambda2, Int in, Int out) {
+    Int lambda1 = lambda1;
+    Int lambda2 = lambda2;
+    Int in = in;
+    Int out = out;
+
+    deterministic BitString<out> evaluate(BitString<lambda1> key1, BitString<lambda2> key2, BitString<in> input);
+}

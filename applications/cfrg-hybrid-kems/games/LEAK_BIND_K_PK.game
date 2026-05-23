@@ -1,0 +1,62 @@
+// LEAK-BIND-K-PK: the output key K leakage-binds the public (encapsulation) key.
+//
+// CDM24 notation: X-BIND-P-Q with X=LEAK, P={K}, Q={PK (= EncapsKey)}.
+// The adversary is given two honestly-generated key pairs and submits
+// two ciphertexts; the adversary wins if the decapsulations yield the
+// same shared secret under two distinct public (encapsulation) keys.
+//
+// This is the second binding notion targeted by
+// draft-irtf-cfrg-hybrid-kems-10 section 6.2.2 / 6.4.2.
+//
+// Note: TUE2026's LEAK_BIND_K_PK__CT.game is a DIFFERENT notion
+// (X-BIND-{K,PK}-{CT}) and should not be confused with this one.
+
+import '../primitives/KEM.primitive';
+
+Game Breakable(KEM K) {
+    K.EncapsKey ek0;
+    K.EncapsKey ek1;
+    K.DecapsKey dk0;
+    K.DecapsKey dk1;
+
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
+        ek0 = kp0[0];
+        dk0 = kp0[1];
+        ek1 = kp1[0];
+        dk1 = kp1[1];
+        return [ek0, dk0, ek1, dk1];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret k0 = K.Decaps(dk0, ct0);
+        K.SharedSecret k1 = K.Decaps(dk1, ct1);
+        return k0 == k1 && ek0 != ek1;
+    }
+}
+
+Game Unbreakable(KEM K) {
+    K.EncapsKey ek0;
+    K.EncapsKey ek1;
+    K.DecapsKey dk0;
+    K.DecapsKey dk1;
+
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
+        ek0 = kp0[0];
+        dk0 = kp0[1];
+        ek1 = kp1[0];
+        dk1 = kp1[1];
+        return [ek0, dk0, ek1, dk1];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret k0 = K.Decaps(dk0, ct0);
+        K.SharedSecret k1 = K.Decaps(dk1, ct1);
+        return false;
+    }
+}
+
+export as LEAK_BIND_K_PK;
