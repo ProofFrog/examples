@@ -1,0 +1,47 @@
+// Concrete HashInputPacking for the UG_seedbased-KEM hash input
+//     ss_PQ || ss_T || ct_PQ || ct_T || ek_PQ || ek_T || label
+// where State = [dk_PQ, dk_T, ek_PQ, ek_T] and Query = [ct_PQ, ct_T].
+//
+// This is the cfrg-hybrid-kems analogue of starfortress's UGHashEncoding:
+// type renames for the cfrg NominalGroup interface (Element / Scalar /
+// Nelem / Nss), the ss_T slot uses ElementToSharedSecret (BitString<Nss>)
+// rather than Encode of a group element, and a label suffix has been
+// appended to match the draft section 5.1.3 UniversalCombiner layout.
+//
+// Pack takes the DH exponent dk_T and computes ss_T = ElementToSharedSecret
+// (c_T^dk_T); c_PQ / c_T are hoisted into named locals so that after
+// inlining the canonical form matches the slice-access style used by
+// sibling reductions.
+//
+// Pack is declared deterministic injective. For each fixed state st, the
+// map q |-> Pack(st, q) is injective: c_PQ and c_T appear in the clear
+// in slices 3 and 4 via injective component encodings (K.EncodeCiphertext
+// and NG.Encode), so distinct queries yield distinct outputs regardless
+// of whether ss_T is injective in the underlying group element.
+
+import '../../primitives/HashInputPacking.primitive';
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/Label.primitive';
+
+Scheme UGHashEncoding(KEM K, NominalGroup NG, Label L) extends HashInputPacking {
+    Set State = [K.DecapsKey, NG.Scalar, K.EncapsKey, NG.Element];
+    Set Query = [K.Ciphertext, NG.Element];
+    Int M = K.Nss + NG.Nss + K.Nct + NG.Nelem + K.Nek + NG.Nelem + L.Nlabel;
+
+    deterministic injective BitString<M> Pack(State st, Query q) {
+        K.DecapsKey dk_PQ = st[0];
+        NG.Scalar dk_T = st[1];
+        K.EncapsKey ek_PQ = st[2];
+        NG.Element ek_T = st[3];
+        K.Ciphertext c_PQ = q[0];
+        NG.Element c_T = q[1];
+        return K.EncodeSharedSecret(K.Decaps(dk_PQ, c_PQ))
+            || NG.ElementToSharedSecret(NG.Exp(c_T, dk_T))
+            || K.EncodeCiphertext(c_PQ)
+            || NG.Encode(c_T)
+            || K.EncodeEncapsKey(ek_PQ)
+            || NG.Encode(ek_T)
+            || L.get();
+    }
+}

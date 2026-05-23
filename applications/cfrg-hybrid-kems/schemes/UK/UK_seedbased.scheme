@@ -1,0 +1,136 @@
+// UK_seedbased: hybrid KEM combining two KEMs via a UniversalCombiner KDF, per
+// draft-irtf-cfrg-hybrid-kems-10 section 5.4.
+//
+// FrogLang modelling notes:
+// - Seed-form dk per draft section 5.2: DecapsKey is the raw seed, and
+//   Decaps re-runs expandDecapsKeyK each call.
+// - ek / ct / dk are kept as tuples rather than flat concats; their
+//   injective encodings project to the draft's concat form.
+// - Label is modelled as a Label primitive whose get() method returns the
+//   fixed domain-separation bytes.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/PRG.primitive';
+import '../../primitives/KDF.primitive';
+import '../../primitives/Label.primitive';
+
+
+Scheme UK_seedbased(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L) extends KEM {
+    requires G.lambda + G.stretch == KEM_PQ.Nseed + KEM_T.Nseed;
+    requires H.Nin == KEM_PQ.Nss + KEM_T.Nss + KEM_PQ.Nct + KEM_T.Nct + KEM_PQ.Nek + KEM_T.Nek + L.Nlabel;
+
+    Int Nseed = G.lambda;
+    Int Nss = H.Nout;
+    Int Nct = KEM_PQ.Nct + KEM_T.Nct;
+    Int Nek = KEM_PQ.Nek + KEM_T.Nek;
+    Set SharedSecret = BitString<H.Nout>;
+    Set EncapsKey = [KEM_PQ.EncapsKey, KEM_T.EncapsKey];
+    Set Ciphertext = [KEM_PQ.Ciphertext, KEM_T.Ciphertext];
+    Set DecapsKey = BitString<G.lambda>;
+
+    // Draft section 5.4:
+    //   def DeriveKeyPair(seed):
+    //       (ek_PQ, ek_T, dk_PQ, dk_T) = expandDecapsKeyK(seed)
+    //       return (seed, concat(ek_PQ, ek_T))
+    //
+    // Inlining expandDecapsKeyK from draft section 5.1.2:
+    //   def expandDecapsKeyK(seed):
+    //       seed_full = PRG(seed)
+    //       (seed_PQ, seed_T) = split(KEM_PQ.Nseed, KEM_T.Nseed, seed_full)
+    //       (dk_PQ, ek_PQ) = KEM_PQ.DeriveKeyPair(seed_PQ)
+    //       (dk_T, ek_T) = KEM_T.DeriveKeyPair(seed_T)
+    //       return (ek_PQ, ek_T, dk_PQ, dk_T)
+    deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed) {
+        BitString<G.lambda + G.stretch> seed_full = G.evaluate(seed);
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keypair = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keypair = KEM_T.DeriveKeyPair(seed_T);
+        return [[pq_keypair[0], t_keypair[0]], seed];
+    }
+
+    // Draft section 5.2:
+    //   def GenerateKeyPair():
+    //       seed = random(Nseed)
+    //       return DeriveKeyPair(seed)
+    [EncapsKey, DecapsKey] KeyGen() {
+        BitString<Nseed> seed <- BitString<Nseed>;
+        return this.DeriveKeyPair(seed);
+    }
+
+    // Draft section 5.4:
+    //   def Encaps(ek):
+    //       (ek_PQ, ek_T) = split(KEM_PQ.Nek, KEM_T.Nek, ek)
+    //       (ss_PQ, ss_T, ct_PQ, ct_T) = prepareEncapsK(ek_PQ, ek_T)
+    //       ss_H = UniversalCombiner(ss_PQ, ss_T, ct_PQ, ct_T, ek_PQ, ek_T, Label)
+    //       ct_H = concat(ct_PQ, ct_T)
+    //       return (ss_H, ct_H)
+    //
+    // Inlining prepareEncapsK from draft section 5.1.2:
+    //   def prepareEncapsK(ek_PQ, ek_T):
+    //       (ss_PQ, ct_PQ) = KEM_PQ.Encaps(ek_PQ)
+    //       (ss_T, ct_T) = KEM_T.Encaps(ek_T)
+    //       return (ss_PQ, ss_T, ct_PQ, ct_T)
+    //
+    // Inlining UniversalCombiner from draft section 5.1.3:
+    //   def UniversalCombiner(ss_PQ, ss_T, ct_PQ, ct_T, ek_PQ, ek_T, label):
+    //       return KDF(concat(ss_PQ, ss_T, ct_PQ, ct_T, ek_PQ, ek_T, label))
+    [SharedSecret, Ciphertext] Encaps(EncapsKey ek) {
+        KEM_PQ.EncapsKey ek_PQ = ek[0];
+        KEM_T.EncapsKey ek_T = ek[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
+        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
+        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        KEM_T.SharedSecret ss_T = t_enc[0];
+        KEM_T.Ciphertext ct_T = t_enc[1];
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_PQ.EncodeCiphertext(ct_PQ) || KEM_T.EncodeCiphertext(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        SharedSecret ss = H.evaluate(kdf_in);
+        return [ss, [ct_PQ, ct_T]];
+    }
+
+    // Injective encodings projecting tuple-valued ss / ct / ek to the
+    // draft's flat byte-concatenation form.
+    deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss) {
+        return ss;
+    }
+
+    deterministic injective BitString<Nct> EncodeCiphertext(Ciphertext ct) {
+        return KEM_PQ.EncodeCiphertext(ct[0]) || KEM_T.EncodeCiphertext(ct[1]);
+    }
+
+    deterministic injective BitString<Nek> EncodeEncapsKey(EncapsKey ek) {
+        return KEM_PQ.EncodeEncapsKey(ek[0]) || KEM_T.EncodeEncapsKey(ek[1]);
+    }
+
+    // Draft section 5.4:
+    //   def Decaps(dk, ct):
+    //       (ct_PQ, ct_T) = split(KEM_PQ.Nct, KEM_T.Nct, ct)
+    //       (ek_PQ, ek_T, dk_PQ, dk_T) = expandDecapsKeyK(dk)
+    //       (ss_PQ, ss_T) = prepareDecapsK(ct_PQ, ct_T, dk_PQ, dk_T)
+    //       ss_H = UniversalCombiner(ss_PQ, ss_T, ct_PQ, ct_T, ek_PQ, ek_T, Label)
+    //       return ss_H
+    //
+    // Inlining prepareDecapsK from draft section 5.1.2:
+    //   def prepareDecapsK(ct_PQ, ct_T, dk_PQ, dk_T):
+    //       ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ)
+    //       ss_T = KEM_T.Decaps(dk_T, ct_T)
+    //       return (ss_PQ, ss_T)
+    deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct) {
+        BitString<G.lambda + G.stretch> seed_full = G.evaluate(dk);
+        BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keypair = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keypair = KEM_T.DeriveKeyPair(seed_T);
+        KEM_PQ.EncapsKey ek_PQ = pq_keypair[0];
+        KEM_PQ.DecapsKey dk_PQ = pq_keypair[1];
+        KEM_T.EncapsKey ek_T = t_keypair[0];
+        KEM_T.DecapsKey dk_T = t_keypair[1];
+        KEM_PQ.Ciphertext ct_PQ = ct[0];
+        KEM_T.Ciphertext ct_T = ct[1];
+        KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ);
+        KEM_T.SharedSecret ss_T = KEM_T.Decaps(dk_T, ct_T);
+        BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_PQ.EncodeCiphertext(ct_PQ) || KEM_T.EncodeCiphertext(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}

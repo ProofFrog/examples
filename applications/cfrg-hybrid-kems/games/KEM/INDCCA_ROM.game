@@ -1,0 +1,64 @@
+// IND-CCA security for a KEM in the random oracle model.
+//
+// Parameterized over the KEM, the hash domain/range, and the random
+// oracle Function H. Mirrors INDCCA.game but adds a Hash oracle that
+// exposes H to the adversary. The proof's let: block shares H between
+// the scheme and the game (the scheme uses a UGRandomOracleKDF wrapper
+// around the same Function H), so scheme calls to H(...) are the same
+// random function the adversary queries via Hash.
+//
+// Real:   adversary receives the real shared secret from K.Encaps.
+// Random: adversary receives a uniformly random shared secret.
+
+import '../../primitives/KEM.primitive';
+
+Game Real(KEM K, Set D, Set R, Function<D, R> H) {
+    K.DecapsKey dk;
+    K.Ciphertext ctStar;
+
+    [K.EncapsKey, K.SharedSecret, K.Ciphertext] Initialize() {
+        [K.EncapsKey, K.DecapsKey] k = K.KeyGen();
+        dk = k[1];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        ctStar = rsp[1];
+        return [k[0], rsp[0], rsp[1]];
+    }
+
+    K.SharedSecret? Decaps(K.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return K.Decaps(dk, c);
+    }
+
+    R Hash(D m) {
+        return H(m);
+    }
+}
+
+Game Random(KEM K, Set D, Set R, Function<D, R> H) {
+    K.DecapsKey dk;
+    K.Ciphertext ctStar;
+
+    [K.EncapsKey, K.SharedSecret, K.Ciphertext] Initialize() {
+        [K.EncapsKey, K.DecapsKey] k = K.KeyGen();
+        dk = k[1];
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        K.SharedSecret ss <- K.SharedSecret;
+        ctStar = rsp[1];
+        return [k[0], ss, rsp[1]];
+    }
+
+    K.SharedSecret? Decaps(K.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return K.Decaps(dk, c);
+    }
+
+    R Hash(D m) {
+        return H(m);
+    }
+}
+
+export as KEM_INDCCA_ROM;

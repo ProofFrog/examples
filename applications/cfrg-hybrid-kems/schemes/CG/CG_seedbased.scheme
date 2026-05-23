@@ -1,0 +1,150 @@
+// CG_seedbased: hybrid KEM combining a post-quantum KEM with a nominal group via a
+// C2PRICombiner KDF, per draft-irtf-cfrg-hybrid-kems-10 section 5.5.
+//
+// FrogLang modelling notes:
+// - C2PRICombiner omits ct_PQ and ek_PQ from the KDF input; security
+//   therefore relies on the PQ component satisfying C2PRI.
+// - Seed-form dk per draft section 5.2: DecapsKey is the raw seed, and
+//   Decaps re-runs expandDecapsKeyG each call.
+// - ek / ct / dk are kept as tuples rather than flat concats; their
+//   injective encodings project to the draft's concat form.
+// - Group_T.RandomScalar maps directly to NG.RandomScalar(seed). Encaps
+//   samples a fresh seed and calls RandomScalar, matching the draft's
+//   `RandomScalar(random(Group_T.Nseed))` idiom.
+// - Label is modelled as a Label primitive whose get() method returns the
+//   fixed domain-separation bytes.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/PRG.primitive';
+import '../../primitives/KDF.primitive';
+import '../../primitives/Label.primitive';
+
+
+Scheme CG_seedbased(KEM K, NominalGroup NG, PRG G, KDF H, Label L) extends KEM {
+    requires G.lambda + G.stretch == K.Nseed + NG.Nseed;
+    requires H.Nin == K.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel;
+
+    Int Nseed = G.lambda;
+    Int Nss = H.Nout;
+    Int Nin = H.Nin;
+    Int Nct = K.Nct + NG.Nelem;
+    Int Nek = K.Nek + NG.Nelem;
+    Set SharedSecret = BitString<H.Nout>;
+    Set EncapsKey = [K.EncapsKey, NG.Element];
+    Set Ciphertext = [K.Ciphertext, NG.Element];
+    Set DecapsKey = BitString<G.lambda>;
+
+    // Draft section 5.5:
+    //   def DeriveKeyPair(seed):
+    //       (ek_PQ, ek_T, dk_PQ, dk_T) = expandDecapsKeyG(seed)
+    //       return (seed, concat(ek_PQ, ek_T))
+    //
+    // Inlining expandDecapsKeyG from draft section 5.1.1:
+    //   def expandDecapsKeyG(seed):
+    //       seed_full = PRG(seed)
+    //       (seed_PQ, seed_T) = split(KEM_PQ.Nseed, Group_T.Nseed, seed_full)
+    //       (dk_PQ, ek_PQ) = KEM_PQ.DeriveKeyPair(seed_PQ)
+    //       dk_T = Group_T.RandomScalar(seed_T)
+    //       ek_T = Group_T.Exp(Group_T.g, dk_T)
+    //       return (ek_PQ, ek_T, dk_PQ, dk_T)
+    deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed) {
+        BitString<G.lambda + G.stretch> seed_full = G.evaluate(seed);
+        BitString<K.Nseed> seed_PQ = seed_full[0 : K.Nseed];
+        BitString<NG.Nseed> seed_T = seed_full[K.Nseed : K.Nseed + NG.Nseed];
+        [K.EncapsKey, K.DecapsKey] kem_keypair = K.DeriveKeyPair(seed_PQ);
+        K.EncapsKey ek_PQ = kem_keypair[0];
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        return [[ek_PQ, ek_T], seed];
+    }
+
+    // Draft section 5.2:
+    //   def GenerateKeyPair():
+    //       seed = random(Nseed)
+    //       return DeriveKeyPair(seed)
+    [EncapsKey, DecapsKey] KeyGen() {
+        BitString<Nseed> seed <- BitString<Nseed>;
+        return this.DeriveKeyPair(seed);
+    }
+
+    // Draft section 5.5:
+    //   def Encaps(ek):
+    //       (ek_PQ, ek_T) = split(KEM_PQ.Nek, Group_T.Nelem, ek)
+    //       (ss_PQ, ss_T, ct_PQ, ct_T) = prepareEncapsG(ek_PQ, ek_T)
+    //       ss_H = C2PRICombiner(ss_PQ, ss_T, ct_T, ek_T, Label)
+    //       ct_H = concat(ct_PQ, ct_T)
+    //       return (ss_H, ct_H)
+    //
+    // Inlining prepareEncapsG from draft section 5.1.1:
+    //   def prepareEncapsG(ek_PQ, ek_T):
+    //       (ss_PQ, ct_PQ) = KEM_PQ.Encaps(ek_PQ)
+    //       sk_E = Group_T.RandomScalar(random(Group_T.Nseed))
+    //       ct_T = Group_T.Exp(Group_T.g, sk_E)
+    //       ss_T = Group_T.ElementToSharedSecret(Group_T.Exp(ek_T, sk_E))
+    //       return (ss_PQ, ss_T, ct_PQ, ct_T)
+    //
+    // Inlining C2PRICombiner from draft section 5.1.3:
+    //   def C2PRICombiner(ss_PQ, ss_T, ct_T, ek_T, label):
+    //       return KDF(concat(ss_PQ, ss_T, ct_T, ek_T, label))
+    [SharedSecret, Ciphertext] Encaps(EncapsKey ek) {
+        K.EncapsKey ek_PQ = ek[0];
+        NG.Element ek_T = ek[1];
+        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(ek_PQ);
+        K.SharedSecret ss_PQ = encaps_result[0];
+        K.Ciphertext ct_PQ = encaps_result[1];
+        BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
+        NG.Scalar sk_E = NG.RandomScalar(seed_E);
+        NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
+        NG.Element ss_T_elem = NG.Exp(ek_T, sk_E);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(ss_T_elem);
+        BitString<H.Nin> kdf_in = K.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        SharedSecret ss = H.evaluate(kdf_in);
+        Ciphertext ct = [ct_PQ, ct_T];
+        return [ss, ct];
+    }
+
+    // Injective encodings projecting tuple-valued ss / ct / ek to the
+    // draft's flat byte-concatenation form.
+    deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss) {
+        return ss;
+    }
+
+    deterministic injective BitString<Nct> EncodeCiphertext(Ciphertext ct) {
+        return K.EncodeCiphertext(ct[0]) || NG.Encode(ct[1]);
+    }
+
+    deterministic injective BitString<Nek> EncodeEncapsKey(EncapsKey ek) {
+        return K.EncodeEncapsKey(ek[0]) || NG.Encode(ek[1]);
+    }
+
+    // Draft section 5.5:
+    //   def Decaps(dk, ct):
+    //       (ct_PQ, ct_T) = split(KEM_PQ.Nct, Group_T.Nelem, ct)
+    //       (ek_PQ, ek_T, dk_PQ, dk_T) = expandDecapsKeyG(dk)
+    //       (ss_PQ, ss_T) = prepareDecapsG(ct_PQ, ct_T, dk_PQ, dk_T)
+    //       ss_H = C2PRICombiner(ss_PQ, ss_T, ct_T, ek_T, Label)
+    //       return ss_H
+    //
+    // Inlining prepareDecapsG from draft section 5.1.1:
+    //   def prepareDecapsG(ct_PQ, ct_T, dk_PQ, dk_T):
+    //       ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ)
+    //       ss_T = Group_T.ElementToSharedSecret(Group_T.Exp(ct_T, dk_T))
+    //       return (ss_PQ, ss_T)
+    deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct) {
+        BitString<G.lambda + G.stretch> seed_full = G.evaluate(dk);
+        BitString<K.Nseed> seed_PQ = seed_full[0 : K.Nseed];
+        BitString<NG.Nseed> seed_T = seed_full[K.Nseed : K.Nseed + NG.Nseed];
+        [K.EncapsKey, K.DecapsKey] kem_keypair = K.DeriveKeyPair(seed_PQ);
+        K.DecapsKey dk_PQ = kem_keypair[1];
+        NG.Scalar dk_T = NG.RandomScalar(seed_T);
+        NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
+        K.Ciphertext ct_PQ = ct[0];
+        NG.Element ct_T = ct[1];
+        K.SharedSecret ss_PQ = K.Decaps(dk_PQ, ct_PQ);
+        NG.Element ss_T_elem = NG.Exp(ct_T, dk_T);
+        BitString<NG.Nss> ss_T = NG.ElementToSharedSecret(ss_T_elem);
+        BitString<H.Nin> kdf_in = K.EncodeSharedSecret(ss_PQ) || ss_T || NG.Encode(ct_T) || NG.Encode(ek_T) || L.get();
+        return H.evaluate(kdf_in);
+    }
+}
