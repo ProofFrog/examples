@@ -25,60 +25,29 @@ import '../../Games/Hash/Regularity.game';
 // canonical shape of HashedDDH), and on Challenge returns the saved
 // pair.
 Reduction R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDH(G) against HashedDDH(G, n, H).Adversary {
-    GroupElem<G> gr_saved;
-    BitString<n> val_saved;
-    Int count;
-
-    GroupElem<G> Initialize() {
+    [GroupElem<G>, GroupElem<G>, BitString<n>] Initialize() {
         [GroupElem<G>, GroupElem<G>, GroupElem<G>] triple = challenger.Initialize();
-        gr_saved = triple[1];
-        val_saved = H(triple[2]);
-        count = 0;
-        return triple[0];
+        return [triple[0], triple[1], H(triple[2])];
     }
 
     BitString<n> Hash(GroupElem<G> x) {
         return H(x);
-    }
-
-    [GroupElem<G>, BitString<n>]? Challenge() {
-        [GroupElem<G>, BitString<n>]? result = None;
-        count = count + 1;
-        if (count == 1) {
-            result = [gr_saved, val_saved];
-        }
-        return result;
     }
 }
 
 // Reduction R': composes with Regularity and presents a HashedDDH
 // interface. Samples pk and gr locally; obtains val_saved from Sample().
 Reduction Rprime(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose Regularity(GroupElem<G>, n, H) against HashedDDH(G, n, H).Adversary {
-    GroupElem<G> gr_saved;
-    BitString<n> val_saved;
-    Int count;
-
-    GroupElem<G> Initialize() {
+    [GroupElem<G>, GroupElem<G>, BitString<n>] Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
         GroupElem<G> pk = G.generator ^ a;
         ModInt<G.order> r <- ModInt<G.order>;
-        gr_saved = G.generator ^ r;
-        val_saved = challenger.Sample();
-        count = 0;
-        return pk;
+        BitString<n> val = challenger.Sample();
+        return [pk, G.generator ^ r, val];
     }
 
     BitString<n> Hash(GroupElem<G> x) {
         return H(x);
-    }
-
-    [GroupElem<G>, BitString<n>]? Challenge() {
-        [GroupElem<G>, BitString<n>]? result = None;
-        count = count + 1;
-        if (count == 1) {
-            result = [gr_saved, val_saved];
-        }
-        return result;
     }
 }
 
