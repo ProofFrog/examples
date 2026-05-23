@@ -1,0 +1,104 @@
+schema_version = 1
+
+[[entry]]
+transform = "Topological Sorting"
+description = "hop 2 right_2 fwd: drops c2prime <$ d as unused on LHS. swap c2prime to the end, seq-split off the shared prefix and prove via sim, then rnd{1} drops the trailing c2prime using E2_dCiphertextSpace2_ll."
+added = "2026-05-23"
+game_before = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : CiphertextSpace1;
+  c1 <$ CiphertextSpace1;
+  var c2prime : CiphertextSpace2;
+  c2prime <$ CiphertextSpace2;
+  var _r0 : E2.Key;
+  _r0 <@ E2.KeyGen();
+  var _r1 : E2.Ciphertext;
+  _r1 <@ E2.Enc(_r0, m);
+  return (c1, _r1);
+}
+'''
+game_after = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : CiphertextSpace1;
+  c1 <$ CiphertextSpace1;
+  var _r0 : E2.Key;
+  _r0 <@ E2.KeyGen();
+  var _r1 : E2.Ciphertext;
+  _r1 <@ E2.Enc(_r0, m);
+  return (c1, _r1);
+}
+'''
+tactic = '''
+proc.
+swap{1} 2 2.
+seq 3 3 : (={c1, _r0, _r1, glob E1, glob E2}).
+sim.
+rnd{1}; auto; smt(E2_dCiphertextSpace2_ll).
+'''
+
+[[entry]]
+transform = "Topological Sorting"
+description = "hop 2 right_2 rev: re-introduces c2prime <$ d on RHS (LHS lacks it). Symmetric to the fwd entry."
+added = "2026-05-23"
+game_before = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : CiphertextSpace1;
+  c1 <$ CiphertextSpace1;
+  var _r0 : E2.Key;
+  _r0 <@ E2.KeyGen();
+  var _r1 : E2.Ciphertext;
+  _r1 <@ E2.Enc(_r0, m);
+  return (c1, _r1);
+}
+'''
+game_after = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : CiphertextSpace1;
+  c1 <$ CiphertextSpace1;
+  var c2prime : CiphertextSpace2;
+  c2prime <$ CiphertextSpace2;
+  var _r0 : E2.Key;
+  _r0 <@ E2.KeyGen();
+  var _r1 : E2.Ciphertext;
+  _r1 <@ E2.Enc(_r0, m);
+  return (c1, _r1);
+}
+'''
+tactic = '''
+proc.
+swap{2} 2 2.
+seq 3 3 : (={c1, _r0, _r1, glob E1, glob E2}).
+sim.
+rnd{2}; auto; smt(E2_dCiphertextSpace2_ll).
+'''
+
+[[entry]]
+transform = "Topological Sorting"
+description = "hop 4 left_1: drops c2prime <$ d (unused) — same shape as hop 2 right_2 fwd but in the left-side chain."
+added = "2026-05-23"
+game_before = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : CiphertextSpace1;
+  c1 <$ CiphertextSpace1;
+  var challenger_ENC_c1 : CiphertextSpace2;
+  challenger_ENC_c1 <$ CiphertextSpace2;
+  var c2prime : CiphertextSpace2;
+  c2prime <$ CiphertextSpace2;
+  return (c1, challenger_ENC_c1);
+}
+'''
+game_after = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : CiphertextSpace1;
+  c1 <$ CiphertextSpace1;
+  var challenger_ENC_c1 : CiphertextSpace2;
+  challenger_ENC_c1 <$ CiphertextSpace2;
+  return (c1, challenger_ENC_c1);
+}
+'''
+tactic = '''
+proc.
+seq 2 2 : (={c1, challenger_ENC_c1, glob E1, glob E2}).
+sim.
+rnd{1}; auto; smt(E2_dCiphertextSpace2_ll).
+'''
