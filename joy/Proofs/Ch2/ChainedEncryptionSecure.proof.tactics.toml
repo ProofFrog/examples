@@ -102,3 +102,36 @@ seq 2 2 : (={c1, challenger_ENC_c1, glob E1, glob E2}).
 sim.
 rnd{1}; auto; smt(E2_dCiphertextSpace2_ll).
 '''
+
+[[entry]]
+transform = "Merge Product Samples"
+description = "hop 4 left_2: merges two independent samples c1 <$ d1; c2 <$ d2 (returning (c1, c2)) into one product sample c <$ d1 `*` d2. rndsem{1} 0 folds LHS into a single dlet sample; have eqd builds dprod_dlet + dlet_dunit equality between the dprod and dlet/dmap form; rnd with identity bijection then matches the two samplings."
+added = "2026-05-23"
+game_before = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : CiphertextSpace1;
+  c1 <$ CiphertextSpace1;
+  var challenger_ENC_c1 : CiphertextSpace2;
+  challenger_ENC_c1 <$ CiphertextSpace2;
+  return (c1, challenger_ENC_c1);
+}
+'''
+game_after = '''
+proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var c1 : [CiphertextSpace1, CiphertextSpace2];
+  c1 <$ (CiphertextSpace1, CiphertextSpace2);
+  return c1;
+}
+'''
+tactic = '''
+proc.
+rndsem{1} 0.
+have eqd: dCiphertextSpace1 `*` dCiphertextSpace2
+        = dlet dCiphertextSpace1
+               (fun (a : CiphertextSpace1) =>
+                  dmap dCiphertextSpace2 (fun (b : CiphertextSpace2) => (a, b))).
+  rewrite dprod_dlet.
+  apply eq_dlet => // a; rewrite -dlet_dunit; apply eq_dlet => //.
+rnd (fun p : CiphertextSpace1 * CiphertextSpace2 => p) (fun p => p).
+skip => />; rewrite -eqd /=; smt(dprodE).
+'''
