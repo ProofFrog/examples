@@ -1,0 +1,77 @@
+schema_version = 1
+
+[[entry]]
+transform = "<hop>"
+description = "5_8_e hop_1: PRGSecurity(G).Real o R1 ~ INDOT$(P).Real o R2 (deterministic-reorder; couple samples + eliminate calls)."
+added = "2026-05-31"
+game_before = '''
+proc Query() : BitString<lambda + 2 * lambda> = {
+  var challenger_Query_s0 : BitString<lambda>;
+  challenger_Query_s0 <$ BitString<lambda>;
+  var _r0 : BitString<G.lambda + G.stretch>;
+  _r0 <@ G.evaluate(challenger_Query_s0);
+  var _r1 : BitString<G.lambda + G.stretch>;
+  _r1 <@ G.evaluate(0^lambda);
+  return (_r0 BinaryOperators.ADD _r1);
+}
+'''
+game_after = '''
+proc Query() : BitString<lambda + 2 * lambda> = {
+  var v_P_KeyGen_k0 : BitString<lambda>;
+  v_P_KeyGen_k0 <$ BitString<lambda>;
+  var challenger_CTXT_k0 : BitString<lambda>;
+  challenger_CTXT_k0 = v_P_KeyGen_k0;
+  var _r0 : BitString<G.lambda + G.stretch>;
+  _r0 <@ G.evaluate(challenger_CTXT_k0);
+  var _r1 : BitString<G.lambda + G.stretch>;
+  _r1 <@ G.evaluate(0^lambda);
+  var challenger_CTXT_c0 : BitString<lambda + 2 * lambda>;
+  challenger_CTXT_c0 = (_r0 BinaryOperators.ADD _r1);
+  var result : BitString<3 * lambda>;
+  result = challenger_CTXT_c0;
+  return result;
+}
+'''
+tactic = '''
+proc. inline *. sp. wp.
+swap{2} 3 -2.
+seq 1 1 : (s{1} = k0{2}).
++ rnd (fun (x : bs_lambda) => x); skip => />.
+seq 0 1 : (s{1} = k0{2} /\ _r0{2} = G_c.ev_evaluate zero_lambda).
++ exists* (glob G){2}; elim* => g2; call{2} (G_evaluate_det g2 zero_lambda); auto.
+sp.
+exists* (glob G){1}; elim* => g1. exists* (glob G){2}; elim* => g2.
+exists* k1{2}; elim* => k1v. call{2} (G_evaluate_det g2 k1v).
+call{1} (G_evaluate_det g1 zero_lambda). wp.
+exists* s{1}; elim* => sv. call{1} (G_evaluate_det g1 sv).
+skip => /#.
+'''
+
+[[entry]]
+transform = "<hop>"
+description = "5_8_e hop_3: INDOT$(P).Random o R2 ~ PRGSecurity(H).Random (dead G.evaluate via INDOT$.Random; peel + couple samples)."
+added = "2026-05-31"
+game_before = '''
+proc Query() : BitString<lambda + 2 * lambda> = {
+  var challenger_CTXT_c0 : BitString<lambda + 2 * lambda>;
+  challenger_CTXT_c0 <$ BitString<lambda + 2 * lambda>;
+  var result : BitString<3 * lambda>;
+  result = challenger_CTXT_c0;
+  return result;
+}
+'''
+game_after = '''
+proc Query() : BitString<lambda + 2 * lambda> = {
+  var r : BitString<lambda + 2 * lambda>;
+  r <$ BitString<lambda + 2 * lambda>;
+  return r;
+}
+'''
+tactic = '''
+proc. inline *. sp. wp.
+seq 1 0 : (true).
++ exists* (glob G){1}; elim* => g1; call{1} (G_evaluate_det g1 zero_lambda); auto.
+sp.
+rnd.
+auto.
+'''
