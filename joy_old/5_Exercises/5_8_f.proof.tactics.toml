@@ -1,0 +1,86 @@
+schema_version = 1
+
+[[entry]]
+transform = "<hop>"
+description = "5_8_f hop_1: PRGSecurity(G).Real o R2 ~ INDOT$(P).Real o R3 (deterministic-reorder; XOR-of-two-PRG-outputs: couple both samples + eliminate all four G.evaluate calls)."
+added = "2026-06-01"
+game_before = '''
+proc Query() : BitString<2 * lambda + lambda> = {
+  var sR : BitString<lambda>;
+  sR <$ BitString<lambda>;
+  var challenger_Query_s1 : BitString<lambda>;
+  challenger_Query_s1 <$ BitString<lambda>;
+  var _r0 : BitString<G.lambda + G.stretch>;
+  _r0 <@ G.evaluate(challenger_Query_s1);
+  var _r1 : BitString<G.lambda + G.stretch>;
+  _r1 <@ G.evaluate(sR);
+  return (_r0 BinaryOperators.ADD _r1);
+}
+'''
+game_after = '''
+proc Query() : BitString<2 * lambda + lambda> = {
+  var sR : BitString<lambda>;
+  sR <$ BitString<lambda>;
+  var v_P_KeyGen_k1 : BitString<lambda>;
+  v_P_KeyGen_k1 <$ BitString<lambda>;
+  var challenger_CTXT_k1 : BitString<lambda>;
+  challenger_CTXT_k1 = v_P_KeyGen_k1;
+  var _r0 : BitString<G.lambda + G.stretch>;
+  _r0 <@ G.evaluate(challenger_CTXT_k1);
+  var _r1 : BitString<G.lambda + G.stretch>;
+  _r1 <@ G.evaluate(sR);
+  var challenger_CTXT_c1 : BitString<lambda + 2 * lambda>;
+  challenger_CTXT_c1 = (_r0 BinaryOperators.ADD _r1);
+  return challenger_CTXT_c1;
+}
+'''
+tactic = '''
+proc. inline *. inline *. sp. wp.
+seq 1 1 : (sR{1} = sR{2}).
++ rnd (fun (x : bs_lambda) => x); skip => />.
+swap{2} 3 -2.
+seq 1 1 : (sR{1} = sR{2} /\ s{1} = k0{2}).
++ rnd (fun (x : bs_lambda) => x); skip => />.
+swap{2} [3..4] -2.
+sp.
+exists* (glob G){1}; elim* => g1.
+exists* (glob G){2}; elim* => g2.
+exists* k0{2}; elim* => k0v. call{2} (G_evaluate_det g2 k0v).
+wp.
+exists* sR{2}; elim* => sRv2. call{2} (G_evaluate_det g2 sRv2).
+exists* sR{1}; elim* => sRv1. call{1} (G_evaluate_det g1 sRv1).
+wp.
+exists* s{1}; elim* => sv1. call{1} (G_evaluate_det g1 sv1).
+skip => /> *.
+'''
+
+[[entry]]
+transform = "<hop>"
+description = "5_8_f hop_3: INDOT$(P).Random o R3 ~ PRGSecurity(H).Random (dead G.evaluate via INDOT$.Random; peel dead sample + call, couple uniforms)."
+added = "2026-06-01"
+game_before = '''
+proc Query() : BitString<2 * lambda + lambda> = {
+  var sR : BitString<lambda>;
+  sR <$ BitString<lambda>;
+  var challenger_CTXT_c1 : BitString<lambda + 2 * lambda>;
+  challenger_CTXT_c1 <$ BitString<lambda + 2 * lambda>;
+  return challenger_CTXT_c1;
+}
+'''
+game_after = '''
+proc Query() : BitString<2 * lambda + lambda> = {
+  var r : BitString<2 * lambda + lambda>;
+  r <$ BitString<2 * lambda + lambda>;
+  return r;
+}
+'''
+tactic = '''
+proc. inline *. sp. wp.
+seq 3 0 : (true).
++ exists* (glob G){1}; elim* => g1.
+  seq 1 0 : ((glob G){1} = g1).
+  + auto; smt(dbs_lambda_ll).
+  wp. exists* sR{1}; elim* => sRv.
+  call{1} (G_evaluate_det g1 sRv). skip => />.
+rnd (fun (x : bs_3_lambda) => x); skip => />.
+'''
