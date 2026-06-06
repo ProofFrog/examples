@@ -1,0 +1,256 @@
+schema_version = 1
+
+[[entry]]
+transform = "<oracle>:challenge"
+description = "hop 0 challenge -- post-init transformed body; det-axiom finisher (F_evaluate_det) relating the two abstract encaps results. EC-validated to qed (EXIT 0)."
+added = "2026-06-06"
+game_before = '''
+proc Initialize() : PKeySpace = {
+  var k : [PKeySpace, SKeySpace];
+  k <@ K.KeyGen();
+  pk = k[0];
+  sk = k[1];
+  return pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var v_KF_Encaps_x0 : [SharedSecretSpace, CiphertextSpace];
+  v_KF_Encaps_x0 <@ K.Encaps(pk);
+  var v_KF_Encaps_k0 : BitString<lambda>;
+  v_KF_Encaps_k0 = v_KF_Encaps_x0[0];
+  var v_KF_Encaps_c0 : CiphertextSpace;
+  v_KF_Encaps_c0 = v_KF_Encaps_x0[1];
+  var v_KF_Encaps_ss0 : BitString<out>;
+  v_KF_Encaps_ss0 <@ F.evaluate(v_KF_Encaps_k0, v_KF_Encaps_c0);
+  var rsp : [BitString<out>, CiphertextSpace];
+  rsp = (v_KF_Encaps_ss0, v_KF_Encaps_c0);
+  var ss : BitString<out>;
+  ss = rsp[0];
+  var ctxt : CiphertextSpace;
+  ctxt = rsp[1];
+  return (ss, ctxt);
+}
+'''
+game_after = '''
+proc Initialize() : PKeySpace = {
+  var challenger_Initialize_k0 : [PKeySpace, SKeySpace];
+  challenger_Initialize_k0 <@ K.KeyGen();
+  challenger_pk = challenger_Initialize_k0[0];
+  challenger_sk = challenger_Initialize_k0[1];
+  return challenger_pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var challenger_Challenge_rsp0 : [SharedSecretSpace, CiphertextSpace];
+  challenger_Challenge_rsp0 <@ K.Encaps(challenger_pk);
+  var challenger_Challenge_ss0 : SharedSecretSpace;
+  challenger_Challenge_ss0 = challenger_Challenge_rsp0[0];
+  var challenger_Challenge_ctxt0 : CiphertextSpace;
+  challenger_Challenge_ctxt0 = challenger_Challenge_rsp0[1];
+  var rsp : [SharedSecretSpace, CiphertextSpace];
+  rsp = (challenger_Challenge_ss0, challenger_Challenge_ctxt0);
+  var ss : SharedSecretSpace;
+  ss = rsp[0];
+  var ct : CiphertextSpace;
+  ct = rsp[1];
+  var _r0 : BitString<F.out>;
+  _r0 <@ F.evaluate(ss, ct);
+  return (_r0, ct);
+}
+'''
+tactic = '''
+proc. inline *. sp. wp.
+seq 1 1 : (={glob K, glob F} /\ x{1} = rsp0{2} /\ KF_c.KEM_INDCPA_MultiChal_Real.pk{1} = K_c.KEM_INDCPA_MultiChal_Real.pk{2}).
++ sim.
+sp. wp.
+exists* (glob F){1}, k{1}, c{1}; elim* => gf1 kv cv.
+call{1} (F_evaluate_det gf1 kv cv).
+exists* (glob F){2}, ss{2}, ct{2}; elim* => gf2 ssv ctv.
+call{2} (F_evaluate_det gf2 ssv ctv).
+skip => /#.
+'''
+
+[[entry]]
+transform = "<oracle>:challenge"
+description = "hop 2 challenge -- post-init transformed body; order-swap to align sample/encaps, couple ss0<$dSharedSecretSpace ~ key<$dbs_lambda via eq_funi_ll (both funiform+lossless => equal), then F_evaluate_det finisher. EC-validated to qed (EXIT 0)."
+added = "2026-06-06"
+game_before = '''
+proc Initialize() : PKeySpace = {
+  var challenger_Initialize_k0 : [PKeySpace, SKeySpace];
+  challenger_Initialize_k0 <@ K.KeyGen();
+  challenger_pk = challenger_Initialize_k0[0];
+  challenger_sk = challenger_Initialize_k0[1];
+  return challenger_pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var challenger_Challenge_rsp0 : [SharedSecretSpace, CiphertextSpace];
+  challenger_Challenge_rsp0 <@ K.Encaps(challenger_pk);
+  var challenger_Challenge_ss0 : SharedSecretSpace;
+  challenger_Challenge_ss0 <$ SharedSecretSpace;
+  var challenger_Challenge_ctxt0 : CiphertextSpace;
+  challenger_Challenge_ctxt0 = challenger_Challenge_rsp0[1];
+  var rsp : [SharedSecretSpace, CiphertextSpace];
+  rsp = (challenger_Challenge_ss0, challenger_Challenge_ctxt0);
+  var ss : SharedSecretSpace;
+  ss = rsp[0];
+  var ct : CiphertextSpace;
+  ct = rsp[1];
+  var _r0 : BitString<F.out>;
+  _r0 <@ F.evaluate(ss, ct);
+  return (_r0, ct);
+}
+'''
+game_after = '''
+proc Initialize() : PKeySpace = {
+  var k : [PKeySpace, SKeySpace];
+  k <@ K.KeyGen();
+  pk = k[0];
+  return pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var key : BitString<lambda>;
+  key <$ BitString<lambda>;
+  var rsp : [SharedSecretSpace, CiphertextSpace];
+  rsp <@ K.Encaps(pk);
+  var ct : CiphertextSpace;
+  ct = rsp[1];
+  var _r0 : BitString<F.out>;
+  _r0 <@ F.evaluate(key, ct);
+  return (_r0, ct);
+}
+'''
+tactic = '''
+proc. inline *.
+have eqd : dSharedSecretSpace = dbs_lambda
+  by apply eq_funi_ll; [ apply dSharedSecretSpace_fu | apply dSharedSecretSpace_ll
+                       | apply dbs_lambda_fu | apply dbs_lambda_ll ].
+swap{2} 1 1.
+seq 1 1 : (={glob K, glob F} /\ rsp0{1} = rsp{2} /\ K_c.KEM_INDCPA_MultiChal_Random.pk{1} = G_RandKey.pk{2}).
++ sim.
+seq 1 1 : (={glob K, glob F} /\ rsp0{1} = rsp{2} /\ ss0{1} = key{2} /\ K_c.KEM_INDCPA_MultiChal_Random.pk{1} = G_RandKey.pk{2}).
++ rnd (fun (x : SharedSecretSpace) => x) (fun (x : SharedSecretSpace) => x).
+  skip => />. rewrite eqd. done.
+sp. wp.
+exists* (glob F){1}, ss{1}, ct{1}; elim* => gf1 a0 a1.
+call{1} (F_evaluate_det gf1 a0 a1).
+exists* (glob F){2}, key{2}, ct{2}; elim* => gf2 b0 b1.
+call{2} (F_evaluate_det gf2 b0 b1).
+skip => /#.
+'''
+
+[[entry]]
+transform = "<oracle>:challenge"
+description = "hop 3 challenge -- post-init transformed body; swap{1} to align sample past encaps, relate encaps via sim, couple the two dbs_lambda samples, then F_evaluate_det finisher. EC-validated to qed (EXIT 0)."
+added = "2026-06-06"
+game_before = '''
+proc Initialize() : PKeySpace = {
+  var k : [PKeySpace, SKeySpace];
+  k <@ K.KeyGen();
+  pk = k[0];
+  return pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var key : BitString<lambda>;
+  key <$ BitString<lambda>;
+  var rsp : [SharedSecretSpace, CiphertextSpace];
+  rsp <@ K.Encaps(pk);
+  var ct : CiphertextSpace;
+  ct = rsp[1];
+  var _r0 : BitString<F.out>;
+  _r0 <@ F.evaluate(key, ct);
+  return (_r0, ct);
+}
+'''
+game_after = '''
+proc Initialize() : PKeySpace = {
+  var k : [PKeySpace, SKeySpace];
+  k <@ K.KeyGen();
+  pk = k[0];
+  return pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var rsp : [SharedSecretSpace, CiphertextSpace];
+  rsp <@ K.Encaps(pk);
+  var ct : CiphertextSpace;
+  ct = rsp[1];
+  var challenger_Lookup_k2 : BitString<lambda>;
+  challenger_Lookup_k2 <$ BitString<lambda>;
+  var ss : BitString<out>;
+  ss <@ F.evaluate(challenger_Lookup_k2, ct);
+  return (ss, ct);
+}
+'''
+tactic = '''
+proc. inline *.
+swap{1} 1 2.
+seq 1 1 : (={glob K, glob F} /\ rsp{1} = rsp{2} /\ G_RandKey.pk{1} = R_MultiPRF.pk{2}).
++ sim.
+sp. wp.
+seq 1 1 : (={glob K, glob F} /\ rsp{1} = rsp{2} /\ ct{1} = ct{2} /\ x{2} = ct{2} /\ key{1} = k{2} /\ G_RandKey.pk{1} = R_MultiPRF.pk{2}).
++ rnd. skip => />.
+exists* (glob F){1}, key{1}, ct{1}; elim* => gf1 a0 a1.
+call{1} (F_evaluate_det gf1 a0 a1).
+exists* (glob F){2}, k{2}, x{2}; elim* => gf2 b0 b1.
+call{2} (F_evaluate_det gf2 b0 b1).
+skip => /#.
+'''
+
+[[entry]]
+transform = "<oracle>:challenge"
+description = "hop 5 challenge -- post-init transformed body; relate encaps via sim, drop the dead F.evaluate on {2} via a one-sided seq 0 1 + call{2} (F_evaluate_det ...), then couple the fresh dbs_out samples. EC-validated to qed (EXIT 0)."
+added = "2026-06-06"
+game_before = '''
+proc Initialize() : PKeySpace = {
+  var k : [PKeySpace, SKeySpace];
+  k <@ K.KeyGen();
+  pk = k[0];
+  return pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var rsp : [SharedSecretSpace, CiphertextSpace];
+  rsp <@ K.Encaps(pk);
+  var ct : CiphertextSpace;
+  ct = rsp[1];
+  var challenger_Lookup_r2 : BitString<out>;
+  challenger_Lookup_r2 <$ BitString<out>;
+  var ss : BitString<out>;
+  ss = challenger_Lookup_r2;
+  return (ss, ct);
+}
+'''
+game_after = '''
+proc Initialize() : PKeySpace = {
+  var k : [PKeySpace, SKeySpace];
+  k <@ K.KeyGen();
+  pk = k[0];
+  sk = k[1];
+  return pk;
+}
+proc Challenge() : [BitString<out>, CiphertextSpace] = {
+  var v_KF_Encaps_x0 : [SharedSecretSpace, CiphertextSpace];
+  v_KF_Encaps_x0 <@ K.Encaps(pk);
+  var v_KF_Encaps_k0 : BitString<lambda>;
+  v_KF_Encaps_k0 = v_KF_Encaps_x0[0];
+  var v_KF_Encaps_c0 : CiphertextSpace;
+  v_KF_Encaps_c0 = v_KF_Encaps_x0[1];
+  var v_KF_Encaps_ss0 : BitString<out>;
+  v_KF_Encaps_ss0 <@ F.evaluate(v_KF_Encaps_k0, v_KF_Encaps_c0);
+  var rsp : [BitString<out>, CiphertextSpace];
+  rsp = (v_KF_Encaps_ss0, v_KF_Encaps_c0);
+  var ss : BitString<out>;
+  ss <$ BitString<out>;
+  var ctxt : CiphertextSpace;
+  ctxt = rsp[1];
+  return (ss, ctxt);
+}
+'''
+tactic = '''
+proc. inline *.
+sp.
+seq 1 1 : (={glob K, glob F} /\ rsp{1} = x{2} /\ R_MultiPRF.pk{1} = KF_c.KEM_INDCPA_MultiChal_Random.pk{2}).
++ sim.
+sp.
+seq 0 1 : (={glob K, glob F} /\ rsp{1} = x{2} /\ ct{1} = x{2}.`2 /\ c{2} = x{2}.`2 /\ R_MultiPRF.pk{1} = KF_c.KEM_INDCPA_MultiChal_Random.pk{2}).
++ exists* (glob F){2}, k{2}, c{2}; elim* => gf k0 c0.
+  call{2} (F_evaluate_det gf k0 c0).
+  skip => /#.
+wp. rnd. wp. skip => /#.
+'''
