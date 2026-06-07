@@ -20,30 +20,6 @@ import '../../Games/PubKeyEnc/INDCPA_MultiChal.game';
 import '../../Games/Group/DDHMultiChal.game';
 import '../../Schemes/PubKeyEnc/ElGamal.scheme';
 
-// DDHMultiChal reduction (left message): multiplies mL into the DDH value.
-Reduction R_L(Group G) compose DDHMultiChal(G) against INDCPA_MultiChal(ElGamal(G)).Adversary {
-    GroupElem<G> Initialize(GroupElem<G> pk) {
-        return pk;
-    }
-
-    [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        return [pair[0], mL * pair[1]];
-    }
-}
-
-// DDHMultiChal reduction (right message): multiplies mR into the DDH value.
-Reduction R_R(Group G) compose DDHMultiChal(G) against INDCPA_MultiChal(ElGamal(G)).Adversary {
-    GroupElem<G> Initialize(GroupElem<G> pk) {
-        return pk;
-    }
-
-    [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        return [pair[0], mR * pair[1]];
-    }
-}
-
 proof:
 
 let:
@@ -67,3 +43,27 @@ games:
     DDHMultiChal(G).Left compose R_R(G) against INDCPA_MultiChal(E).Adversary;
 
     INDCPA_MultiChal(E).Right against INDCPA_MultiChal(E).Adversary;
+
+// DDHMultiChal reduction (left message): multiplies mL into the DDH value.
+Reduction R_L(Group G) compose DDHMultiChal(G) against INDCPA_MultiChal(ElGamal(G)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
+        return [pair[0], mL * pair[1]];
+    }
+}
+
+// DDHMultiChal reduction (right message): multiplies mR into the DDH value.
+Reduction R_R(Group G) compose DDHMultiChal(G) against INDCPA_MultiChal(ElGamal(G)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
+        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
+        return [pair[0], mR * pair[1]];
+    }
+}

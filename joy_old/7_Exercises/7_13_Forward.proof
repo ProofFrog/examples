@@ -4,14 +4,6 @@ import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/7_Exercises/7_13.game';
 import '../../Games/SymEnc/INDCPA_MultiChal.game';
 
-Reduction R(SymEnc E) compose INDCPA_MultiChal(E) against Challenge(E).Adversary {
-    E.Ciphertext Challenge(E.Message m) {
-        E.Message mPrime <- E.Message;
-        E.Ciphertext c = challenger.Eavesdrop(m, mPrime);
-        return c;
-    }
-}
-
 proof:
 
 let:
@@ -38,3 +30,11 @@ games:
     
     // By codewise equivalency
     Challenge(E).Right against Challenge(E).Adversary;
+
+Reduction R(SymEnc E) compose INDCPA_MultiChal(E) against Challenge(E).Adversary {
+    E.Ciphertext Challenge(E.Message m) {
+        E.Message mPrime <- E.Message;
+        E.Ciphertext c = challenger.Eavesdrop(m, mPrime);
+        return c;
+    }
+}

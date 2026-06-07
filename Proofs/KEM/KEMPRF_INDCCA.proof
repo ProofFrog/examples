@@ -11,6 +11,36 @@ import '../../Schemes/KEM/KEMPRF.scheme';
 import '../../Games/KEM/INDCCA_MultiChal.game';
 import '../../Games/PRF/PRFSecurity_MultiKey.game';
 
+proof:
+
+let:
+    Int lambda;
+    Int in;
+    Int out;
+    Set SharedSecretSpace;
+    Set CiphertextSpace;
+    Set PKeySpace;
+    Set SKeySpace;
+    KEM K = KEM(SharedSecretSpace, CiphertextSpace, PKeySpace, SKeySpace);
+    PRF F = PRF(lambda, in, out);
+    KEMPRF KF = KEMPRF(K, F);
+
+assume:
+    KEM_INDCCA_MultiChal(K);
+    PRFSecurity_MultiKey(F);
+
+theorem:
+    KEM_INDCCA_MultiChal(KF);
+
+games:
+    KEM_INDCCA_MultiChal(KF).Real against KEM_INDCCA_MultiChal(KF).Adversary;
+    KEM_INDCCA_MultiChal(K).Real compose R_KEM(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
+    KEM_INDCCA_MultiChal(K).Random compose R_KEM(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
+    G_RandKey(K, F) against KEM_INDCCA_MultiChal(KF).Adversary;
+    PRFSecurity_MultiKey(F).Real compose R_MultiPRF(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
+    PRFSecurity_MultiKey(F).Random compose R_MultiPRF(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
+    KEM_INDCCA_MultiChal(KF).Random against KEM_INDCCA_MultiChal(KF).Adversary;
+
 // Reduction for KEM KEM_INDCCA_MultiChal hop: receives (pk, ss, ct) from KEM challenger,
 // applies F.evaluate(ss, ct) to produce the KEMPRF shared secret.
 Reduction R_KEM(KEM K, PRF F, KEMPRF KF) compose KEM_INDCCA_MultiChal(K) against KEM_INDCCA_MultiChal(KF).Adversary {
@@ -82,33 +112,3 @@ Reduction R_MultiPRF(KEM K, PRF F, KEMPRF KF) compose PRFSecurity_MultiKey(F) ag
         return F.evaluate(k, c);
     }
 }
-
-proof:
-
-let:
-    Int lambda;
-    Int in;
-    Int out;
-    Set SharedSecretSpace;
-    Set CiphertextSpace;
-    Set PKeySpace;
-    Set SKeySpace;
-    KEM K = KEM(SharedSecretSpace, CiphertextSpace, PKeySpace, SKeySpace);
-    PRF F = PRF(lambda, in, out);
-    KEMPRF KF = KEMPRF(K, F);
-
-assume:
-    KEM_INDCCA_MultiChal(K);
-    PRFSecurity_MultiKey(F);
-
-theorem:
-    KEM_INDCCA_MultiChal(KF);
-
-games:
-    KEM_INDCCA_MultiChal(KF).Real against KEM_INDCCA_MultiChal(KF).Adversary;
-    KEM_INDCCA_MultiChal(K).Real compose R_KEM(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
-    KEM_INDCCA_MultiChal(K).Random compose R_KEM(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
-    G_RandKey(K, F) against KEM_INDCCA_MultiChal(KF).Adversary;
-    PRFSecurity_MultiKey(F).Real compose R_MultiPRF(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
-    PRFSecurity_MultiKey(F).Random compose R_MultiPRF(K, F, KF) against KEM_INDCCA_MultiChal(KF).Adversary;
-    KEM_INDCCA_MultiChal(KF).Random against KEM_INDCCA_MultiChal(KF).Adversary;

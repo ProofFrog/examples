@@ -10,28 +10,6 @@ import 'TwoKeyPRF.primitive';
 import 'TwoKeyPRFSecondKeySecurity.game';
 import 'TwoKeyPRFSecondKeyMultiKey.game';
 
-Reduction R_Hybrid(TwoKeyPRF F, Int h) compose TwoKeyPRFSecondKeySecurity(F) against TwoKeyPRFSecondKeyMultiKey(F).Adversary {
-    Int count;
-
-    Void Initialize() {
-        count = 0;
-        challenger.Initialize();
-    }
-
-    BitString<F.out> Lookup(BitString<F.lambda1> key1, BitString<F.in> x) {
-        count = count + 1;
-        if (count < h) {
-            BitString<F.out> r <- BitString<F.out>;
-            return r;
-        } else if (count == h) {
-            return challenger.Lookup(key1, x);
-        } else {
-            BitString<F.lambda2> k <- BitString<F.lambda2>;
-            return F.evaluate(key1, k, x);
-        }
-    }
-}
-
 proof:
 
 let:
@@ -62,3 +40,25 @@ games:
     assume R_Hybrid(F, q).count < q + 1;
 
     TwoKeyPRFSecondKeyMultiKey(F).Random against TwoKeyPRFSecondKeyMultiKey(F).Adversary;
+
+Reduction R_Hybrid(TwoKeyPRF F, Int h) compose TwoKeyPRFSecondKeySecurity(F) against TwoKeyPRFSecondKeyMultiKey(F).Adversary {
+    Int count;
+
+    Void Initialize() {
+        count = 0;
+        challenger.Initialize();
+    }
+
+    BitString<F.out> Lookup(BitString<F.lambda1> key1, BitString<F.in> x) {
+        count = count + 1;
+        if (count < h) {
+            BitString<F.out> r <- BitString<F.out>;
+            return r;
+        } else if (count == h) {
+            return challenger.Lookup(key1, x);
+        } else {
+            BitString<F.lambda2> k <- BitString<F.lambda2>;
+            return F.evaluate(key1, k, x);
+        }
+    }
+}

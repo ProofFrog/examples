@@ -4,17 +4,6 @@ import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_8_b.scheme';
 import '../../Games/PRG/PRGSecurity.game';
 
-Reduction R1(PRG G, PRG_5_8_b H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<3 * H.lambda> result = challenger.Query();
-
-        BitString<H.lambda> x = result[0 : H.lambda];
-        BitString<H.lambda> y = result[H.lambda : 2*H.lambda];
-
-        return x || y;
-    }
-}
-
 proof:
 
 let:
@@ -36,3 +25,14 @@ games:
     PRGSecurity(G).Random compose R1(G, H) against PRGSecurity(H).Adversary;
 
     PRGSecurity(H).Random against PRGSecurity(H).Adversary;
+
+Reduction R1(PRG G, PRG_5_8_b H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<3 * H.lambda> result = challenger.Query();
+
+        BitString<H.lambda> x = result[0 : H.lambda];
+        BitString<H.lambda> y = result[H.lambda : 2*H.lambda];
+
+        return x || y;
+    }
+}

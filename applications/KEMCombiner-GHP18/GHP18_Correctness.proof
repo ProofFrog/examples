@@ -21,6 +21,44 @@ import 'KEMCombiner.scheme';
 import '../../Games/KEM/Correctness.game';
 import 'KEMCorrectnessKG.game';
 
+proof:
+
+let:
+    Int ss1len;
+    Int ss2len;
+    Int ct1len;
+    Int ct2len;
+    Int pk1len;
+    Int pk2len;
+    Set SK1Space;
+    Set SK2Space;
+    Set SS1Space;
+    Set SS2Space;
+    Set CT1Space;
+    Set CT2Space;
+    Set PK1Space;
+    Set PK2Space;
+    Int outlen;
+    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
+    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
+    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
+    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
+
+assume:
+    KEMCorrectness(KEM1);
+    KEMCorrectness(KEM2);
+
+theorem:
+    KEMCorrectnessKG(KC);
+
+games:
+    KEMCorrectnessKG(KC).FromDecaps against KEMCorrectnessKG(KC).Adversary;
+    KEMCorrectness(KEM1).FromDecaps compose R_KEM1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
+    KEMCorrectness(KEM1).FromEncaps compose R_KEM1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
+    KEMCorrectness(KEM2).FromDecaps compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
+    KEMCorrectness(KEM2).FromEncaps compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
+    KEMCorrectnessKG(KC).FromEncaps against KEMCorrectnessKG(KC).Adversary;
+
 // Reduction for KEM1 correctness: delegates KEM1 Encaps/Decaps to challenger,
 // handles KEM2 and PRF locally.
 Reduction R_KEM1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMCorrectness(KEM1) against KEMCorrectnessKG(KC).Adversary {
@@ -70,41 +108,3 @@ Reduction R_KEM2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk
         return [[ct1, ct2], F.evaluate(ss1, ss2_e, label), F.evaluate(ss1, ss2_d, label)];
     }
 }
-
-proof:
-
-let:
-    Int ss1len;
-    Int ss2len;
-    Int ct1len;
-    Int ct2len;
-    Int pk1len;
-    Int pk2len;
-    Set SK1Space;
-    Set SK2Space;
-    Set SS1Space;
-    Set SS2Space;
-    Set CT1Space;
-    Set CT2Space;
-    Set PK1Space;
-    Set PK2Space;
-    Int outlen;
-    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
-    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
-    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
-    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
-
-assume:
-    KEMCorrectness(KEM1);
-    KEMCorrectness(KEM2);
-
-theorem:
-    KEMCorrectnessKG(KC);
-
-games:
-    KEMCorrectnessKG(KC).FromDecaps against KEMCorrectnessKG(KC).Adversary;
-    KEMCorrectness(KEM1).FromDecaps compose R_KEM1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
-    KEMCorrectness(KEM1).FromEncaps compose R_KEM1(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
-    KEMCorrectness(KEM2).FromDecaps compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
-    KEMCorrectness(KEM2).FromEncaps compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEMCorrectnessKG(KC).Adversary;
-    KEMCorrectnessKG(KC).FromEncaps against KEMCorrectnessKG(KC).Adversary;

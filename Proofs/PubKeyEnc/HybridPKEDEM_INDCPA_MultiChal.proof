@@ -9,6 +9,40 @@ import '../../Schemes/PubKeyEnc/HybridPKEDEM.scheme';
 import '../../Games/SymEnc/INDOT.game';
 import '../../Games/PubKeyEnc/INDCPA_MultiChal.game';
 
+proof:
+
+let:
+    Set SymMessageSpace;
+    Set PubMessageSpace;
+    Set SymCiphertextSpace;
+    Set PubCiphertextSpace;
+
+    Set PubKeySpace;
+    Set SecretKeySpace;
+
+    SymEnc E = SymEnc(SymMessageSpace, SymCiphertextSpace, PubMessageSpace);
+    PubKeyEnc P = PubKeyEnc(PubMessageSpace, PubCiphertextSpace, PubKeySpace, SecretKeySpace);
+    Hybrid H = Hybrid(E, P);
+
+assume:
+    INDOT(E);
+    INDCPA_MultiChal(P);
+
+theorem:
+    INDCPA_MultiChal(H);
+
+games:
+    INDCPA_MultiChal(H).Left against INDCPA_MultiChal(H).Adversary;
+    INDCPA_MultiChal(P).Left compose R1(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    INDCPA_MultiChal(P).Right compose R1(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    Intermediate1(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    INDOT(E).Left compose R2(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    INDOT(E).Right compose R2(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    Intermediate2(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    INDCPA_MultiChal(P).Right compose R3(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    INDCPA_MultiChal(P).Left compose R3(E, P, H) against INDCPA_MultiChal(H).Adversary;
+    INDCPA_MultiChal(H).Right against INDCPA_MultiChal(H).Adversary;
+
 Reduction R1(SymEnc E, PubKeyEnc P, Hybrid H) compose INDCPA_MultiChal(P) against INDCPA_MultiChal(H).Adversary {
     H.Ciphertext Challenge(H.Message mL, H.Message mR) {
         E.Key tk = E.KeyGen();
@@ -87,37 +121,3 @@ Reduction R3(SymEnc E, PubKeyEnc P, Hybrid H) compose INDCPA_MultiChal(P) agains
         return [cpub, csym];
     }
 }
-
-proof:
-
-let:
-    Set SymMessageSpace;
-    Set PubMessageSpace;
-    Set SymCiphertextSpace;
-    Set PubCiphertextSpace;
-
-    Set PubKeySpace;
-    Set SecretKeySpace;
-
-    SymEnc E = SymEnc(SymMessageSpace, SymCiphertextSpace, PubMessageSpace);
-    PubKeyEnc P = PubKeyEnc(PubMessageSpace, PubCiphertextSpace, PubKeySpace, SecretKeySpace);
-    Hybrid H = Hybrid(E, P);
-
-assume:
-    INDOT(E);
-    INDCPA_MultiChal(P);
-
-theorem:
-    INDCPA_MultiChal(H);
-
-games:
-    INDCPA_MultiChal(H).Left against INDCPA_MultiChal(H).Adversary;
-    INDCPA_MultiChal(P).Left compose R1(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    INDCPA_MultiChal(P).Right compose R1(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    Intermediate1(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    INDOT(E).Left compose R2(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    INDOT(E).Right compose R2(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    Intermediate2(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    INDCPA_MultiChal(P).Right compose R3(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    INDCPA_MultiChal(P).Left compose R3(E, P, H) against INDCPA_MultiChal(H).Adversary;
-    INDCPA_MultiChal(H).Right against INDCPA_MultiChal(H).Adversary;

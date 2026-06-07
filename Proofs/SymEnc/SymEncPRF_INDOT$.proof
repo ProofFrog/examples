@@ -21,6 +21,57 @@ import '../../Games/Helpers/Probability/UniqueSampling.game';
 //   -> UniqueSampling.Repl o R_Sample2    by UniqueSampling assumption (birthday bound, reverse)
 //   -> OTUC.Random                        interchangeability
 
+proof:
+
+let:
+    Int lambda;
+    Int in;
+    Int out;
+    PRF F = PRF(lambda, in, out);
+    SymEnc E = SymEncPRF(F);
+
+assume:
+    PRFSecurity(F);
+    UniqueSampling(BitString<F.in>);
+    calls <= 1;
+
+theorem:
+    INDOT$(E);
+
+games:
+    // OTUC.Real composed with SymEncPRF
+    INDOT$(E).Real against INDOT$(E).Adversary;
+
+    // Move key sampling to Initialize
+    G0(E, F) against INDOT$(E).Adversary;
+
+    // Interchangeability with PRF.Real compose R_PRF
+    PRFSecurity(F).Real compose R_PRF(E, F) against INDOT$(E).Adversary;
+
+    // By PRF assumption
+    PRFSecurity(F).Random compose R_PRF(E, F) against INDOT$(E).Adversary;
+
+    // Interchangeability
+    G_RF(E, F) against INDOT$(E).Adversary;
+
+    // Interchangeability
+    UniqueSampling(BitString<F.in>).Replacement compose R_Sample(E, F) against INDOT$(E).Adversary;
+
+    // By UniqueSampling assumption (forward: Replacement -> NoReplacement)
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample(E, F) against INDOT$(E).Adversary;
+
+    // Interchangeability
+    G_Uniq(E, F) against INDOT$(E).Adversary;
+
+    // Interchangeability (engine: UniqueRF simplification, RF(r) -> z <- R)
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
+
+    // By UniqueSampling assumption (reverse: NoReplacement -> Replacement)
+    UniqueSampling(BitString<F.in>).Replacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
+
+    // Interchangeability: uniform r, uniform z, m + z -> uniform = OTUC.Random
+    INDOT$(E).Random against INDOT$(E).Adversary;
+
 // G0: OTUC.Real with key as a field instead of local variable
 // Relies on assume calls <= 1
 Game G0(SymEnc E, PRF F) {
@@ -108,55 +159,3 @@ Reduction R_Sample2(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) aga
         return [r, m + z];
     }
 }
-
-
-proof:
-
-let:
-    Int lambda;
-    Int in;
-    Int out;
-    PRF F = PRF(lambda, in, out);
-    SymEnc E = SymEncPRF(F);
-
-assume:
-    PRFSecurity(F);
-    UniqueSampling(BitString<F.in>);
-    calls <= 1;
-
-theorem:
-    INDOT$(E);
-
-games:
-    // OTUC.Real composed with SymEncPRF
-    INDOT$(E).Real against INDOT$(E).Adversary;
-
-    // Move key sampling to Initialize
-    G0(E, F) against INDOT$(E).Adversary;
-
-    // Interchangeability with PRF.Real compose R_PRF
-    PRFSecurity(F).Real compose R_PRF(E, F) against INDOT$(E).Adversary;
-
-    // By PRF assumption
-    PRFSecurity(F).Random compose R_PRF(E, F) against INDOT$(E).Adversary;
-
-    // Interchangeability
-    G_RF(E, F) against INDOT$(E).Adversary;
-
-    // Interchangeability
-    UniqueSampling(BitString<F.in>).Replacement compose R_Sample(E, F) against INDOT$(E).Adversary;
-
-    // By UniqueSampling assumption (forward: Replacement -> NoReplacement)
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample(E, F) against INDOT$(E).Adversary;
-
-    // Interchangeability
-    G_Uniq(E, F) against INDOT$(E).Adversary;
-
-    // Interchangeability (engine: UniqueRF simplification, RF(r) -> z <- R)
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
-
-    // By UniqueSampling assumption (reverse: NoReplacement -> Replacement)
-    UniqueSampling(BitString<F.in>).Replacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
-
-    // Interchangeability: uniform r, uniform z, m + z -> uniform = OTUC.Random
-    INDOT$(E).Random against INDOT$(E).Adversary;

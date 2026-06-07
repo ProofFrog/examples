@@ -7,18 +7,6 @@ import '../../Primitives/NonNullableSymEnc.primitive';
 import '../../Schemes/SymEnc/GeneralDoubleSymEnc.scheme';
 import '../../Games/SymEnc/INDCPA$_MultiChal.game';
 
-Reduction R1(SymEnc D, SymEnc E, GeneralDoubleSymEnc DSE) compose INDCPA$_MultiChal(E) against INDCPA$_MultiChal(DSE).Adversary {
-    D.Key dKey;
-    Void Initialize() {
-        dKey = D.KeyGen();
-    }
-    DSE.Ciphertext CTXT(DSE.Message m) {
-        D.Ciphertext c1 = D.Enc(dKey, m);
-        E.Ciphertext c2 = challenger.CTXT(c1);
-        return c2;
-    }
-}
-
 proof:
 
 let:
@@ -46,3 +34,15 @@ games:
     INDCPA$_MultiChal(E).Random compose R1(D, E, DSE) against INDCPA$_MultiChal(DSE).Adversary;
 
     INDCPA$_MultiChal(DSE).Random against INDCPA$_MultiChal(DSE).Adversary;
+
+Reduction R1(SymEnc D, SymEnc E, GeneralDoubleSymEnc DSE) compose INDCPA$_MultiChal(E) against INDCPA$_MultiChal(DSE).Adversary {
+    D.Key dKey;
+    Void Initialize() {
+        dKey = D.KeyGen();
+    }
+    DSE.Ciphertext CTXT(DSE.Message m) {
+        D.Ciphertext c1 = D.Enc(dKey, m);
+        E.Ciphertext c2 = challenger.CTXT(c1);
+        return c2;
+    }
+}

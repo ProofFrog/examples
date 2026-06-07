@@ -21,30 +21,6 @@ import '../../Games/PubKeyEnc/INDCPA_MultiChal.game';
 import '../../Games/Group/HashedDDHMultiChal.game';
 import '../../Schemes/PubKeyEnc/HashedElGamal.scheme';
 
-// HashedDDHMultiChal reduction (left message): XORs the hashed DH value with mL.
-Reduction R_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose HashedDDHMultiChal(G, n, H) against INDCPA_MultiChal(HashedElGamal(G, n, H)).Adversary {
-    GroupElem<G> Initialize(GroupElem<G> pk) {
-        return pk;
-    }
-
-    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
-        [GroupElem<G>, BitString<n>] pair = challenger.Challenge();
-        return [pair[0], pair[1] + mL];
-    }
-}
-
-// HashedDDHMultiChal reduction (right message): XORs the hashed DH value with mR.
-Reduction R_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose HashedDDHMultiChal(G, n, H) against INDCPA_MultiChal(HashedElGamal(G, n, H)).Adversary {
-    GroupElem<G> Initialize(GroupElem<G> pk) {
-        return pk;
-    }
-
-    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
-        [GroupElem<G>, BitString<n>] pair = challenger.Challenge();
-        return [pair[0], pair[1] + mR];
-    }
-}
-
 proof:
 
 let:
@@ -70,3 +46,27 @@ games:
     HashedDDHMultiChal(G, n, H).Left compose R_R(G, n, H) against INDCPA_MultiChal(E).Adversary;
 
     INDCPA_MultiChal(E).Right against INDCPA_MultiChal(E).Adversary;
+
+// HashedDDHMultiChal reduction (left message): XORs the hashed DH value with mL.
+Reduction R_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose HashedDDHMultiChal(G, n, H) against INDCPA_MultiChal(HashedElGamal(G, n, H)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        [GroupElem<G>, BitString<n>] pair = challenger.Challenge();
+        return [pair[0], pair[1] + mL];
+    }
+}
+
+// HashedDDHMultiChal reduction (right message): XORs the hashed DH value with mR.
+Reduction R_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose HashedDDHMultiChal(G, n, H) against INDCPA_MultiChal(HashedElGamal(G, n, H)).Adversary {
+    GroupElem<G> Initialize(GroupElem<G> pk) {
+        return pk;
+    }
+
+    [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
+        [GroupElem<G>, BitString<n>] pair = challenger.Challenge();
+        return [pair[0], pair[1] + mR];
+    }
+}

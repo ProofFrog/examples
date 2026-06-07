@@ -4,24 +4,6 @@ import '../../Primitives/SymEnc.primitive';
 import '../../Games/SymEnc/INDCCA_MultiChal.game';
 import '../../Games/SymEnc/INDCCA$_MultiChal.game';
 
-Reduction R1(SymEnc E) compose INDCCA$_MultiChal(E) against INDCCA_MultiChal(E).Adversary {
-    E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
-        return challenger.CTXT(mL);
-    }
-    E.Message? Decrypt(E.Ciphertext c) {
-        return challenger.Decrypt(c);
-    }
-}
-
-Reduction R2(SymEnc E) compose INDCCA$_MultiChal(E) against INDCCA_MultiChal(E).Adversary {
-    E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
-        return challenger.CTXT(mR);
-    }
-    E.Message? Decrypt(E.Ciphertext c) {
-        return challenger.Decrypt(c);
-    }
-}
-
 proof:
 
 let:
@@ -43,3 +25,21 @@ games:
     INDCCA$_MultiChal(E).Random compose R2(E) against INDCCA_MultiChal(E).Adversary;
     INDCCA$_MultiChal(E).Real compose R2(E) against INDCCA_MultiChal(E).Adversary;
     INDCCA_MultiChal(E).Right against INDCCA_MultiChal(E).Adversary;
+
+Reduction R1(SymEnc E) compose INDCCA$_MultiChal(E) against INDCCA_MultiChal(E).Adversary {
+    E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
+        return challenger.CTXT(mL);
+    }
+    E.Message? Decrypt(E.Ciphertext c) {
+        return challenger.Decrypt(c);
+    }
+}
+
+Reduction R2(SymEnc E) compose INDCCA$_MultiChal(E) against INDCCA_MultiChal(E).Adversary {
+    E.Ciphertext Eavesdrop(E.Message mL, E.Message mR) {
+        return challenger.CTXT(mR);
+    }
+    E.Message? Decrypt(E.Ciphertext c) {
+        return challenger.Decrypt(c);
+    }
+}

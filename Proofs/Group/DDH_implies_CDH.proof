@@ -23,6 +23,29 @@ import '../../Games/Group/CDH.game';
 import '../../Games/Group/DDH.game';
 import '../../Games/Helpers/Probability/RandomTargetGuessing.game';
 
+proof:
+
+let:
+    Group G;
+
+assume:
+    DDH(G);
+    RandomTargetGuessing(GroupElem<G>);
+
+theorem:
+    CDH(G);
+
+games:
+    CDH(G).Left against CDH(G).Adversary;
+
+    DDH(G).Left compose R(G) against CDH(G).Adversary;
+    DDH(G).Right compose R(G) against CDH(G).Adversary;
+
+    RandomTargetGuessing(GroupElem<G>).Real compose Rprime(G) against CDH(G).Adversary;
+    RandomTargetGuessing(GroupElem<G>).Ideal compose Rprime(G) against CDH(G).Adversary;
+
+    CDH(G).Right against CDH(G).Adversary;
+
 // Reduction R: composes with DDH and presents a CDH interface.
 // Stores the third component of the DDH triple as the "expected DH value"
 // and answers Solve(c) by checking c == that value.
@@ -54,26 +77,3 @@ Reduction Rprime(Group G) compose RandomTargetGuessing(GroupElem<G>) against CDH
         return challenger.Eq(c);
     }
 }
-
-proof:
-
-let:
-    Group G;
-
-assume:
-    DDH(G);
-    RandomTargetGuessing(GroupElem<G>);
-
-theorem:
-    CDH(G);
-
-games:
-    CDH(G).Left against CDH(G).Adversary;
-
-    DDH(G).Left compose R(G) against CDH(G).Adversary;
-    DDH(G).Right compose R(G) against CDH(G).Adversary;
-
-    RandomTargetGuessing(GroupElem<G>).Real compose Rprime(G) against CDH(G).Adversary;
-    RandomTargetGuessing(GroupElem<G>).Ideal compose Rprime(G) against CDH(G).Adversary;
-
-    CDH(G).Right against CDH(G).Adversary;

@@ -19,6 +19,31 @@ import '../../Games/Group/HashedDDH.game';
 import '../../Games/Group/DDH.game';
 import '../../Games/Hash/Regularity.game';
 
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H;
+
+assume:
+    DDH(G);
+    Regularity(GroupElem<G>, n, H);
+
+theorem:
+    HashedDDH(G, n, H);
+
+games:
+    HashedDDH(G, n, H).Left against HashedDDH(G, n, H).Adversary;
+
+    DDH(G).Left compose R(G, n, H) against HashedDDH(G, n, H).Adversary;
+    DDH(G).Right compose R(G, n, H) against HashedDDH(G, n, H).Adversary;
+
+    Regularity(GroupElem<G>, n, H).Real compose Rprime(G, n, H) against HashedDDH(G, n, H).Adversary;
+    Regularity(GroupElem<G>, n, H).Ideal compose Rprime(G, n, H) against HashedDDH(G, n, H).Adversary;
+
+    HashedDDH(G, n, H).Right against HashedDDH(G, n, H).Adversary;
+
 // Reduction R: composes with DDH and presents a HashedDDH
 // interface. Calls challenger.Initialize() once to obtain (pk, g^r, z),
 // stores g^r and H(z) in fields (eagerly applying H to match the
@@ -50,28 +75,3 @@ Reduction Rprime(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose
         return H(x);
     }
 }
-
-proof:
-
-let:
-    Group G;
-    Int n;
-    Function<GroupElem<G>, BitString<n>> H;
-
-assume:
-    DDH(G);
-    Regularity(GroupElem<G>, n, H);
-
-theorem:
-    HashedDDH(G, n, H);
-
-games:
-    HashedDDH(G, n, H).Left against HashedDDH(G, n, H).Adversary;
-
-    DDH(G).Left compose R(G, n, H) against HashedDDH(G, n, H).Adversary;
-    DDH(G).Right compose R(G, n, H) against HashedDDH(G, n, H).Adversary;
-
-    Regularity(GroupElem<G>, n, H).Real compose Rprime(G, n, H) against HashedDDH(G, n, H).Adversary;
-    Regularity(GroupElem<G>, n, H).Ideal compose Rprime(G, n, H) against HashedDDH(G, n, H).Adversary;
-
-    HashedDDH(G, n, H).Right against HashedDDH(G, n, H).Adversary;

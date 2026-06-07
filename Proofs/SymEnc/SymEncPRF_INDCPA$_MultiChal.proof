@@ -35,6 +35,59 @@ import '../../Games/PRF/PRFSecurity.game';
 //   -> G_Uniform                          interchangeability
 //   -> INDCPA$_MultiChal.Random                        interchangeability (merge independent samples)
 
+proof:
+
+let:
+    Int lambda;
+    Int in;
+    Int out;
+    PRF F = PRF(lambda, in, out);
+    SymEnc E = SymEncPRF(F);
+
+assume:
+    PRFSecurity(F);
+    UniqueSampling(BitString<F.in>);
+
+theorem:
+    INDCPA$_MultiChal(E);
+
+games:
+    // INDCPA$_MultiChal.Real with SymEncPRF inlined: return [r, m + PRF(k, r)]
+    INDCPA$_MultiChal(E).Real against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability with PRF.Real compose R_PRF
+    PRFSecurity(F).Real compose R_PRF(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // By PRF assumption: replace PRF with random function
+    PRFSecurity(F).Random compose R_PRF(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability: inline RF into game
+    G_RF(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability: extract r-sampling to challenger
+    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // By UniqueSampling assumption (forward): sample r without replacement
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability: inline unique sampling
+    G_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability (engine: UniqueRF + UniformXOR simplification)
+    G_UniqSimp(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability: extract r-sampling to challenger
+    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // By UniqueSampling assumption (reverse): sample r with replacement
+    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability: inline uniform sampling
+    G_Uniform(E, F) against INDCPA$_MultiChal(E).Adversary;
+
+    // Interchangeability: merge independent samples into product sample
+    INDCPA$_MultiChal(E).Random against INDCPA$_MultiChal(E).Adversary;
+
 // Reduction for the PRF hop: delegates PRF evaluation to challenger
 Reduction R_PRF(SymEnc E, PRF F) compose PRFSecurity(F) against INDCPA$_MultiChal(E).Adversary {
     E.Ciphertext CTXT(E.Message m) {
@@ -126,56 +179,3 @@ Game G_Uniform(SymEnc E, PRF F) {
         return [r, z];
     }
 }
-
-proof:
-
-let:
-    Int lambda;
-    Int in;
-    Int out;
-    PRF F = PRF(lambda, in, out);
-    SymEnc E = SymEncPRF(F);
-
-assume:
-    PRFSecurity(F);
-    UniqueSampling(BitString<F.in>);
-
-theorem:
-    INDCPA$_MultiChal(E);
-
-games:
-    // INDCPA$_MultiChal.Real with SymEncPRF inlined: return [r, m + PRF(k, r)]
-    INDCPA$_MultiChal(E).Real against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability with PRF.Real compose R_PRF
-    PRFSecurity(F).Real compose R_PRF(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // By PRF assumption: replace PRF with random function
-    PRFSecurity(F).Random compose R_PRF(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability: inline RF into game
-    G_RF(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability: extract r-sampling to challenger
-    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // By UniqueSampling assumption (forward): sample r without replacement
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability: inline unique sampling
-    G_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability (engine: UniqueRF + UniformXOR simplification)
-    G_UniqSimp(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability: extract r-sampling to challenger
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // By UniqueSampling assumption (reverse): sample r with replacement
-    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability: inline uniform sampling
-    G_Uniform(E, F) against INDCPA$_MultiChal(E).Adversary;
-
-    // Interchangeability: merge independent samples into product sample
-    INDCPA$_MultiChal(E).Random against INDCPA$_MultiChal(E).Adversary;

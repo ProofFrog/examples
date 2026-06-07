@@ -19,28 +19,6 @@ import 'LCK.scheme';
 import '../../Games/KEM/INDCCA_MultiChal.game';
 import 'INDCCA_PKE.game';
 
-// Reduction to PKE IND-CCA: picks two random keys, submits them as
-// challenge messages, and uses k0 as the KEM shared secret.
-Reduction B1(PKE E, LCK L) compose PKE_INDCCA(E) against KEM_INDCCA_MultiChal(L).Adversary {
-    L.Ciphertext ctStar;
-
-    [L.PublicKey, L.SharedSecret, L.Ciphertext] Initialize() {
-        L.PublicKey pk = challenger.Initialize();
-        L.SharedSecret k0 <- L.SharedSecret;
-        L.SharedSecret k1 <- L.SharedSecret;
-        L.Ciphertext ct = challenger.Challenge(k0, k1);
-        ctStar = ct;
-        return [pk, k0, ct];
-    }
-
-    L.SharedSecret? Decaps(L.Ciphertext c) {
-        if (c == ctStar) {
-            return None;
-        }
-        return challenger.Dec(c);
-    }
-}
-
 proof:
 
 let:
@@ -62,3 +40,25 @@ games:
     PKE_INDCCA(E).Left compose B1(E, L) against KEM_INDCCA_MultiChal(L).Adversary;
     PKE_INDCCA(E).Right compose B1(E, L) against KEM_INDCCA_MultiChal(L).Adversary;
     KEM_INDCCA_MultiChal(L).Random against KEM_INDCCA_MultiChal(L).Adversary;
+
+// Reduction to PKE IND-CCA: picks two random keys, submits them as
+// challenge messages, and uses k0 as the KEM shared secret.
+Reduction B1(PKE E, LCK L) compose PKE_INDCCA(E) against KEM_INDCCA_MultiChal(L).Adversary {
+    L.Ciphertext ctStar;
+
+    [L.PublicKey, L.SharedSecret, L.Ciphertext] Initialize() {
+        L.PublicKey pk = challenger.Initialize();
+        L.SharedSecret k0 <- L.SharedSecret;
+        L.SharedSecret k1 <- L.SharedSecret;
+        L.Ciphertext ct = challenger.Challenge(k0, k1);
+        ctStar = ct;
+        return [pk, k0, ct];
+    }
+
+    L.SharedSecret? Decaps(L.Ciphertext c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return challenger.Dec(c);
+    }
+}

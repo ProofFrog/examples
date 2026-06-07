@@ -10,28 +10,6 @@ import '../../Primitives/PRF.primitive';
 import '../../Games/PRF/PRFSecurity.game';
 import '../../Games/PRF/PRFSecurity_MultiKey.game';
 
-Reduction R_Hybrid(PRF F, Int h) compose PRFSecurity(F) against PRFSecurity_MultiKey(F).Adversary {
-    Int count;
-
-    Void Initialize() {
-        count = 0;
-        challenger.Initialize();
-    }
-
-    BitString<F.out> Lookup(BitString<F.in> x) {
-        count = count + 1;
-        if (count < h) {
-            BitString<F.out> r <- BitString<F.out>;
-            return r;
-        } else if (count == h) {
-            return challenger.Lookup(x);
-        } else {
-            BitString<F.lambda> k <- BitString<F.lambda>;
-            return F.evaluate(k, x);
-        }
-    }
-}
-
 proof:
 
 let:
@@ -61,3 +39,25 @@ games:
     assume R_Hybrid(F, q).count < q + 1;
 
     PRFSecurity_MultiKey(F).Random against PRFSecurity_MultiKey(F).Adversary;
+
+Reduction R_Hybrid(PRF F, Int h) compose PRFSecurity(F) against PRFSecurity_MultiKey(F).Adversary {
+    Int count;
+
+    Void Initialize() {
+        count = 0;
+        challenger.Initialize();
+    }
+
+    BitString<F.out> Lookup(BitString<F.in> x) {
+        count = count + 1;
+        if (count < h) {
+            BitString<F.out> r <- BitString<F.out>;
+            return r;
+        } else if (count == h) {
+            return challenger.Lookup(x);
+        } else {
+            BitString<F.lambda> k <- BitString<F.lambda>;
+            return F.evaluate(k, x);
+        }
+    }
+}

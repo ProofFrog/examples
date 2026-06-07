@@ -16,6 +16,59 @@ import '../../Games/KEM/INDCCA_MultiChal.game';
 import '../../Games/KEM/Correctness.game';
 import 'TwoKeyPRFSecondKeySecurity.game';
 
+proof:
+
+let:
+    Int ss1len;
+    Int ss2len;
+    Int ct1len;
+    Int ct2len;
+    Int pk1len;
+    Int pk2len;
+    Set SK1Space;
+    Set SK2Space;
+    Set SS1Space;
+    Set SS2Space;
+    Set CT1Space;
+    Set CT2Space;
+    Set PK1Space;
+    Set PK2Space;
+    Int outlen;
+    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
+    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
+    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
+    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
+
+assume:
+    KEMCorrectness(KEM2);
+    KEM_INDCCA_MultiChal(KEM2);
+    TwoKeyPRFSecondKeySecurity(F);
+
+theorem:
+    KEM_INDCCA_MultiChal(KC);
+
+games:
+    // Left half
+    KEM_INDCCA_MultiChal(KC).Real against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEMCorrectness(KEM2).FromDecaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEMCorrectness(KEM2).FromEncaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    G_StoredSS2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEM_INDCCA_MultiChal(KEM2).Real compose R_KEM2_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEM_INDCCA_MultiChal(KEM2).Random compose R_KEM2_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    G_RandKey(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
+    TwoKeyPRFSecondKeySecurity(F).Real compose R_PRF_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    TwoKeyPRFSecondKeySecurity(F).Random compose R_PRF_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    // Right half (mirror)
+    TwoKeyPRFSecondKeySecurity(F).Random compose R_PRF_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    TwoKeyPRFSecondKeySecurity(F).Real compose R_PRF_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    G_RandKey_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEM_INDCCA_MultiChal(KEM2).Random compose R_KEM2_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEM_INDCCA_MultiChal(KEM2).Real compose R_KEM2_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    G_StoredSS2_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEMCorrectness(KEM2).FromEncaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEMCorrectness(KEM2).FromDecaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
+    KEM_INDCCA_MultiChal(KC).Random against KEM_INDCCA_MultiChal(KC).Adversary;
+
 // Correctness reduction (left half): delegates KEM2 Encaps+Decaps pair
 // to the correctness challenger. Uses ss_e for the challenge and ss_d
 // for Decaps when ct2 == ct2Star.
@@ -512,56 +565,3 @@ Game G_StoredSS2_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int 
         return F.evaluate(ss1, ss2, label);
     }
 }
-
-proof:
-
-let:
-    Int ss1len;
-    Int ss2len;
-    Int ct1len;
-    Int ct2len;
-    Int pk1len;
-    Int pk2len;
-    Set SK1Space;
-    Set SK2Space;
-    Set SS1Space;
-    Set SS2Space;
-    Set CT1Space;
-    Set CT2Space;
-    Set PK1Space;
-    Set PK2Space;
-    Int outlen;
-    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
-    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
-    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
-    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
-
-assume:
-    KEMCorrectness(KEM2);
-    KEM_INDCCA_MultiChal(KEM2);
-    TwoKeyPRFSecondKeySecurity(F);
-
-theorem:
-    KEM_INDCCA_MultiChal(KC);
-
-games:
-    // Left half
-    KEM_INDCCA_MultiChal(KC).Real against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEMCorrectness(KEM2).FromDecaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEMCorrectness(KEM2).FromEncaps compose R_Correct_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    G_StoredSS2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEM_INDCCA_MultiChal(KEM2).Real compose R_KEM2_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEM_INDCCA_MultiChal(KEM2).Random compose R_KEM2_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    G_RandKey(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
-    TwoKeyPRFSecondKeySecurity(F).Real compose R_PRF_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    TwoKeyPRFSecondKeySecurity(F).Random compose R_PRF_L(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    // Right half (mirror)
-    TwoKeyPRFSecondKeySecurity(F).Random compose R_PRF_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    TwoKeyPRFSecondKeySecurity(F).Real compose R_PRF_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    G_RandKey_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEM_INDCCA_MultiChal(KEM2).Random compose R_KEM2_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEM_INDCCA_MultiChal(KEM2).Real compose R_KEM2_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    G_StoredSS2_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEMCorrectness(KEM2).FromEncaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEMCorrectness(KEM2).FromDecaps compose R_Correct_R(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCCA_MultiChal(KC).Adversary;
-    KEM_INDCCA_MultiChal(KC).Random against KEM_INDCCA_MultiChal(KC).Adversary;

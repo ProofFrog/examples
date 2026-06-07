@@ -14,15 +14,6 @@ import '../../Primitives/SymEnc.primitive';
 import '../../Schemes/SymEnc/ModOTP.scheme';
 import '../../Games/SymEnc/INDOT.game';
 
-// Both OTS.Left and OTS.Right canonicalize to this game:
-// a uniform ModInt<q> is returned, independent of either message.
-Game Hyb(Int q) {
-    ModInt<q> Eavesdrop(ModInt<q> mL, ModInt<q> mR) {
-        ModInt<q> r <- ModInt<q>;
-        return r;
-    }
-}
-
 proof:
 
 let:
@@ -38,3 +29,12 @@ games:
     INDOT(E).Left against INDOT(E).Adversary;
     Hyb(q) against INDOT(E).Adversary;
     INDOT(E).Right against INDOT(E).Adversary;
+
+// Both OTS.Left and OTS.Right canonicalize to this game:
+// a uniform ModInt<q> is returned, independent of either message.
+Game Hyb(Int q) {
+    ModInt<q> Eavesdrop(ModInt<q> mL, ModInt<q> mR) {
+        ModInt<q> r <- ModInt<q>;
+        return r;
+    }
+}

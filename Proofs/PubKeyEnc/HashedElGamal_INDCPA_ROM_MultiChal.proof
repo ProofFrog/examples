@@ -25,6 +25,39 @@ import '../../Games/Helpers/Probability/UniqueSampling.game';
 import '../../Games/PubKeyEnc/INDCPA_ROM_MultiChal.game';
 import '../../Schemes/PubKeyEnc/HashedElGamal.scheme';
 
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+    PubKeyEnc E = HashedElGamal(G, n, H);
+
+assume:
+    DDHMultiChal(G);
+    UniqueSampling(GroupElem<G>);
+
+theorem:
+    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H);
+
+games:
+    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Left against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    DDHMultiChal(G).Left compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    DDHMultiChal(G).Right compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    DDHMultiChal(G).Right compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    DDHMultiChal(G).Left compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Right against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+
 // DDHMultiChal reduction (left message): forwards Hash oracle, XORs H(DDH value) with mL.
 Reduction R_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDHMultiChal(G) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
     GroupElem<G> Initialize(GroupElem<G> pk) {
@@ -102,36 +135,3 @@ Reduction R_Uniq_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compo
         return [G.generator ^ r, h + mR];
     }
 }
-
-proof:
-
-let:
-    Group G;
-    Int n;
-    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
-    PubKeyEnc E = HashedElGamal(G, n, H);
-
-assume:
-    DDHMultiChal(G);
-    UniqueSampling(GroupElem<G>);
-
-theorem:
-    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H);
-
-games:
-    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Left against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    DDHMultiChal(G).Left compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-    DDHMultiChal(G).Right compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    DDHMultiChal(G).Right compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-    DDHMultiChal(G).Left compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Right against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;

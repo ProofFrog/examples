@@ -18,6 +18,31 @@ import '../../Games/Group/DDHMultiChal.game';
 import '../../Games/Helpers/Probability/UniqueSampling.game';
 import '../../Games/Group/HashedDDHMultiChal.game';
 
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+
+assume:
+    DDHMultiChal(G);
+    UniqueSampling(GroupElem<G>);
+
+theorem:
+    HashedDDHMultiChal(G, n, H);
+
+games:
+    HashedDDHMultiChal(G, n, H).Left against HashedDDHMultiChal(G, n, H).Adversary;
+
+    DDHMultiChal(G).Left compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+    DDHMultiChal(G).Right compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+
+    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+
+    HashedDDHMultiChal(G, n, H).Right against HashedDDHMultiChal(G, n, H).Adversary;
+
 // DDHMultiChal reduction: hashes the DDH challenge value and forwards the Hash oracle.
 Reduction R_DDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDHMultiChal(G) against HashedDDHMultiChal(G, n, H).Adversary {
     GroupElem<G> Initialize(GroupElem<G> pk) {
@@ -55,28 +80,3 @@ Reduction R_Uniq(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose
         return [G.generator ^ r, H(c)];
     }
 }
-
-proof:
-
-let:
-    Group G;
-    Int n;
-    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
-
-assume:
-    DDHMultiChal(G);
-    UniqueSampling(GroupElem<G>);
-
-theorem:
-    HashedDDHMultiChal(G, n, H);
-
-games:
-    HashedDDHMultiChal(G, n, H).Left against HashedDDHMultiChal(G, n, H).Adversary;
-
-    DDHMultiChal(G).Left compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
-    DDHMultiChal(G).Right compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
-
-    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
-    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
-
-    HashedDDHMultiChal(G, n, H).Right against HashedDDHMultiChal(G, n, H).Adversary;

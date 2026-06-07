@@ -5,15 +5,6 @@ import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/2_Exercises/2_13_SymEncSquared.scheme';
 import '../../Games/SymEnc/INDOT.game';
 
-Reduction R(SymEncSquared S, SymEnc E) 
-compose INDOT(E) against INDOT(S).Adversary {
-    S.Ciphertext Eavesdrop(S.Message mL, S.Message mR) {
-        E.Ciphertext c1 = challenger.Eavesdrop(mL, mR);
-        E.Ciphertext c2 = challenger.Eavesdrop(mL, mR);
-        return [c1, c2];
-    }
-}
-
 proof:
 
 let:
@@ -41,3 +32,12 @@ games:
     
     // By codewise equivalency
     INDOT(S).Right against INDOT(S).Adversary;
+
+Reduction R(SymEncSquared S, SymEnc E) 
+compose INDOT(E) against INDOT(S).Adversary {
+    S.Ciphertext Eavesdrop(S.Message mL, S.Message mR) {
+        E.Ciphertext c1 = challenger.Eavesdrop(mL, mR);
+        E.Ciphertext c2 = challenger.Eavesdrop(mL, mR);
+        return [c1, c2];
+    }
+}

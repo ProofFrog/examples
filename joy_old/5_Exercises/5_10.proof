@@ -6,34 +6,6 @@ import '../../Schemes/SymEnc/OTP.scheme';
 import '../../Games/PRG/PRGSecurity.game';
 import '../../Games/SymEnc/INDOT$.game';
 
-Reduction R1(PRG G, PRG_5_10 H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<G.lambda + G.stretch> xy = challenger.Query();
-        BitString<G.lambda> x = xy[0 : G.lambda];
-        BitString<G.lambda> y = xy[G.lambda : 2 * G.lambda];
-        BitString<G.lambda> c = x + y;
-        BitString<G.lambda + G.stretch> uv = G.evaluate(y);
-        return c || uv;
-    }
-}
-
-Reduction R3(OTP P, PRG G, PRG_5_10 H) compose INDOT$(P) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<G.lambda> y <- BitString<G.lambda>;
-        BitString<G.lambda> c = challenger.CTXT(y);
-        BitString<G.lambda + G.stretch> uv = G.evaluate(y);
-        return c || uv;
-    }
-}
-
-Reduction R4(PRG G, PRG_5_10 H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<G.lambda> c <- BitString<G.lambda>;
-        BitString<G.lambda + G.stretch> uv = challenger.Query();
-        return c || uv;
-    }
-}
-
 proof:
 
 let:
@@ -65,3 +37,31 @@ games:
     PRGSecurity(G).Random compose R4(G, H) against PRGSecurity(H).Adversary;
 
     PRGSecurity(H).Random against PRGSecurity(H).Adversary;
+
+Reduction R1(PRG G, PRG_5_10 H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<G.lambda + G.stretch> xy = challenger.Query();
+        BitString<G.lambda> x = xy[0 : G.lambda];
+        BitString<G.lambda> y = xy[G.lambda : 2 * G.lambda];
+        BitString<G.lambda> c = x + y;
+        BitString<G.lambda + G.stretch> uv = G.evaluate(y);
+        return c || uv;
+    }
+}
+
+Reduction R3(OTP P, PRG G, PRG_5_10 H) compose INDOT$(P) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<G.lambda> y <- BitString<G.lambda>;
+        BitString<G.lambda> c = challenger.CTXT(y);
+        BitString<G.lambda + G.stretch> uv = G.evaluate(y);
+        return c || uv;
+    }
+}
+
+Reduction R4(PRG G, PRG_5_10 H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<G.lambda> c <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> uv = challenger.Query();
+        return c || uv;
+    }
+}

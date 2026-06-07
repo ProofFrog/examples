@@ -11,6 +11,49 @@ import '../../Schemes/KEM/KEMPRF.scheme';
 import '../../Games/KEM/INDCPA_MultiChal.game';
 import '../../Games/PRF/PRFSecurity_MultiKey.game';
 
+proof:
+
+let:
+    Int lambda;
+    Int in;
+    Int out;
+    Set SharedSecretSpace;
+    Set CiphertextSpace;
+    Set PKeySpace;
+    Set SKeySpace;
+    KEM K = KEM(SharedSecretSpace, CiphertextSpace, PKeySpace, SKeySpace);
+    PRF F = PRF(lambda, in, out);
+    KEMPRF KF = KEMPRF(K, F);
+
+assume:
+    KEM_INDCPA_MultiChal(K);
+    PRFSecurity_MultiKey(F);
+
+theorem:
+    KEM_INDCPA_MultiChal(KF);
+
+games:
+    // Real game: F.evaluate(k*, ct) with real k* from K.Encaps
+    KEM_INDCPA_MultiChal(KF).Real against KEM_INDCPA_MultiChal(KF).Adversary;
+
+    // Isolate KEM KEM_INDCPA_MultiChal
+    KEM_INDCPA_MultiChal(K).Real compose R_KEM(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
+
+    // By KEM KEM_INDCPA_MultiChal assumption: k* now random
+    KEM_INDCPA_MultiChal(K).Random compose R_KEM(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
+
+    // Interchangeability: inline to get PRF with random key
+    G_RandKey(K, F) against KEM_INDCPA_MultiChal(KF).Adversary;
+
+    // Isolate multi-key PRF security
+    PRFSecurity_MultiKey(F).Real compose R_MultiPRF(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
+
+    // By multi-key PRF assumption: fresh-key PRF -> uniform random
+    PRFSecurity_MultiKey(F).Random compose R_MultiPRF(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
+
+    // Interchangeability: uniform random shared secret = Random game
+    KEM_INDCPA_MultiChal(KF).Random against KEM_INDCPA_MultiChal(KF).Adversary;
+
 // Reduction for KEM KEM_INDCPA_MultiChal hop: receives (ss, ct) from KEM challenger,
 // applies F.evaluate(ss, ct) to produce the KEMPRF shared secret.
 Reduction R_KEM(KEM K, PRF F, KEMPRF KF) compose KEM_INDCPA_MultiChal(K) against KEM_INDCPA_MultiChal(KF).Adversary {
@@ -62,46 +105,3 @@ Reduction R_MultiPRF(KEM K, PRF F, KEMPRF KF) compose PRFSecurity_MultiKey(F) ag
         return [ss, ct];
     }
 }
-
-proof:
-
-let:
-    Int lambda;
-    Int in;
-    Int out;
-    Set SharedSecretSpace;
-    Set CiphertextSpace;
-    Set PKeySpace;
-    Set SKeySpace;
-    KEM K = KEM(SharedSecretSpace, CiphertextSpace, PKeySpace, SKeySpace);
-    PRF F = PRF(lambda, in, out);
-    KEMPRF KF = KEMPRF(K, F);
-
-assume:
-    KEM_INDCPA_MultiChal(K);
-    PRFSecurity_MultiKey(F);
-
-theorem:
-    KEM_INDCPA_MultiChal(KF);
-
-games:
-    // Real game: F.evaluate(k*, ct) with real k* from K.Encaps
-    KEM_INDCPA_MultiChal(KF).Real against KEM_INDCPA_MultiChal(KF).Adversary;
-
-    // Isolate KEM KEM_INDCPA_MultiChal
-    KEM_INDCPA_MultiChal(K).Real compose R_KEM(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
-
-    // By KEM KEM_INDCPA_MultiChal assumption: k* now random
-    KEM_INDCPA_MultiChal(K).Random compose R_KEM(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
-
-    // Interchangeability: inline to get PRF with random key
-    G_RandKey(K, F) against KEM_INDCPA_MultiChal(KF).Adversary;
-
-    // Isolate multi-key PRF security
-    PRFSecurity_MultiKey(F).Real compose R_MultiPRF(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
-
-    // By multi-key PRF assumption: fresh-key PRF -> uniform random
-    PRFSecurity_MultiKey(F).Random compose R_MultiPRF(K, F, KF) against KEM_INDCPA_MultiChal(KF).Adversary;
-
-    // Interchangeability: uniform random shared secret = Random game
-    KEM_INDCPA_MultiChal(KF).Random against KEM_INDCPA_MultiChal(KF).Adversary;

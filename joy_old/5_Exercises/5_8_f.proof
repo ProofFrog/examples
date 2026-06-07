@@ -6,20 +6,6 @@ import '../../joy_old/5/5_2_PseudoOTP.scheme';
 import '../../Games/PRG/PRGSecurity.game';
 import '../../Games/SymEnc/INDOT$.game';
 
-Reduction R2(PRG G, PRG_5_8_f H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<G.lambda> sR <- BitString<G.lambda>;
-        return challenger.Query() + G.evaluate(sR);
-    }
-}
-
-Reduction R3(PRG G, PRG_5_8_f H, PseudoOTP P) compose INDOT$(P) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<G.lambda> sR <- BitString<G.lambda>;
-        return challenger.CTXT(G.evaluate(sR));
-    }
-}
-
 proof:
 
 let:
@@ -45,3 +31,17 @@ games:
     INDOT$(P).Random compose R3(G, H, P) against PRGSecurity(H).Adversary;
 
     PRGSecurity(H).Random against PRGSecurity(H).Adversary;
+
+Reduction R2(PRG G, PRG_5_8_f H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<G.lambda> sR <- BitString<G.lambda>;
+        return challenger.Query() + G.evaluate(sR);
+    }
+}
+
+Reduction R3(PRG G, PRG_5_8_f H, PseudoOTP P) compose INDOT$(P) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<G.lambda> sR <- BitString<G.lambda>;
+        return challenger.CTXT(G.evaluate(sR));
+    }
+}
