@@ -19,6 +19,32 @@ import '../../Games/Group/GapCDH.game';
 import '../../Games/Group/GapCDH_NZ.game';
 import '../../Games/Helpers/Probability/UniqueSampling.game';
 
+proof:
+
+let:
+    Group G;
+
+assume:
+    GapCDH(G);
+    UniqueSampling(ModInt<G.order>);
+
+theorem:
+    GapCDH_NZ(G);
+
+games:
+    GapCDH_NZ(G).Left against GapCDH_NZ(G).Adversary;
+
+    UniqueSampling(ModInt<G.order>).NoReplacement compose R_Left(G) against GapCDH_NZ(G).Adversary;
+    UniqueSampling(ModInt<G.order>).Replacement   compose R_Left(G) against GapCDH_NZ(G).Adversary;
+
+    GapCDH(G).Left  against GapCDH_NZ(G).Adversary;
+    GapCDH(G).Right against GapCDH_NZ(G).Adversary;
+
+    UniqueSampling(ModInt<G.order>).Replacement   compose R_Right(G) against GapCDH_NZ(G).Adversary;
+    UniqueSampling(ModInt<G.order>).NoReplacement compose R_Right(G) against GapCDH_NZ(G).Adversary;
+
+    GapCDH_NZ(G).Right against GapCDH_NZ(G).Adversary;
+
 // R_Left: delegates sk sampling to UniqueSampling and exposes the
 // GapCDH.Left-style Solve (y == xStar^sk).
 Reduction R_Left(Group G)
@@ -66,29 +92,3 @@ Reduction R_Right(Group G)
         return false;
     }
 }
-
-proof:
-
-let:
-    Group G;
-
-assume:
-    GapCDH(G);
-    UniqueSampling(ModInt<G.order>);
-
-theorem:
-    GapCDH_NZ(G);
-
-games:
-    GapCDH_NZ(G).Left against GapCDH_NZ(G).Adversary;
-
-    UniqueSampling(ModInt<G.order>).NoReplacement compose R_Left(G) against GapCDH_NZ(G).Adversary;
-    UniqueSampling(ModInt<G.order>).Replacement   compose R_Left(G) against GapCDH_NZ(G).Adversary;
-
-    GapCDH(G).Left  against GapCDH_NZ(G).Adversary;
-    GapCDH(G).Right against GapCDH_NZ(G).Adversary;
-
-    UniqueSampling(ModInt<G.order>).Replacement   compose R_Right(G) against GapCDH_NZ(G).Adversary;
-    UniqueSampling(ModInt<G.order>).NoReplacement compose R_Right(G) against GapCDH_NZ(G).Adversary;
-
-    GapCDH_NZ(G).Right against GapCDH_NZ(G).Adversary;

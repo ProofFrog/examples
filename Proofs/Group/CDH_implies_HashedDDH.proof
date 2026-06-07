@@ -18,6 +18,31 @@ import '../../Games/Group/CDH.game';
 import '../../Games/Helpers/Probability/ROMProgramming.game';
 import '../../Games/Group/HashedDDH.game';
 
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+
+assume:
+    CDH(G);
+    ROMProgramming(GroupElem<G>, BitString<n>, H);
+
+theorem:
+    HashedDDH(G, n, H);
+
+games:
+    HashedDDH(G, n, H).Left against HashedDDH(G, n, H).Adversary;
+
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
+
+    CDH(G).Left compose R_CDH(G, n, H) against HashedDDH(G, n, H).Adversary;
+    CDH(G).Right compose R_CDH(G, n, H) against HashedDDH(G, n, H).Adversary;
+
+    HashedDDH(G, n, H).Right against HashedDDH(G, n, H).Adversary;
+
 // ROM programming reduction: samples pk and g^r itself, delegates the
 // hash value at pk^r to the ROMProgramming challenger.
 Reduction R_ROM(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose ROMProgramming(GroupElem<G>, BitString<n>, H) against HashedDDH(G, n, H).Adversary {
@@ -53,28 +78,3 @@ Reduction R_CDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose 
         return H(x);
     }
 }
-
-proof:
-
-let:
-    Group G;
-    Int n;
-    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
-
-assume:
-    CDH(G);
-    ROMProgramming(GroupElem<G>, BitString<n>, H);
-
-theorem:
-    HashedDDH(G, n, H);
-
-games:
-    HashedDDH(G, n, H).Left against HashedDDH(G, n, H).Adversary;
-
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
-
-    CDH(G).Left compose R_CDH(G, n, H) against HashedDDH(G, n, H).Adversary;
-    CDH(G).Right compose R_CDH(G, n, H) against HashedDDH(G, n, H).Adversary;
-
-    HashedDDH(G, n, H).Right against HashedDDH(G, n, H).Adversary;

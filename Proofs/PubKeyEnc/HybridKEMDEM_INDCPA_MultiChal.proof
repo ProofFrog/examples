@@ -43,6 +43,57 @@ import '../../Games/SymEnc/INDOT.game';
 import '../../Games/SymEnc/KeyUniformity.game';
 import '../../Games/PubKeyEnc/INDCPA_MultiChal.game';
 
+// Now we've reached the mid-way point of our proof and we have to "undo" the modifications 
+// to get to the ending game.
+
+proof:
+
+let:
+    Set SymMessageSpace;
+    Set KEMSharedSecretSpace;
+    Set SymCiphertextSpace;
+    Set KEMCiphertextSpace;
+
+    Set PubKeySpace;
+    Set SecretKeySpace;
+
+    // Notice that the symmetric encryption scheme's key space is equal to the 
+    // KEM shared secret space.
+    SymEnc E = SymEnc(SymMessageSpace, SymCiphertextSpace, KEMSharedSecretSpace);
+    KEM K = KEM(KEMSharedSecretSpace, KEMCiphertextSpace, PubKeySpace, SecretKeySpace);
+    KEMDEM KD = KEMDEM(K, E);
+
+assume:
+    // If symmetric encryption scheme E satisfies one-time secrecy and key uniformity ...
+    INDOT(E);
+    KeyUniformity(E);
+    // ... and KEM K satisfies KEM_INDCPA_MultiChal-security...
+    KEM_INDCPA_MultiChal(K);
+
+theorem:
+    // ... then the KEM-DEM public key encryption scheme KD satisfies INDCPA_MultiChal security.
+    INDCPA_MultiChal(KD);
+
+games:
+    // Game 0
+    INDCPA_MultiChal(KD).Left against INDCPA_MultiChal(KD).Adversary;
+    KEM_INDCPA_MultiChal(K).Real compose R1(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    // Game 1
+    KEM_INDCPA_MultiChal(K).Random compose R1(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    KeyUniformity(E).Random compose R2(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    // Game 2
+    KeyUniformity(E).Real compose R2(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    INDOT(E).Left compose R3(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    // Game 3
+    INDOT(E).Right compose R3(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    KeyUniformity(E).Real compose R4(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    // Game 4
+    KeyUniformity(E).Random compose R4(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    KEM_INDCPA_MultiChal(K).Random compose R5(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    // Game 5
+    KEM_INDCPA_MultiChal(K).Real compose R5(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
+    INDCPA_MultiChal(KD).Right against INDCPA_MultiChal(KD).Adversary;
+
 // Reduction for hop from Game 0 to Game 1
 // - Reduction to INDCPA_MultiChal security of the KEM. The reduction uses the shared secret
 //   from the KEM KEM_INDCPA_MultiChal challenger, which is either real (= Game 0) or random (= Game 1).
@@ -102,9 +153,6 @@ Reduction R3(SymEnc E, KEM K, KEMDEM KD) compose INDOT(E) against INDCPA_MultiCh
     }
 }
 
-// Now we've reached the mid-way point of our proof and we have to "undo" the modifications 
-// to get to the ending game.
-
 // Reduction for hop from Game 3 to Game 4
 // - Reduction to key uniformity of the symmetric encryption scheme. The reduction uses 
 //   the symmetric key from the key uniformity challenger, which is either real (= Game 4)
@@ -141,51 +189,3 @@ Reduction R5(SymEnc E, KEM K, KEMDEM KD) compose KEM_INDCPA_MultiChal(K) against
         return [c_kem, c_sym];
     }
 }
-
-proof:
-
-let:
-    Set SymMessageSpace;
-    Set KEMSharedSecretSpace;
-    Set SymCiphertextSpace;
-    Set KEMCiphertextSpace;
-
-    Set PubKeySpace;
-    Set SecretKeySpace;
-
-    // Notice that the symmetric encryption scheme's key space is equal to the 
-    // KEM shared secret space.
-    SymEnc E = SymEnc(SymMessageSpace, SymCiphertextSpace, KEMSharedSecretSpace);
-    KEM K = KEM(KEMSharedSecretSpace, KEMCiphertextSpace, PubKeySpace, SecretKeySpace);
-    KEMDEM KD = KEMDEM(K, E);
-
-assume:
-    // If symmetric encryption scheme E satisfies one-time secrecy and key uniformity ...
-    INDOT(E);
-    KeyUniformity(E);
-    // ... and KEM K satisfies KEM_INDCPA_MultiChal-security...
-    KEM_INDCPA_MultiChal(K);
-
-theorem:
-    // ... then the KEM-DEM public key encryption scheme KD satisfies INDCPA_MultiChal security.
-    INDCPA_MultiChal(KD);
-
-games:
-    // Game 0
-    INDCPA_MultiChal(KD).Left against INDCPA_MultiChal(KD).Adversary;
-    KEM_INDCPA_MultiChal(K).Real compose R1(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    // Game 1
-    KEM_INDCPA_MultiChal(K).Random compose R1(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    KeyUniformity(E).Random compose R2(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    // Game 2
-    KeyUniformity(E).Real compose R2(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    INDOT(E).Left compose R3(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    // Game 3
-    INDOT(E).Right compose R3(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    KeyUniformity(E).Real compose R4(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    // Game 4
-    KeyUniformity(E).Random compose R4(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    KEM_INDCPA_MultiChal(K).Random compose R5(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    // Game 5
-    KEM_INDCPA_MultiChal(K).Real compose R5(E, K, KD) against INDCPA_MultiChal(KD).Adversary;
-    INDCPA_MultiChal(KD).Right against INDCPA_MultiChal(KD).Adversary;

@@ -7,14 +7,6 @@ import '../../Primitives/NonNullableSymEnc.primitive';
 import '../../Schemes/SymEnc/DoubleSymEnc.scheme';
 import '../../Games/SymEnc/INDOT$.game';
 
-Reduction R1(DoubleSymEnc D, SymEnc E) compose INDOT$(E) against INDOT$(D).Adversary {
-    D.Ciphertext CTXT(D.Message m) {
-        E.Key k = E.KeyGen();
-        E.Ciphertext c = E.Enc(k, m);
-        return challenger.CTXT(c);
-    }
-}
-
 proof:
 
 let:
@@ -41,3 +33,11 @@ games:
 
     // By codewise equivalency
     INDOT$(D).Random against INDOT$(D).Adversary;
+
+Reduction R1(DoubleSymEnc D, SymEnc E) compose INDOT$(E) against INDOT$(D).Adversary {
+    D.Ciphertext CTXT(D.Message m) {
+        E.Key k = E.KeyGen();
+        E.Ciphertext c = E.Enc(k, m);
+        return challenger.CTXT(c);
+    }
+}

@@ -4,29 +4,6 @@ import '../../Primitives/PRG.primitive';
 import '../../joy_old/5_Exercises/5_8_a.scheme';
 import '../../Games/PRG/PRGSecurity.game';
 
-Reduction R1(PRG G, PRG_5_8_a H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<3 * H.lambda> result1 = challenger.Query();
-
-        BitString<H.lambda> x = result1[0 : H.lambda];
-        BitString<H.lambda> y = result1[H.lambda : 2*H.lambda];
-        BitString<H.lambda> z = result1[2*H.lambda : 3*H.lambda];
-
-        BitString<3 * H.lambda> result2 = G.evaluate(x);
-        BitString<3 * H.lambda> result3 = G.evaluate(z);
-
-        return result2 || result3;
-    }
-}
-
-Reduction R3(PRG G, PRG_5_8_a H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
-    BitString<H.lambda + H.stretch> Query() {
-        BitString<3 * H.lambda> result2 = challenger.Query();
-        BitString<3 * H.lambda> result3 = challenger.Query();
-        return result2 || result3;
-    }
-}
-
 proof:
 
 let:
@@ -52,3 +29,26 @@ games:
     PRGSecurity(G).Random compose R3(G, H) against PRGSecurity(H).Adversary;
 
     PRGSecurity(H).Random against PRGSecurity(H).Adversary;
+
+Reduction R1(PRG G, PRG_5_8_a H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<3 * H.lambda> result1 = challenger.Query();
+
+        BitString<H.lambda> x = result1[0 : H.lambda];
+        BitString<H.lambda> y = result1[H.lambda : 2*H.lambda];
+        BitString<H.lambda> z = result1[2*H.lambda : 3*H.lambda];
+
+        BitString<3 * H.lambda> result2 = G.evaluate(x);
+        BitString<3 * H.lambda> result3 = G.evaluate(z);
+
+        return result2 || result3;
+    }
+}
+
+Reduction R3(PRG G, PRG_5_8_a H) compose PRGSecurity(G) against PRGSecurity(H).Adversary {
+    BitString<H.lambda + H.stretch> Query() {
+        BitString<3 * H.lambda> result2 = challenger.Query();
+        BitString<3 * H.lambda> result3 = challenger.Query();
+        return result2 || result3;
+    }
+}

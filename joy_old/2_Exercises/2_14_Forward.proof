@@ -4,14 +4,6 @@ import '../../Primitives/SymEnc.primitive';
 import '../../joy_old/2_Exercises/2_14.game';
 import '../../Games/SymEnc/INDOT.game';
 
-Reduction R(SymEnc E) compose INDOT(E) against Foo(E).Adversary {
-    E.Ciphertext Foo(E.Message m) {
-        E.Message mPrime <- E.Message;
-        E.Ciphertext c = challenger.Eavesdrop(m, mPrime);
-        return c;
-    }
-}
-
 proof:
 
 let:
@@ -38,3 +30,11 @@ games:
     
     // By codewise equivalency
     Foo(E).Right against Foo(E).Adversary;
+
+Reduction R(SymEnc E) compose INDOT(E) against Foo(E).Adversary {
+    E.Ciphertext Foo(E.Message m) {
+        E.Message mPrime <- E.Message;
+        E.Ciphertext c = challenger.Eavesdrop(m, mPrime);
+        return c;
+    }
+}

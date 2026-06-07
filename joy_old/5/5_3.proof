@@ -8,20 +8,6 @@ import '../../Primitives/PRG.primitive';
 import '../../Games/SymEnc/INDOT.game';
 import '../../Games/PRG/PRGSecurity.game';
 
-Reduction R1(PseudoOTP P, PRG G) compose PRGSecurity(G) against INDOT(P).Adversary {
-    P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
-        P.Ciphertext c = challenger.Query() + mL;
-        return c;
-    }
-}
-
-Reduction R3(PseudoOTP P, PRG G) compose PRGSecurity(G) against INDOT(P).Adversary {
-    P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
-        P.Ciphertext c = challenger.Query() + mR;
-        return c;
-    }
-}
-
 proof:
 
 let:
@@ -48,3 +34,17 @@ games:
     PRGSecurity(G).Real compose R3(P, G) against INDOT(P).Adversary;
 
     INDOT(P).Right against INDOT(P).Adversary;
+
+Reduction R1(PseudoOTP P, PRG G) compose PRGSecurity(G) against INDOT(P).Adversary {
+    P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
+        P.Ciphertext c = challenger.Query() + mL;
+        return c;
+    }
+}
+
+Reduction R3(PseudoOTP P, PRG G) compose PRGSecurity(G) against INDOT(P).Adversary {
+    P.Ciphertext Eavesdrop(P.Message mL, P.Message mR) {
+        P.Ciphertext c = challenger.Query() + mR;
+        return c;
+    }
+}

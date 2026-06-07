@@ -8,18 +8,6 @@ import '../../Primitives/SymEnc.primitive';
 import '../../Games/SymEnc/INDOT.game';
 import '../../Games/SymEnc/INDOT$.game';
 
-Reduction R1(SymEnc se) compose INDOT$(se) against INDOT(se).Adversary {
-    se.Ciphertext Eavesdrop(se.Message mL, se.Message mR) {
-        return challenger.CTXT(mL);
-    }
-}
-
-Reduction R2(SymEnc se2) compose INDOT$(se2) against INDOT(se2).Adversary {
-    se2.Ciphertext Eavesdrop(se2.Message mL, se2.Message mR) {
-        return challenger.CTXT(mR);
-    }
-}
-
 proof:
 
 let:
@@ -54,3 +42,15 @@ games:
 
     // Codewise equivalency
     INDOT(proofE).Right against INDOT(proofE).Adversary;
+
+Reduction R1(SymEnc se) compose INDOT$(se) against INDOT(se).Adversary {
+    se.Ciphertext Eavesdrop(se.Message mL, se.Message mR) {
+        return challenger.CTXT(mL);
+    }
+}
+
+Reduction R2(SymEnc se2) compose INDOT$(se2) against INDOT(se2).Adversary {
+    se2.Ciphertext Eavesdrop(se2.Message mL, se2.Message mR) {
+        return challenger.CTXT(mR);
+    }
+}

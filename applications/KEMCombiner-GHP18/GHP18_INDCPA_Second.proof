@@ -13,6 +13,45 @@ import 'KEMCombiner.scheme';
 import '../../Games/KEM/INDCPA_MultiChal.game';
 import 'TwoKeyPRFSecondKeyMultiKey.game';
 
+proof:
+
+let:
+    Int ss1len;
+    Int ss2len;
+    Int ct1len;
+    Int ct2len;
+    Int pk1len;
+    Int pk2len;
+    Set SK1Space;
+    Set SK2Space;
+    Set SS1Space;
+    Set SS2Space;
+    Set CT1Space;
+    Set CT2Space;
+    Set PK1Space;
+    Set PK2Space;
+    Int outlen;
+    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
+    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
+    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
+    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
+
+assume:
+    KEM_INDCPA_MultiChal(KEM2);
+    TwoKeyPRFSecondKeyMultiKey(F);
+
+theorem:
+    KEM_INDCPA_MultiChal(KC);
+
+games:
+    KEM_INDCPA_MultiChal(KC).Real against KEM_INDCPA_MultiChal(KC).Adversary;
+    KEM_INDCPA_MultiChal(KEM2).Real compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
+    KEM_INDCPA_MultiChal(KEM2).Random compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
+    G2_RandKey(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCPA_MultiChal(KC).Adversary;
+    TwoKeyPRFSecondKeyMultiKey(F).Real compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
+    TwoKeyPRFSecondKeyMultiKey(F).Random compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
+    KEM_INDCPA_MultiChal(KC).Random against KEM_INDCPA_MultiChal(KC).Adversary;
+
 // Reduction for KEM2 KEM_INDCPA_MultiChal hop: receives (ss2, ct2) from KEM2 challenger,
 // generates KEM1 independently, applies F.evaluate(ss1, ss2, label).
 Reduction R_KEM2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEM_INDCPA_MultiChal(KEM2) against KEM_INDCPA_MultiChal(KC).Adversary {
@@ -102,42 +141,3 @@ Reduction R_PRF2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk
         return [ss, [ct1, ct2]];
     }
 }
-
-proof:
-
-let:
-    Int ss1len;
-    Int ss2len;
-    Int ct1len;
-    Int ct2len;
-    Int pk1len;
-    Int pk2len;
-    Set SK1Space;
-    Set SK2Space;
-    Set SS1Space;
-    Set SS2Space;
-    Set CT1Space;
-    Set CT2Space;
-    Set PK1Space;
-    Set PK2Space;
-    Int outlen;
-    KEM KEM1 = KEM(SS1Space, CT1Space, PK1Space, SK1Space);
-    KEM KEM2 = KEM(SS2Space, CT2Space, PK2Space, SK2Space);
-    TwoKeyPRF F = TwoKeyPRF(ss1len, ss2len, pk1len + ct1len + pk2len + ct2len, outlen);
-    KEMCombiner KC = KEMCombiner(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len);
-
-assume:
-    KEM_INDCPA_MultiChal(KEM2);
-    TwoKeyPRFSecondKeyMultiKey(F);
-
-theorem:
-    KEM_INDCPA_MultiChal(KC);
-
-games:
-    KEM_INDCPA_MultiChal(KC).Real against KEM_INDCPA_MultiChal(KC).Adversary;
-    KEM_INDCPA_MultiChal(KEM2).Real compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
-    KEM_INDCPA_MultiChal(KEM2).Random compose R_KEM2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
-    G2_RandKey(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len) against KEM_INDCPA_MultiChal(KC).Adversary;
-    TwoKeyPRFSecondKeyMultiKey(F).Real compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
-    TwoKeyPRFSecondKeyMultiKey(F).Random compose R_PRF2(KEM1, KEM2, F, pk1len, ct1len, pk2len, ct2len, KC) against KEM_INDCPA_MultiChal(KC).Adversary;
-    KEM_INDCPA_MultiChal(KC).Random against KEM_INDCPA_MultiChal(KC).Adversary;

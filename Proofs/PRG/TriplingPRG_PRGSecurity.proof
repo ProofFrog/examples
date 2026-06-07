@@ -8,25 +8,6 @@ import '../../Primitives/PRG.primitive';
 import '../../Schemes/PRG/TriplingPRG.scheme';
 import '../../Games/PRG/PRGSecurity.game';
 
-Reduction R1(PRG G, TriplingPRG T) compose PRGSecurity(G) against PRGSecurity(T).Adversary {
-    BitString<T.lambda + T.stretch> Query() {
-        BitString<2 * T.lambda> result1 = challenger.Query();
-        BitString<T.lambda> x = result1[0 : T.lambda];
-        BitString<T.lambda> y = result1[T.lambda : 2*T.lambda];
-        BitString<2 * T.lambda> result2 = G.evaluate(y);
-
-        return x || result2;
-    }
-}
-
-Reduction R3(PRG G, TriplingPRG T) compose PRGSecurity(G) against PRGSecurity(T).Adversary {
-    BitString<T.lambda + T.stretch> Query() {
-        BitString<T.lambda> x <- BitString<T.lambda>;
-        BitString<2 * T.lambda> result2 = challenger.Query();
-        return x || result2;
-    }
-}
-
 proof:
 
 let:
@@ -52,3 +33,22 @@ games:
     PRGSecurity(G).Random compose R3(G, T) against PRGSecurity(T).Adversary;
 
     PRGSecurity(T).Random against PRGSecurity(T).Adversary;
+
+Reduction R1(PRG G, TriplingPRG T) compose PRGSecurity(G) against PRGSecurity(T).Adversary {
+    BitString<T.lambda + T.stretch> Query() {
+        BitString<2 * T.lambda> result1 = challenger.Query();
+        BitString<T.lambda> x = result1[0 : T.lambda];
+        BitString<T.lambda> y = result1[T.lambda : 2*T.lambda];
+        BitString<2 * T.lambda> result2 = G.evaluate(y);
+
+        return x || result2;
+    }
+}
+
+Reduction R3(PRG G, TriplingPRG T) compose PRGSecurity(G) against PRGSecurity(T).Adversary {
+    BitString<T.lambda + T.stretch> Query() {
+        BitString<T.lambda> x <- BitString<T.lambda>;
+        BitString<2 * T.lambda> result2 = challenger.Query();
+        return x || result2;
+    }
+}

@@ -17,6 +17,40 @@ import '../../Schemes/PRG/CounterPRG.scheme';
 import '../../Games/PRG/PRGSecurity.game';
 import '../../Games/PRF/PRFSecurity.game';
 
+proof:
+
+let:
+    Int lambda;
+    Int q;
+    PRF F = PRF(lambda, 1, lambda);
+    CounterPRG G = CounterPRG(F);
+
+assume:
+    PRFSecurity(F);
+    calls <= q;
+
+theorem:
+    PRGSecurity(G);
+
+games:
+
+    PRGSecurity(G).Real against PRGSecurity(G).Adversary;
+
+    assume SecurityIntermediate2(F, G, 1).count >= 1;
+    assume R1(F, G, 1).count >= 1;
+
+    induction(i from 1 to q) {
+        SecurityIntermediate2(F, G, i) against PRGSecurity(G).Adversary;
+        PRFSecurity(F).Real compose R1(F, G, i) against PRGSecurity(G).Adversary;
+        PRFSecurity(F).Random compose R1(F, G, i) against PRGSecurity(G).Adversary;
+        SecurityIntermediate5(F, G, i) against PRGSecurity(G).Adversary;
+    }
+
+    assume R1(F, G, q).count < q + 1;
+    assume SecurityIntermediate5(F, G, q).count < q + 1;
+
+    PRGSecurity(G).Random against PRGSecurity(G).Adversary;
+
 // SecurityIntermediate2 = Hybrid_{i-1}: first (i-1) queries random,
 // rest are CounterPRG real evaluations.
 Game SecurityIntermediate2(PRF F, CounterPRG G, Int hybridNum) {
@@ -92,37 +126,3 @@ Game SecurityIntermediate5(PRF F, CounterPRG G, Int hybridNum) {
         }
     }
 }
-
-proof:
-
-let:
-    Int lambda;
-    Int q;
-    PRF F = PRF(lambda, 1, lambda);
-    CounterPRG G = CounterPRG(F);
-
-assume:
-    PRFSecurity(F);
-    calls <= q;
-
-theorem:
-    PRGSecurity(G);
-
-games:
-
-    PRGSecurity(G).Real against PRGSecurity(G).Adversary;
-
-    assume SecurityIntermediate2(F, G, 1).count >= 1;
-    assume R1(F, G, 1).count >= 1;
-
-    induction(i from 1 to q) {
-        SecurityIntermediate2(F, G, i) against PRGSecurity(G).Adversary;
-        PRFSecurity(F).Real compose R1(F, G, i) against PRGSecurity(G).Adversary;
-        PRFSecurity(F).Random compose R1(F, G, i) against PRGSecurity(G).Adversary;
-        SecurityIntermediate5(F, G, i) against PRGSecurity(G).Adversary;
-    }
-
-    assume R1(F, G, q).count < q + 1;
-    assume SecurityIntermediate5(F, G, q).count < q + 1;
-
-    PRGSecurity(G).Random against PRGSecurity(G).Adversary;

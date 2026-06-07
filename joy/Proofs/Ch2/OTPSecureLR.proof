@@ -6,18 +6,6 @@ import '../../Schemes/SymEnc/OTP.scheme';
 import '../../Games/SymEnc/OneTimeSecrecyLR.game';
 import '../../Games/SymEnc/OneTimeSecrecy.game';
 
-Reduction R1(OTP E) compose OneTimeSecrecy(E) against OneTimeSecrecyLR(E).Adversary {
-    E.Ciphertext ENC(E.Message mL, E.Message mR) {
-        return challenger.ENC(mL);
-    }
-}
-
-Reduction R2(OTP E) compose OneTimeSecrecy(E) against OneTimeSecrecyLR(E).Adversary {
-    E.Ciphertext ENC(E.Message mL, E.Message mR) {
-        return challenger.ENC(mR);
-    }
-}
-
 proof:
 
 let:
@@ -47,3 +35,15 @@ games:
 
     // Inline back
     OneTimeSecrecyLR(E).Right against OneTimeSecrecyLR(E).Adversary;
+
+Reduction R1(OTP E) compose OneTimeSecrecy(E) against OneTimeSecrecyLR(E).Adversary {
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        return challenger.ENC(mL);
+    }
+}
+
+Reduction R2(OTP E) compose OneTimeSecrecy(E) against OneTimeSecrecyLR(E).Adversary {
+    E.Ciphertext ENC(E.Message mL, E.Message mR) {
+        return challenger.ENC(mR);
+    }
+}

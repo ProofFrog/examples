@@ -23,6 +23,39 @@ import '../../Games/Group/GapCDH_NZ.game';
 import '../../Games/Helpers/Probability/ROMProgramming.game';
 import '../../Games/Helpers/Probability/UniqueSampling.game';
 
+proof:
+
+let:
+    Group G;
+    Int n;
+    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
+    HashedElGamalKEM E = HashedElGamalKEM(G, n, H);
+
+assume:
+    GapCDH(G);
+    ROMProgramming(GroupElem<G>, BitString<n>, H);
+    UniqueSampling(ModInt<G.order>);
+
+requires:
+    G.order is prime;
+
+lemma:
+    GapCDH_NZ(G) by '../Group/GapCDH_implies_GapCDH_NZ.proof';
+
+theorem:
+    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H);
+
+games:
+    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Real against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural    compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    GapCDH_NZ(G).Left  compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    GapCDH_NZ(G).Right compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Random against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
 // R_Program: peels ssStar by delegating H(ctStar^sk) to the
 // ROMProgramming challenger. Holds sk locally and answers Decaps via
 // challenger.Query(c^sk).
@@ -112,36 +145,3 @@ Reduction R_Gap(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
         return s;
     }
 }
-
-proof:
-
-let:
-    Group G;
-    Int n;
-    Function<GroupElem<G>, BitString<n>> H <- Function<GroupElem<G>, BitString<n>>;
-    HashedElGamalKEM E = HashedElGamalKEM(G, n, H);
-
-assume:
-    GapCDH(G);
-    ROMProgramming(GroupElem<G>, BitString<n>, H);
-    UniqueSampling(ModInt<G.order>);
-
-requires:
-    G.order is prime;
-
-lemma:
-    GapCDH_NZ(G) by '../Group/GapCDH_implies_GapCDH_NZ.proof';
-
-theorem:
-    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H);
-
-games:
-    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Real against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural    compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    GapCDH_NZ(G).Left  compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
-    GapCDH_NZ(G).Right compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
-
-    KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Random against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;

@@ -10,26 +10,6 @@ import '../../Primitives/SymEnc.primitive';
 import '../../Schemes/SymEnc/ChainedEncryption.scheme';
 import '../../Games/SymEnc/OneTimeSecrecy.game';
 
-// R1: delegates E1 encryption to the challenger, handles E2 encryption itself
-Reduction R1(ChainedEncryption CE, SymEnc E1, SymEnc E2) compose OneTimeSecrecy(E1) against OneTimeSecrecy(CE).Adversary {
-    CE.Ciphertext ENC(CE.Message m) {
-        E2.Key kprime = E2.KeyGen();
-        E1.Ciphertext c1 = challenger.ENC(kprime);
-        E2.Ciphertext c2 = E2.Enc(kprime, m);
-        return [c1, c2];
-    }
-}
-
-// R2: c1 is already random; delegates E2 encryption to the challenger
-Reduction R2(ChainedEncryption CE, SymEnc E1, SymEnc E2) compose OneTimeSecrecy(E2) against OneTimeSecrecy(CE).Adversary {
-    CE.Ciphertext ENC(CE.Message m) {
-        E1.Ciphertext c1 <- E1.Ciphertext;
-        E2.Ciphertext c2 = challenger.ENC(m);
-        E2.Ciphertext c2prime <- E2.Ciphertext;
-        return [c1, c2];
-    }
-}
-
 proof:
 
 let:
@@ -68,3 +48,23 @@ games:
 
     // Both components now random
     OneTimeSecrecy(CE).Random against OneTimeSecrecy(CE).Adversary;
+
+// R1: delegates E1 encryption to the challenger, handles E2 encryption itself
+Reduction R1(ChainedEncryption CE, SymEnc E1, SymEnc E2) compose OneTimeSecrecy(E1) against OneTimeSecrecy(CE).Adversary {
+    CE.Ciphertext ENC(CE.Message m) {
+        E2.Key kprime = E2.KeyGen();
+        E1.Ciphertext c1 = challenger.ENC(kprime);
+        E2.Ciphertext c2 = E2.Enc(kprime, m);
+        return [c1, c2];
+    }
+}
+
+// R2: c1 is already random; delegates E2 encryption to the challenger
+Reduction R2(ChainedEncryption CE, SymEnc E1, SymEnc E2) compose OneTimeSecrecy(E2) against OneTimeSecrecy(CE).Adversary {
+    CE.Ciphertext ENC(CE.Message m) {
+        E1.Ciphertext c1 <- E1.Ciphertext;
+        E2.Ciphertext c2 = challenger.ENC(m);
+        E2.Ciphertext c2prime <- E2.Ciphertext;
+        return [c1, c2];
+    }
+}
