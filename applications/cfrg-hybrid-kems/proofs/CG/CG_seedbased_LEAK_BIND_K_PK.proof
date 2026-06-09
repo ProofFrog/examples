@@ -477,10 +477,8 @@ Reduction R_KDF(KEM KEM_PQ, NominalGroup NG, Int lambda,
         s_PQ_1 <- BitString<KEM_PQ.Nseed>;
         s_T_0 <- BitString<NG.Nseed>;
         s_T_1 <- BitString<NG.Nseed>;
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.DeriveKeyPair(s_PQ_0);
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.DeriveKeyPair(s_PQ_1);
-        ek_PQ_0 = pq_kp_0[0]; dk_PQ_0 = pq_kp_0[1];
-        ek_PQ_1 = pq_kp_1[0]; dk_PQ_1 = pq_kp_1[1];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = KEM_PQ.DeriveKeyPair(s_PQ_0);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_1, dk_PQ_1] = KEM_PQ.DeriveKeyPair(s_PQ_1);
         dk_T_0 = NG.RandomScalar(s_T_0);
         dk_T_1 = NG.RandomScalar(s_T_1);
         ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);

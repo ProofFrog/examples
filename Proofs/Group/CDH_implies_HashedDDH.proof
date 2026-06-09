@@ -67,8 +67,8 @@ Reduction R_CDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose 
 
     [GroupElem<G>, GroupElem<G>, BitString<n>] Initialize() {
         u <- BitString<n>;
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Initialize();
-        return [pair[0], pair[1], u];
+        [GroupElem<G>, GroupElem<G>] [x, y] = challenger.Initialize();
+        return [x, y, u];
     }
 
     BitString<n> Hash(GroupElem<G> x) {

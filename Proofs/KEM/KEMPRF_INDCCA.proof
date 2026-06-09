@@ -47,11 +47,9 @@ Reduction R_KEM(KEM K, PRF F, KEMPRF KF) compose KEM_INDCCA_MultiChal(K) against
     KF.Ciphertext ctStar;
 
     [KF.PublicKey, KF.SharedSecret, KF.Ciphertext] Initialize() {
-        [K.PublicKey, K.SharedSecret, K.Ciphertext] rsp = challenger.Initialize();
-        K.SharedSecret ss = rsp[1];
-        K.Ciphertext ct = rsp[2];
+        [K.PublicKey, K.SharedSecret, K.Ciphertext] [pk, ss, ct] = challenger.Initialize();
         ctStar = ct;
-        return [rsp[0], F.evaluate(ss, ct), ct];
+        return [pk, F.evaluate(ss, ct), ct];
     }
 
     KF.SharedSecret? Decaps(KF.Ciphertext c) {
@@ -73,12 +71,11 @@ Game G_RandKey(KEM K, PRF F) {
     K.Ciphertext ctStar;
 
     [K.PublicKey, BitString<F.out>, K.Ciphertext] Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        sk = k[1];
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        [K.PublicKey, K.SecretKey] [pk, sk] = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pk);
         BitString<F.lambda> key <- BitString<F.lambda>;
         ctStar = rsp[1];
-        return [k[0], F.evaluate(key, rsp[1]), rsp[1]];
+        return [pk, F.evaluate(key, rsp[1]), rsp[1]];
     }
 
     BitString<F.out>? Decaps(K.Ciphertext c) {
@@ -96,12 +93,11 @@ Reduction R_MultiPRF(KEM K, PRF F, KEMPRF KF) compose PRFSecurity_MultiKey(F) ag
     K.Ciphertext ctStar;
 
     [KF.PublicKey, KF.SharedSecret, KF.Ciphertext] Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        sk = k[1];
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        [K.PublicKey, K.SecretKey] [pk, sk] = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pk);
         ctStar = rsp[1];
         BitString<F.out> ss = challenger.Lookup(rsp[1]);
-        return [k[0], ss, rsp[1]];
+        return [pk, ss, rsp[1]];
     }
 
     KF.SharedSecret? Decaps(KF.Ciphertext c) {

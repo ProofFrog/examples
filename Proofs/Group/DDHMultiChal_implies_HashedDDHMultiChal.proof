@@ -54,8 +54,8 @@ Reduction R_DDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose 
     }
 
     [GroupElem<G>, BitString<n>] Challenge() {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        return [pair[0], H(pair[1])];
+        [GroupElem<G>, GroupElem<G>] [x, y] = challenger.Challenge();
+        return [x, H(y)];
     }
 }
 

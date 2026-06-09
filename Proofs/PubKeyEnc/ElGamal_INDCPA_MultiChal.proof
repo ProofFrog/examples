@@ -51,8 +51,8 @@ Reduction R_L(Group G) compose DDHMultiChal(G) against INDCPA_MultiChal(ElGamal(
     }
 
     [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        return [pair[0], mL * pair[1]];
+        [GroupElem<G>, GroupElem<G>] [x, y] = challenger.Challenge();
+        return [x, mL * y];
     }
 }
 
@@ -63,7 +63,7 @@ Reduction R_R(Group G) compose DDHMultiChal(G) against INDCPA_MultiChal(ElGamal(
     }
 
     [GroupElem<G>, GroupElem<G>] Challenge(GroupElem<G> mL, GroupElem<G> mR) {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        return [pair[0], mR * pair[1]];
+        [GroupElem<G>, GroupElem<G>] [x, y] = challenger.Challenge();
+        return [x, mR * y];
     }
 }

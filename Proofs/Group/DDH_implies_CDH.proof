@@ -53,9 +53,8 @@ Reduction R(Group G) compose DDH(G) against CDH(G).Adversary {
     GroupElem<G> z;
 
     [GroupElem<G>, GroupElem<G>] Initialize() {
-        [GroupElem<G>, GroupElem<G>, GroupElem<G>] triple = challenger.Initialize();
-        z = triple[2];
-        return [triple[0], triple[1]];
+        [GroupElem<G>, GroupElem<G>, GroupElem<G>] [x, y, z] = challenger.Initialize();
+        return [x, y];
     }
 
     Bool Solve(GroupElem<G> c) {

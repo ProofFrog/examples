@@ -17,11 +17,9 @@ Game Real(KEM K, Set D, Set R, Function<D, R> H) {
     K.Ciphertext ctStar;
 
     [K.EncapsKey, K.SharedSecret, K.Ciphertext] Initialize() {
-        [K.EncapsKey, K.DecapsKey] k = K.KeyGen();
-        dk = k[1];
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
-        ctStar = rsp[1];
-        return [k[0], rsp[0], rsp[1]];
+        [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] [ss, ctStar] = K.Encaps(ek);
+        return [ek, ss, ctStar];
     }
 
     K.SharedSecret? Decaps(K.Ciphertext c) {
@@ -41,12 +39,11 @@ Game Random(KEM K, Set D, Set R, Function<D, R> H) {
     K.Ciphertext ctStar;
 
     [K.EncapsKey, K.SharedSecret, K.Ciphertext] Initialize() {
-        [K.EncapsKey, K.DecapsKey] k = K.KeyGen();
-        dk = k[1];
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(k[0]);
+        [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(ek);
         K.SharedSecret ss <- K.SharedSecret;
         ctStar = rsp[1];
-        return [k[0], ss, rsp[1]];
+        return [ek, ss, rsp[1]];
     }
 
     K.SharedSecret? Decaps(K.Ciphertext c) {

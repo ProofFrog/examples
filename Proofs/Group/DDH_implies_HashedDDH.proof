@@ -51,8 +51,8 @@ games:
 // pair.
 Reduction R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DDH(G) against HashedDDH(G, n, H).Adversary {
     [GroupElem<G>, GroupElem<G>, BitString<n>] Initialize() {
-        [GroupElem<G>, GroupElem<G>, GroupElem<G>] triple = challenger.Initialize();
-        return [triple[0], triple[1], H(triple[2])];
+        [GroupElem<G>, GroupElem<G>, GroupElem<G>] [x, y, z] = challenger.Initialize();
+        return [x, y, H(z)];
     }
 
     BitString<n> Hash(GroupElem<G> x) {

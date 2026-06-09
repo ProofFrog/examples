@@ -129,16 +129,15 @@ Reduction R_Correct_2L(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, 
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], C.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(pk);
         [KEM2.Ciphertext, KEM2.SharedSecret, KEM2.SharedSecret] [ct2Star, ss2e, ss2d] = challenger.Compute(pk2, sk2);
         BitString<ct2len> bct2 = ct2Star;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
         C.SharedSecret ss = F.evaluate(ss1, ss2e, label);
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     C.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -170,16 +169,15 @@ Reduction R_Correct_2R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, 
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], C.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk);
         ct1Star = rsp1[1];
         [KEM2.Ciphertext, KEM2.SharedSecret, KEM2.SharedSecret] corr = challenger.Compute(pk2, sk2);
         ct2Star = corr[0];
         ss2d = corr[2];
         C.SharedSecret ss <- C.SharedSecret;
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     C.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -210,15 +208,14 @@ Reduction R_KEM2_L(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, CK C
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], C.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
-        sk1 = k1[1];
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SharedSecret, KEM2.Ciphertext] [pk2, ss2Star, ct2Star] = challenger.Initialize();
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(pk);
         BitString<ct2len> bct2 = ct2Star;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
         C.SharedSecret ss = F.evaluate(ss1, ss2Star, label);
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     C.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -252,13 +249,12 @@ Reduction R_KEM2_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, CK C
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], C.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
-        sk1 = k1[1];
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SharedSecret, KEM2.Ciphertext] [pk2, ss2Star, ct2Star] = challenger.Initialize();
-        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk);
         ct1Star = rsp1[1];
         C.SharedSecret ss <- C.SharedSecret;
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     C.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -387,17 +383,16 @@ Reduction R_PRF_Fwd(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, CK 
 
     [[KEM1.PublicKey, KEM2.PublicKey], C.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
         challenger.Initialize();
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(pk);
         [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
         ct2Star = rsp2[1];
         BitString<ct2len> bct2 = ct2Star;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
         C.SharedSecret ss = challenger.Lookup(ss1Star, label);
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     C.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -435,14 +430,13 @@ Reduction R_PRF_Rev(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len, CK 
 
     [[KEM1.PublicKey, KEM2.PublicKey], C.SharedSecret, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
         challenger.Initialize();
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(pk);
         [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
         ct2Star = rsp2[1];
         C.SharedSecret ss <- C.SharedSecret;
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     C.SharedSecret? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -477,16 +471,15 @@ Game G_StoredSS2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(pk);
         [KEM2.SharedSecret, KEM2.Ciphertext] [ss2Star, ct2Star] = KEM2.Encaps(pk2);
         BitString<ct2len> bct2 = ct2Star;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
         BitString<F.out> ss = F.evaluate(ss1, ss2Star, label);
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -517,10 +510,9 @@ Game G_RandSS2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1Star] = KEM1.Encaps(pk);
         [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
         ct2Star = rsp2[1];
         ss2Star <- BitString<F.lambda2>;
@@ -528,7 +520,7 @@ Game G_RandSS2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
         BitString<F.out> ss = F.evaluate(ss1, ss2Star, label);
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -560,10 +552,9 @@ Game G_Abort(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(pk);
         [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
         ct2Star = rsp2[1];
         ss2Star <- BitString<F.lambda2>;
@@ -571,7 +562,7 @@ Game G_Abort(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
         BitString<F.out> ss = F.evaluate(ss1Star, ss2Star, label);
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -608,17 +599,16 @@ Game G_AllRand(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
 
     [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
         RF <- Function<[BitString<F.lambda1>, BitString<F.in>], BitString<F.out>>;
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(pk);
         [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
         ct2Star = rsp2[1];
         BitString<ct2len> bct2 = ct2Star;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;
         BitString<F.out> ss = RF([ss1Star, label]);
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -654,15 +644,14 @@ Game G_Unwound(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1Star, ct1Star] = KEM1.Encaps(pk);
         [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
         ct2Star = rsp2[1];
         ss2Star <- BitString<F.lambda2>;
         BitString<F.out> ss <- BitString<F.out>;
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -697,16 +686,15 @@ Game G_Consolidated(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk);
         ct1Star = rsp1[1];
         [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
         ct2Star = rsp2[1];
         ss2Star <- BitString<F.lambda2>;
         BitString<F.out> ss <- BitString<F.out>;
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {
@@ -737,14 +725,13 @@ Game G_StoredSS2_R(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) {
     KEM2.Ciphertext ct2Star;
 
     [[KEM1.PublicKey, KEM2.PublicKey], BitString<F.out>, [KEM1.Ciphertext, KEM2.Ciphertext]] Initialize() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
+        [KEM1.PublicKey, KEM1.SecretKey] [pk, sk1] = KEM1.KeyGen();
         [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
-        sk1 = k1[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(k1[0]);
+        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk);
         ct1Star = rsp1[1];
         [KEM2.SharedSecret, KEM2.Ciphertext] [ss2Star, ct2Star] = KEM2.Encaps(pk2);
         BitString<F.out> ss <- BitString<F.out>;
-        return [[k1[0], pk2], ss, [ct1Star, ct2Star]];
+        return [[pk, pk2], ss, [ct1Star, ct2Star]];
     }
 
     BitString<F.out>? Decaps([KEM1.Ciphertext, KEM2.Ciphertext] c) {

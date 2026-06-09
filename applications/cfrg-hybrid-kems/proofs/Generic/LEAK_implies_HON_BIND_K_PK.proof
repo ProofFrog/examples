@@ -54,10 +54,8 @@ Reduction R(KEM K) compose LEAK_BIND_K_PK(K) against HON_BIND_K_PK(K).Adversary 
     K.DecapsKey dk1;
 
     [K.EncapsKey, K.EncapsKey] Initialize() {
-        [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] keys = challenger.Initialize();
-        dk0 = keys[1];
-        dk1 = keys[3];
-        return [keys[0], keys[2]];
+        [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] [ek0, dk0, ek1, dk1] = challenger.Initialize();
+        return [ek0, ek1];
     }
 
     K.SharedSecret Decaps0(K.Ciphertext ct) {
