@@ -66,12 +66,8 @@ Reduction R_KEM1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk
     }
 
     [KC.SharedSecret, KC.Ciphertext] Challenge() {
-        [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = challenger.Challenge();
-        KEM1.SharedSecret ss1 = rsp1[0];
-        KEM1.Ciphertext ct1 = rsp1[1];
-        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
-        KEM2.SharedSecret ss2 = rsp2[0];
-        KEM2.Ciphertext ct2 = rsp2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1] = challenger.Challenge();
+        [KEM2.SharedSecret, KEM2.Ciphertext] [ss2, ct2] = KEM2.Encaps(pk2);
         BitString<pk1len> bpk1 = pk1;
         BitString<ct1len> bct1 = ct1;
         BitString<pk2len> bpk2 = pk2;
@@ -99,9 +95,7 @@ Game G1_RandKey(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2
         BitString<F.lambda1> key1 <- BitString<F.lambda1>;
         [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
         KEM1.Ciphertext ct1 = rsp1[1];
-        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
-        KEM2.SharedSecret ss2 = rsp2[0];
-        KEM2.Ciphertext ct2 = rsp2[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] [ss2, ct2] = KEM2.Encaps(pk2);
         BitString<pk1len> bpk1 = pk1;
         BitString<ct1len> bct1 = ct1;
         BitString<pk2len> bpk2 = pk2;
@@ -129,9 +123,7 @@ Reduction R_PRF1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk
     [KC.SharedSecret, KC.Ciphertext] Challenge() {
         [KEM1.SharedSecret, KEM1.Ciphertext] rsp1 = KEM1.Encaps(pk1);
         KEM1.Ciphertext ct1 = rsp1[1];
-        [KEM2.SharedSecret, KEM2.Ciphertext] rsp2 = KEM2.Encaps(pk2);
-        KEM2.SharedSecret ss2 = rsp2[0];
-        KEM2.Ciphertext ct2 = rsp2[1];
+        [KEM2.SharedSecret, KEM2.Ciphertext] [ss2, ct2] = KEM2.Encaps(pk2);
         BitString<pk1len> bpk1 = pk1;
         BitString<ct1len> bct1 = ct1;
         BitString<pk2len> bpk2 = pk2;

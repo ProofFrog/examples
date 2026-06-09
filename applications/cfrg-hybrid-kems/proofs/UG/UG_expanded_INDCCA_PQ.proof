@@ -194,9 +194,7 @@ Game GameCaseSplitReal(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_ex
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        ss_PQ = pq_enc[0];
-        kem_ct = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, kem_ct] = KEM_PQ.Encaps(ek_PQ);
         KEM_PQ.Ciphertext ct_PQ = kem_ct;
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
@@ -237,9 +235,7 @@ Game GameCaseSplitIdeal(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_e
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        ss_PQ = pq_enc[0];
-        kem_ct = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, kem_ct] = KEM_PQ.Encaps(ek_PQ);
         KEM_PQ.Ciphertext ct_PQ = kem_ct;
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
@@ -277,10 +273,7 @@ Reduction RB(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_expanded hyb
     [KEM_PQ.Ciphertext, NG.Element] ctStar;
 
     [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] ch = challenger.Initialize();
-        ek_PQ = ch[0];
-        ss_PQ = ch[1];
-        kem_ct = ch[2];
+        [KEM_PQ.EncapsKey, KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ek_PQ, ss_PQ, kem_ct] = challenger.Initialize();
         seed_T <- BitString<NG.Nseed>;
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
@@ -320,10 +313,7 @@ Reduction RC(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_expanded hyb
     [KEM_PQ.Ciphertext, NG.Element] ctStar;
 
     [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] ch = challenger.Initialize();
-        ek_PQ = ch[0];
-        ss_PQ = ch[1];
-        kem_ct = ch[2];
+        [KEM_PQ.EncapsKey, KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ek_PQ, ss_PQ, kem_ct] = challenger.Initialize();
         seed_T <- BitString<NG.Nseed>;
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);

@@ -9,9 +9,7 @@ Game Left(PubKeyEnc E) {
     Int count;
 
     E.PublicKey Initialize() {
-        [E.PublicKey, E.SecretKey] k = E.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [E.PublicKey, E.SecretKey] [pk, sk] = E.KeyGen();
         count = 0;
         return pk;
     }
@@ -32,9 +30,7 @@ Game Right(PubKeyEnc E) {
     Int count;
 
     E.PublicKey Initialize() {
-        [E.PublicKey, E.SecretKey] k = E.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [E.PublicKey, E.SecretKey] [pk, sk] = E.KeyGen();
         count = 0;
         return pk;
     }

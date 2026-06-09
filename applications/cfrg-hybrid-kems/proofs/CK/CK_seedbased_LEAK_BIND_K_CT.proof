@@ -183,9 +183,7 @@ Reduction R_LazyRO_L(KEM KEM_PQ, KEM KEM_T, Int lambda,
     KEM_T.DecapsKey dk_T_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [BitString<lambda>, BitString<lambda>] seeds = challenger.Initialize();
-        BitString<lambda> seed_0 = seeds[0];
-        BitString<lambda> seed_1 = seeds[1];
+        [BitString<lambda>, BitString<lambda>] [seed_0, seed_1] = challenger.Initialize();
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.DeriveKeyPair(challenger.Hash(seed_0)[0 : KEM_PQ.Nseed]);
         [KEM_T.EncapsKey,  KEM_T.DecapsKey]  t_kp_0  = KEM_T.DeriveKeyPair(challenger.Hash(seed_0)[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed]);
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.DeriveKeyPair(challenger.Hash(seed_1)[0 : KEM_PQ.Nseed]);
@@ -226,9 +224,7 @@ Reduction R_LazyRO_R(KEM KEM_PQ, KEM KEM_T, Int lambda,
     KEM_T.DecapsKey dk_T_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [BitString<lambda>, BitString<lambda>] seeds = challenger.Initialize();
-        BitString<lambda> seed_0 = seeds[0];
-        BitString<lambda> seed_1 = seeds[1];
+        [BitString<lambda>, BitString<lambda>] [seed_0, seed_1] = challenger.Initialize();
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.DeriveKeyPair(challenger.Hash(seed_0)[0 : KEM_PQ.Nseed]);
         [KEM_T.EncapsKey,  KEM_T.DecapsKey]  t_kp_0  = KEM_T.DeriveKeyPair(challenger.Hash(seed_0)[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed]);
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.DeriveKeyPair(challenger.Hash(seed_1)[0 : KEM_PQ.Nseed]);
@@ -272,12 +268,8 @@ Reduction R_KG_L(KEM KEM_PQ, KEM KEM_T, Int lambda,
     BitString<lambda> seed_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = challenger.Generate();
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = challenger.Generate();
-        KEM_PQ.EncapsKey ek_PQ_0 = pq_kp_0[0];
-        dk_PQ_0 = pq_kp_0[1];
-        KEM_PQ.EncapsKey ek_PQ_1 = pq_kp_1[0];
-        dk_PQ_1 = pq_kp_1[1];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = challenger.Generate();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_1, dk_PQ_1] = challenger.Generate();
         seed_0 <- BitString<lambda>;
         seed_1 <-uniq[{seed_0}] BitString<lambda>;
         s_T_0 <- BitString<KEM_T.Nseed>;
@@ -332,12 +324,8 @@ Reduction R_KG_R(KEM KEM_PQ, KEM KEM_T, Int lambda,
     BitString<lambda> seed_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = challenger.Generate();
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = challenger.Generate();
-        KEM_PQ.EncapsKey ek_PQ_0 = pq_kp_0[0];
-        dk_PQ_0 = pq_kp_0[1];
-        KEM_PQ.EncapsKey ek_PQ_1 = pq_kp_1[0];
-        dk_PQ_1 = pq_kp_1[1];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = challenger.Generate();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_1, dk_PQ_1] = challenger.Generate();
         seed_0 <- BitString<lambda>;
         seed_1 <-uniq[{seed_0}] BitString<lambda>;
         s_T_0 <- BitString<KEM_T.Nseed>;
@@ -391,11 +379,7 @@ Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, Int lambda,
     BitString<lambda> seed_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Initialize();
-        KEM_PQ.EncapsKey ek_PQ_0 = pq_keys[0];
-        s_PQ_0 = pq_keys[1];
-        KEM_PQ.EncapsKey ek_PQ_1 = pq_keys[2];
-        s_PQ_1 = pq_keys[3];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, s_PQ_0, ek_PQ_1, s_PQ_1] = challenger.Initialize();
         seed_0 <- BitString<lambda>;
         seed_1 <-uniq[{seed_0}] BitString<lambda>;
         s_T_0 <- BitString<KEM_T.Nseed>;

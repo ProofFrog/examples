@@ -107,9 +107,7 @@ Reduction R_Gap(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
     Map<GroupElem<G>, BitString<n>> PendingDecaps;
 
     [GroupElem<G>, BitString<n>, GroupElem<G>] Initialize() {
-        [GroupElem<G>, GroupElem<G>] init = challenger.Initialize();
-        pk = init[0];
-        ctStar = init[1];
+        [GroupElem<G>, GroupElem<G>] [pk, ctStar] = challenger.Initialize();
         ssStar <- BitString<n>;
         return [pk, ssStar, ctStar];
     }

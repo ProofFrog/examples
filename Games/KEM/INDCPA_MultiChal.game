@@ -12,16 +12,12 @@ Game Real(KEM K) {
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [K.PublicKey, K.SecretKey] [pk, sk] = K.KeyGen();
         return pk;
     }
 
     [K.SharedSecret, K.Ciphertext] Challenge() {
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(pk);
-        K.SharedSecret ss = rsp[0];
-        K.Ciphertext ctxt = rsp[1];
+        [K.SharedSecret, K.Ciphertext] [ss, ctxt] = K.Encaps(pk);
         return [ss, ctxt];
     }
 }
@@ -31,9 +27,7 @@ Game Random(KEM K) {
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [K.PublicKey, K.SecretKey] [pk, sk] = K.KeyGen();
         return pk;
     }
 

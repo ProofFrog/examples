@@ -30,12 +30,8 @@ Scheme CK(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int ct2len, Int pk2len) extends KEM {
     [SharedSecret, Ciphertext] Encaps(PublicKey pk) {
         KEM1.PublicKey pk1 = pk[0];
         KEM2.PublicKey pk2 = pk[1];
-        [KEM1.SharedSecret, KEM1.Ciphertext] r1 = KEM1.Encaps(pk1);
-        [KEM2.SharedSecret, KEM2.Ciphertext] r2 = KEM2.Encaps(pk2);
-        KEM1.SharedSecret ss1 = r1[0];
-        KEM1.Ciphertext ct1 = r1[1];
-        KEM2.SharedSecret ss2 = r2[0];
-        KEM2.Ciphertext ct2 = r2[1];
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1] = KEM1.Encaps(pk1);
+        [KEM2.SharedSecret, KEM2.Ciphertext] [ss2, ct2] = KEM2.Encaps(pk2);
         BitString<ct2len> bct2 = ct2;
         BitString<pk2len> bpk2 = pk2;
         BitString<F.in> label = bct2 || bpk2;

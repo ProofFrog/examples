@@ -58,9 +58,7 @@ Game Intermediate1(SymEnc E, PubKeyEnc P, Hybrid H) {
     P.SecretKey sk;
 
     P.PublicKey Initialize() {
-        [P.PublicKey, P.SecretKey] k = P.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [P.PublicKey, P.SecretKey] [pk, sk] = P.KeyGen();
         return pk;
     }
 
@@ -78,9 +76,7 @@ Reduction R2(SymEnc E, PubKeyEnc P, Hybrid H) compose INDOT(E) against INDCPA_Mu
     P.SecretKey sk;
 
     P.PublicKey Initialize() {
-        [P.PublicKey, P.SecretKey] k = P.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [P.PublicKey, P.SecretKey] [pk, sk] = P.KeyGen();
         return pk;
     }
 
@@ -97,9 +93,7 @@ Game Intermediate2(SymEnc E, PubKeyEnc P, Hybrid H) {
     P.SecretKey sk;
 
     P.PublicKey Initialize() {
-        [P.PublicKey, P.SecretKey] k = P.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [P.PublicKey, P.SecretKey] [pk, sk] = P.KeyGen();
         return pk;
     }
 

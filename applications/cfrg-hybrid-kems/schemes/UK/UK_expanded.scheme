@@ -66,12 +66,8 @@ Scheme UK_expanded(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L) extends KEM {
     [SharedSecret, Ciphertext] Encaps(EncapsKey ek) {
         KEM_PQ.EncapsKey ek_PQ = ek[0];
         KEM_T.EncapsKey ek_T = ek[1];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
-        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
-        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
-        KEM_T.SharedSecret ss_T = t_enc[0];
-        KEM_T.Ciphertext ct_T = t_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_PQ.EncodeCiphertext(ct_PQ) || KEM_T.EncodeCiphertext(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
         SharedSecret ss = H.evaluate(kdf_in);
         return [ss, [ct_PQ, ct_T]];

@@ -31,12 +31,8 @@ Game Breakable(KEM K) {
     K.DecapsKey dk1;
 
     [K.EncapsKey, K.EncapsKey] Initialize() {
-        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
-        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
-        ek0 = kp0[0];
-        dk0 = kp0[1];
-        ek1 = kp1[0];
-        dk1 = kp1[1];
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
         return [ek0, ek1];
     }
 
@@ -62,12 +58,8 @@ Game Unbreakable(KEM K) {
     K.DecapsKey dk1;
 
     [K.EncapsKey, K.EncapsKey] Initialize() {
-        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
-        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
-        ek0 = kp0[0];
-        dk0 = kp0[1];
-        ek1 = kp1[0];
-        dk1 = kp1[1];
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
         return [ek0, ek1];
     }
 
