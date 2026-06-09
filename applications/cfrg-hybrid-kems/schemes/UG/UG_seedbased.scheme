@@ -88,9 +88,7 @@ Scheme UG_seedbased(KEM K, NominalGroup NG, PRG G, KDF H, Label L) extends KEM {
     [SharedSecret, Ciphertext] Encaps(EncapsKey ek) {
         K.EncapsKey ek_PQ = ek[0];
         NG.Element ek_T = ek[1];
-        [K.SharedSecret, K.Ciphertext] encaps_result = K.Encaps(ek_PQ);
-        K.SharedSecret ss_PQ = encaps_result[0];
-        K.Ciphertext ct_PQ = encaps_result[1];
+        [K.SharedSecret, K.Ciphertext] [ss_PQ, ct_PQ] = K.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
@@ -133,9 +131,7 @@ Scheme UG_seedbased(KEM K, NominalGroup NG, PRG G, KDF H, Label L) extends KEM {
         BitString<G.lambda + G.stretch> seed_full = G.evaluate(dk);
         BitString<K.Nseed> seed_PQ = seed_full[0 : K.Nseed];
         BitString<NG.Nseed> seed_T = seed_full[K.Nseed : K.Nseed + NG.Nseed];
-        [K.EncapsKey, K.DecapsKey] kem_keypair = K.DeriveKeyPair(seed_PQ);
-        K.EncapsKey ek_PQ = kem_keypair[0];
-        K.DecapsKey dk_PQ = kem_keypair[1];
+        [K.EncapsKey, K.DecapsKey] [ek_PQ, dk_PQ] = K.DeriveKeyPair(seed_PQ);
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         K.Ciphertext ct_PQ = ct[0];

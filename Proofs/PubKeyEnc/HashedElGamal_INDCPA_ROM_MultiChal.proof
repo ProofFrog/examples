@@ -69,9 +69,9 @@ Reduction R_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DD
     }
 
     [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        BitString<n> h = H(pair[1]);
-        return [pair[0], h + mL];
+        [GroupElem<G>, GroupElem<G>] [x, y] = challenger.Challenge();
+        BitString<n> h = H(y);
+        return [x, h + mL];
     }
 }
 
@@ -86,9 +86,9 @@ Reduction R_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DD
     }
 
     [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
-        [GroupElem<G>, GroupElem<G>] pair = challenger.Challenge();
-        BitString<n> h = H(pair[1]);
-        return [pair[0], h + mR];
+        [GroupElem<G>, GroupElem<G>] [x, y] = challenger.Challenge();
+        BitString<n> h = H(y);
+        return [x, h + mR];
     }
 }
 

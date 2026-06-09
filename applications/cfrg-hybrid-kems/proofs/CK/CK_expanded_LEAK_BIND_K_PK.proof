@@ -103,11 +103,7 @@ Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
     KEM_T.EncapsKey ek_T_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Initialize();
-        ek_PQ_0 = pq_keys[0];
-        dk_PQ_0 = pq_keys[1];
-        ek_PQ_1 = pq_keys[2];
-        dk_PQ_1 = pq_keys[3];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0, ek_PQ_1, dk_PQ_1] = challenger.Initialize();
         [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_0 = KEM_T.KeyGen();
         [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_1 = KEM_T.KeyGen();
         dk_T_0 = t_kp_0[1];

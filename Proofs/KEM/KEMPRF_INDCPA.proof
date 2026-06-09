@@ -62,9 +62,7 @@ Reduction R_KEM(KEM K, PRF F, KEMPRF KF) compose KEM_INDCPA_MultiChal(K) against
     }
 
     [KF.SharedSecret, KF.Ciphertext] Challenge() {
-        [K.SharedSecret, K.Ciphertext] rsp = challenger.Challenge();
-        K.SharedSecret ss = rsp[0];
-        K.Ciphertext ct = rsp[1];
+        [K.SharedSecret, K.Ciphertext] [ss, ct] = challenger.Challenge();
         return [F.evaluate(ss, ct), ct];
     }
 }

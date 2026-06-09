@@ -236,9 +236,7 @@ Reduction R_PQ_Bind(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, CG_seedbased hy
     NG.Element ek_T_1;
 
     [hybrid.EncapsKey, hybrid.EncapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.EncapsKey] pq_eks = challenger.Initialize();
-        ek_PQ_0 = pq_eks[0];
-        ek_PQ_1 = pq_eks[1];
+        [KEM_PQ.EncapsKey, KEM_PQ.EncapsKey] [ek_PQ_0, ek_PQ_1] = challenger.Initialize();
         BitString<NG.Nseed> seed_T_0 <- BitString<NG.Nseed>;
         dk_T_0 = NG.RandomScalar(seed_T_0);
         ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);

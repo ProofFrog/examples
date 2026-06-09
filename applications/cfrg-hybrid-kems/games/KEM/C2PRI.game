@@ -20,12 +20,9 @@ Game Real(KEM K) {
     K.DecapsKey dk;
 
     [K.EncapsKey, K.DecapsKey, K.Ciphertext, K.SharedSecret] Initialize() {
-        [K.EncapsKey, K.DecapsKey] keys = K.KeyGen();
-        dk = keys[1];
-        [K.SharedSecret, K.Ciphertext] enc = K.Encaps(keys[0]);
-        kStar = enc[0];
-        ctStar = enc[1];
-        return [keys[0], keys[1], enc[1], enc[0]];
+        [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] [kStar, ctStar] = K.Encaps(ek);
+        return [ek, dk, ctStar, kStar];
     }
 
     Bool Submit(K.Ciphertext ct) {
@@ -40,10 +37,9 @@ Game Ideal(KEM K) {
     K.Ciphertext ctStar;
 
     [K.EncapsKey, K.DecapsKey, K.Ciphertext, K.SharedSecret] Initialize() {
-        [K.EncapsKey, K.DecapsKey] keys = K.KeyGen();
-        [K.SharedSecret, K.Ciphertext] enc = K.Encaps(keys[0]);
-        ctStar = enc[1];
-        return [keys[0], keys[1], enc[1], enc[0]];
+        [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] [ss, ctStar] = K.Encaps(ek);
+        return [ek, dk, ctStar, ss];
     }
 
     Bool Submit(K.Ciphertext ct) {

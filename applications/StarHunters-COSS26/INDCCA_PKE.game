@@ -13,9 +13,7 @@ Game Left(PKE E) {
     Bool challenged;
 
     E.PublicKey Initialize() {
-        [E.PublicKey, E.SecretKey] k = E.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [E.PublicKey, E.SecretKey] [pk, sk] = E.KeyGen();
         challenged = false;
         return pk;
     }
@@ -44,9 +42,7 @@ Game Right(PKE E) {
     Bool challenged;
 
     E.PublicKey Initialize() {
-        [E.PublicKey, E.SecretKey] k = E.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [E.PublicKey, E.SecretKey] [pk, sk] = E.KeyGen();
         challenged = false;
         return pk;
     }

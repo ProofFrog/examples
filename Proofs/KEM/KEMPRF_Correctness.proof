@@ -48,10 +48,7 @@ games:
 // and applies F.evaluate to both shared secrets.
 Reduction R_KEM(KEM K, PRF F, KEMPRF KF) compose KEMCorrectness(K) against KEMCorrectness(KF).Adversary {
     [KF.Ciphertext, KF.SharedSecret, KF.SharedSecret] Compute(KF.PublicKey pk, KF.SecretKey sk) {
-        [K.Ciphertext, K.SharedSecret, K.SharedSecret] result = challenger.Compute(pk, sk);
-        K.Ciphertext ct = result[0];
-        K.SharedSecret ss_e = result[1];
-        K.SharedSecret ss_d = result[2];
+        [K.Ciphertext, K.SharedSecret, K.SharedSecret] [ct, ss_e, ss_d] = challenger.Compute(pk, sk);
         return [ct, F.evaluate(ss_e, ct), F.evaluate(ss_d, ct)];
     }
 }

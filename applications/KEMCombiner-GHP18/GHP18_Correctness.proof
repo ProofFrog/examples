@@ -63,18 +63,10 @@ games:
 // handles KEM2 and PRF locally.
 Reduction R_KEM1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMCorrectness(KEM1) against KEMCorrectnessKG(KC).Adversary {
     [KC.Ciphertext, KC.SharedSecret, KC.SharedSecret] Compute() {
-        [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
-        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
-        KEM1.PublicKey pk1 = k1[0];
-        KEM2.PublicKey pk2 = k2[0];
-        KEM2.SecretKey sk2 = k2[1];
-        [KEM1.Ciphertext, KEM1.SharedSecret, KEM1.SharedSecret] result1 = challenger.Compute(pk1, k1[1]);
-        KEM1.Ciphertext ct1 = result1[0];
-        KEM1.SharedSecret ss1_e = result1[1];
-        KEM1.SharedSecret ss1_d = result1[2];
-        [KEM2.SharedSecret, KEM2.Ciphertext] r2 = KEM2.Encaps(pk2);
-        KEM2.SharedSecret ss2_e = r2[0];
-        KEM2.Ciphertext ct2 = r2[1];
+        [KEM1.PublicKey, KEM1.SecretKey] [pk1, sk] = KEM1.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk2] = KEM2.KeyGen();
+        [KEM1.Ciphertext, KEM1.SharedSecret, KEM1.SharedSecret] [ct1, ss1_e, ss1_d] = challenger.Compute(pk1, sk);
+        [KEM2.SharedSecret, KEM2.Ciphertext] [ss2_e, ct2] = KEM2.Encaps(pk2);
         KEM2.SharedSecret ss2_d = KEM2.Decaps(sk2, ct2);
         BitString<pk1len> bpk1 = pk1;
         BitString<ct1len> bct1 = ct1;
@@ -90,16 +82,10 @@ Reduction R_KEM1(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk
 Reduction R_KEM2(KEM KEM1, KEM KEM2, TwoKeyPRF F, Int pk1len, Int ct1len, Int pk2len, Int ct2len, KEMCombiner KC) compose KEMCorrectness(KEM2) against KEMCorrectnessKG(KC).Adversary {
     [KC.Ciphertext, KC.SharedSecret, KC.SharedSecret] Compute() {
         [KEM1.PublicKey, KEM1.SecretKey] k1 = KEM1.KeyGen();
-        [KEM2.PublicKey, KEM2.SecretKey] k2 = KEM2.KeyGen();
+        [KEM2.PublicKey, KEM2.SecretKey] [pk2, sk] = KEM2.KeyGen();
         KEM1.PublicKey pk1 = k1[0];
-        KEM2.PublicKey pk2 = k2[0];
-        [KEM1.SharedSecret, KEM1.Ciphertext] r1 = KEM1.Encaps(pk1);
-        KEM1.SharedSecret ss1 = r1[0];
-        KEM1.Ciphertext ct1 = r1[1];
-        [KEM2.Ciphertext, KEM2.SharedSecret, KEM2.SharedSecret] result2 = challenger.Compute(pk2, k2[1]);
-        KEM2.Ciphertext ct2 = result2[0];
-        KEM2.SharedSecret ss2_e = result2[1];
-        KEM2.SharedSecret ss2_d = result2[2];
+        [KEM1.SharedSecret, KEM1.Ciphertext] [ss1, ct1] = KEM1.Encaps(pk1);
+        [KEM2.Ciphertext, KEM2.SharedSecret, KEM2.SharedSecret] [ct2, ss2_e, ss2_d] = challenger.Compute(pk2, sk);
         BitString<pk1len> bpk1 = pk1;
         BitString<ct1len> bct1 = ct1;
         BitString<pk2len> bpk2 = pk2;

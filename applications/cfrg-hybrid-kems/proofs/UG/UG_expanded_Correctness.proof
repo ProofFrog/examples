@@ -72,11 +72,7 @@ games:
 Reduction R_KEM_PQ(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, UG_expanded hybrid)
     compose KEMCorrectness(KEM_PQ) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
-        [KEM_PQ.EncapsKey, KEM_PQ.Ciphertext, KEM_PQ.SharedSecret, KEM_PQ.SharedSecret] pq_result = challenger.Compute();
-        KEM_PQ.EncapsKey ek_PQ = pq_result[0];
-        KEM_PQ.Ciphertext ct_PQ = pq_result[1];
-        KEM_PQ.SharedSecret ss_PQ_e = pq_result[2];
-        KEM_PQ.SharedSecret ss_PQ_d = pq_result[3];
+        [KEM_PQ.EncapsKey, KEM_PQ.Ciphertext, KEM_PQ.SharedSecret, KEM_PQ.SharedSecret] [ek_PQ, ct_PQ, ss_PQ_e, ss_PQ_d] = challenger.Compute();
         BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
@@ -100,9 +96,7 @@ Reduction R_NG(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, UG_expanded hybrid)
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.SharedSecret ss_PQ = pq_enc[0];
-        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);

@@ -99,9 +99,7 @@ games:
 //   from the KEM KEM_INDCPA_MultiChal challenger, which is either real (= Game 0) or random (= Game 1).
 Reduction R1(SymEnc E, KEM K, KEMDEM KD) compose KEM_INDCPA_MultiChal(K) against INDCPA_MultiChal(KD).Adversary {
     KD.Ciphertext Challenge(KD.Message mL, KD.Message mR) {
-        [K.SharedSecret, K.Ciphertext] y = challenger.Challenge();
-        K.SharedSecret k_sym = y[0];
-        K.Ciphertext c_kem = y[1];
+        [K.SharedSecret, K.Ciphertext] [k_sym, c_kem] = challenger.Challenge();
         E.Ciphertext c_sym = E.Enc(k_sym, mL);
         return [c_kem, c_sym];
     }
@@ -116,9 +114,7 @@ Reduction R2(SymEnc E, KEM K, KEMDEM KD) compose KeyUniformity(E) against INDCPA
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [K.PublicKey, K.SecretKey] [pk, sk] = K.KeyGen();
         return pk;
     }
 
@@ -139,9 +135,7 @@ Reduction R3(SymEnc E, KEM K, KEMDEM KD) compose INDOT(E) against INDCPA_MultiCh
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [K.PublicKey, K.SecretKey] [pk, sk] = K.KeyGen();
         return pk;
     }
 
@@ -162,9 +156,7 @@ Reduction R4(SymEnc E, KEM K, KEMDEM KD) compose KeyUniformity(E) against INDCPA
     K.SecretKey sk;
 
     K.PublicKey Initialize() {
-        [K.PublicKey, K.SecretKey] k = K.KeyGen();
-        pk = k[0];
-        sk = k[1];
+        [K.PublicKey, K.SecretKey] [pk, sk] = K.KeyGen();
         return pk;
     }
 
@@ -182,9 +174,7 @@ Reduction R4(SymEnc E, KEM K, KEMDEM KD) compose KeyUniformity(E) against INDCPA
 //   from the KEM KEM_INDCPA_MultiChal challenger, which is either real (= Game 5) or random (= Game 4).
 Reduction R5(SymEnc E, KEM K, KEMDEM KD) compose KEM_INDCPA_MultiChal(K) against INDCPA_MultiChal(KD).Adversary {
     KD.Ciphertext Challenge(KD.Message mL, KD.Message mR) {
-        [K.SharedSecret, K.Ciphertext] y = challenger.Challenge();
-        K.SharedSecret k_sym = y[0];
-        K.Ciphertext c_kem = y[1];
+        [K.SharedSecret, K.Ciphertext] [k_sym, c_kem] = challenger.Challenge();
         E.Ciphertext c_sym = E.Enc(k_sym, mR);
         return [c_kem, c_sym];
     }

@@ -94,11 +94,7 @@ Reduction R_PQ_Bind(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, CG_expanded hyb
     NG.Element ek_T_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Initialize();
-        ek_PQ_0 = pq_keys[0];
-        dk_PQ_0 = pq_keys[1];
-        ek_PQ_1 = pq_keys[2];
-        dk_PQ_1 = pq_keys[3];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0, ek_PQ_1, dk_PQ_1] = challenger.Initialize();
         BitString<NG.Nseed> seed_T_0 <- BitString<NG.Nseed>;
         BitString<NG.Nseed> seed_T_1 <- BitString<NG.Nseed>;
         dk_T_0 = NG.RandomScalar(seed_T_0);
@@ -143,14 +139,10 @@ Reduction R_KDF(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, CG_expanded hybrid)
     NG.Element ek_T_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.KeyGen();
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.KeyGen();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = KEM_PQ.KeyGen();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_1, dk_PQ_1] = KEM_PQ.KeyGen();
         BitString<NG.Nseed> seed_T_0 <- BitString<NG.Nseed>;
         BitString<NG.Nseed> seed_T_1 <- BitString<NG.Nseed>;
-        ek_PQ_0 = pq_kp_0[0];
-        dk_PQ_0 = pq_kp_0[1];
-        ek_PQ_1 = pq_kp_1[0];
-        dk_PQ_1 = pq_kp_1[1];
         dk_T_0 = NG.RandomScalar(seed_T_0);
         dk_T_1 = NG.RandomScalar(seed_T_1);
         ek_T_0 = NG.Exp(NG.Generator(), dk_T_0);
