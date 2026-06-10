@@ -144,8 +144,7 @@ Reduction R_Correct_T_Ideal(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_exp
         KEM_T.EncapsKey ek_T = corr[0];
         KEM_T.Ciphertext ct_T = corr[2];
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -254,8 +253,7 @@ Reduction R_KEM_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hy
         [KEM_T.EncapsKey, KEM_T.SharedSecret, KEM_T.Ciphertext] [ek_T, ss_T_star, kem_ct_T] = challenger.Initialize();
         pq_keys = KEM_PQ.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, kem_ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -293,8 +291,7 @@ Game G_RandSS_T(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hybrid
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
-        kem_ct_T = t_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, kem_ct_T] = KEM_T.Encaps(ek_T);
         ss_T_star <- BitString<KEM_T.Nss>;
         BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T_star || KEM_PQ.EncodeCiphertext(ct_PQ) || KEM_T.EncodeCiphertext(kem_ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
         BitString<H.Nout> ss = H.evaluate(kdf_in);
@@ -334,8 +331,7 @@ Reduction R_PRF_Fwd(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hy
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] t_enc = KEM_T.Encaps(ek_T);
-        kem_ct_T = t_enc[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, kem_ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)> rest = KEM_PQ.EncodeCiphertext(ct_PQ) || KEM_T.EncodeCiphertext(kem_ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
         BitString<H.Nout> ss = challenger.Lookup(KEM_PQ.EncodeSharedSecret(ss_PQ), rest);
         ctStar = [ct_PQ, kem_ct_T];
@@ -370,10 +366,8 @@ Reduction R_PRF_Rev(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hy
         t_keys = KEM_T.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        kem_ct_T = _t_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, kem_ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, kem_ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -410,10 +404,8 @@ Game G_AllRand(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hybrid)
         t_keys = KEM_T.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        kem_ct_T = _t_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, kem_ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, kem_ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -449,10 +441,8 @@ Game G_RandSS_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hybr
         t_keys = KEM_T.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        kem_ct_T = _t_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, kem_ct_T] = KEM_T.Encaps(ek_T);
         ss_T_star <- BitString<KEM_T.Nss>;
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, kem_ct_T];
@@ -489,8 +479,7 @@ Game G_StoredSS_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hy
         t_keys = KEM_T.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] _pq_enc_tmp = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = _pq_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T_star, kem_ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, kem_ct_T];

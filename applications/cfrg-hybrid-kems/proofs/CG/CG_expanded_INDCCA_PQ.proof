@@ -351,8 +351,7 @@ Reduction RD(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_expanded hyb
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        kem_ct = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_unused, kem_ct] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
@@ -393,8 +392,7 @@ Reduction RE(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_expanded hyb
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        kem_ct = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_unused, kem_ct] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
@@ -436,8 +434,7 @@ Game GameFreshSS(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, CG_expanded
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        kem_ct = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_unused, kem_ct] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);

@@ -178,8 +178,7 @@ Reduction R_KEM_PQ(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedba
 Reduction R_NG(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased hybrid)
     compose NGCorrectness(NG) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.KeyGen();
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
@@ -200,11 +199,10 @@ Reduction R_NG(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased 
 Reduction R_KG_PQ_R(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbased hybrid)
     compose KeyGenEquiv(KEM_PQ) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Generate();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = challenger.Generate();
         BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
@@ -222,8 +220,7 @@ Reduction R_PRG_R(KEM KEM_PQ, NominalGroup NG, PRG G, KDF H, Label L, UG_seedbas
         BitString<G.lambda + G.stretch> seed_full = challenger.Query();
         BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
         BitString<NG.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.DeriveKeyPair(seed_PQ);
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.DeriveKeyPair(seed_PQ);
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);

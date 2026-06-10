@@ -28,9 +28,9 @@ Game FromDecaps(KEM K) {
 
 Game FromEncaps(KEM K) {
     [K.EncapsKey, K.Ciphertext, K.SharedSecret, K.SharedSecret] Compute() {
-        [K.EncapsKey, K.DecapsKey] keys = K.KeyGen();
-        [K.SharedSecret, K.Ciphertext] [ss, ct] = K.Encaps(keys[0]);
-        return [keys[0], ct, ss, ss];
+        [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
+        [K.SharedSecret, K.Ciphertext] [ss, ct] = K.Encaps(ek);
+        return [ek, ct, ss, ss];
     }
 }
 

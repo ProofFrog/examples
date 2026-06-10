@@ -25,11 +25,9 @@ Game Breakable(KEM K) {
     K.DecapsKey dk1;
 
     [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
-        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
-        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
-        dk0 = kp0[1];
-        dk1 = kp1[1];
-        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
+        return [ek0, dk0, ek1, dk1];
     }
 
     Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
@@ -44,11 +42,9 @@ Game Unbreakable(KEM K) {
     K.DecapsKey dk1;
 
     [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
-        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
-        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
-        dk0 = kp0[1];
-        dk1 = kp1[1];
-        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
+        return [ek0, dk0, ek1, dk1];
     }
 
     Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {

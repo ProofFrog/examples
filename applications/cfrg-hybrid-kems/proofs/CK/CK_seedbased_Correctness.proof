@@ -178,8 +178,7 @@ Reduction R_KEM_T(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hyb
     compose KEMCorrectness(KEM_T) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
         [KEM_T.EncapsKey, KEM_T.Ciphertext, KEM_T.SharedSecret, KEM_T.SharedSecret] [ek_T, ct_T, ss_T_e, ss_T_d] = challenger.Compute();
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.KeyGen();
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<H.Nin> kdf_in_e = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_e) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
         BitString<H.Nin> kdf_in_d = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T_d) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
@@ -192,10 +191,8 @@ Reduction R_KEM_T(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hyb
 Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
     compose KeyGenEquiv(KEM_T) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys = challenger.Generate();
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.KeyGen();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T, dk_T] = challenger.Generate();
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
@@ -207,11 +204,9 @@ Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hy
 Reduction R_KG_PQ_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
     compose KeyGenEquiv(KEM_PQ) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = challenger.Generate();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = challenger.Generate();
         BitString<KEM_T.Nseed> seed_T <- BitString<KEM_T.Nseed>;
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys = KEM_T.DeriveKeyPair(seed_T);
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T, dk_T] = KEM_T.DeriveKeyPair(seed_T);
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
@@ -226,10 +221,8 @@ Reduction R_PRG_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hyb
         BitString<G.lambda + G.stretch> seed_full = challenger.Query();
         BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
         BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.DeriveKeyPair(seed_PQ);
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys = KEM_T.DeriveKeyPair(seed_T);
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        KEM_T.EncapsKey ek_T = t_keys[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T, dk_T] = KEM_T.DeriveKeyPair(seed_T);
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nin> kdf_in = KEM_PQ.EncodeSharedSecret(ss_PQ) || KEM_T.EncodeSharedSecret(ss_T) || KEM_T.EncodeCiphertext(ct_T) || KEM_T.EncodeEncapsKey(ek_T) || L.get();

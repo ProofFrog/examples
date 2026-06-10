@@ -30,11 +30,9 @@ Game Breakable(KEM K) {
     K.DecapsKey dk1;
 
     [K.EncapsKey, K.EncapsKey] Initialize() {
-        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
-        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
-        dk0 = kp0[1];
-        dk1 = kp1[1];
-        return [kp0[0], kp1[0]];
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
+        return [ek0, ek1];
     }
 
     K.SharedSecret Decaps0(K.Ciphertext ct) {
@@ -57,11 +55,9 @@ Game Unbreakable(KEM K) {
     K.DecapsKey dk1;
 
     [K.EncapsKey, K.EncapsKey] Initialize() {
-        [K.EncapsKey, K.DecapsKey] kp0 = K.KeyGen();
-        [K.EncapsKey, K.DecapsKey] kp1 = K.KeyGen();
-        dk0 = kp0[1];
-        dk1 = kp1[1];
-        return [kp0[0], kp1[0]];
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
+        return [ek0, ek1];
     }
 
     K.SharedSecret Decaps0(K.Ciphertext ct) {

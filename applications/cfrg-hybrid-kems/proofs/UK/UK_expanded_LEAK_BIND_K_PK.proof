@@ -65,13 +65,9 @@ Reduction R(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, UK_expanded hybrid)
     hybrid.EncapsKey ek1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [hybrid.EncapsKey, hybrid.DecapsKey] kp0 = hybrid.KeyGen();
-        [hybrid.EncapsKey, hybrid.DecapsKey] kp1 = hybrid.KeyGen();
-        ek0 = kp0[0];
-        dk0 = kp0[1];
-        ek1 = kp1[0];
-        dk1 = kp1[1];
-        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+        [hybrid.EncapsKey, hybrid.DecapsKey] [ek0, dk0] = hybrid.KeyGen();
+        [hybrid.EncapsKey, hybrid.DecapsKey] [ek1, dk1] = hybrid.KeyGen();
+        return [ek0, dk0, ek1, dk1];
     }
 
     Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {

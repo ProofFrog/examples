@@ -29,8 +29,8 @@ Scheme SeededKEMWrapper(KEM K_inner) extends KEM {
     Set DecapsKey = BitString<K_inner.Nseed>;
 
     deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed) {
-        [K_inner.EncapsKey, K_inner.DecapsKey] kp = K_inner.DeriveKeyPair(seed);
-        return [kp[0], seed];
+        [K_inner.EncapsKey, K_inner.DecapsKey] [ek_inner, dk_inner] = K_inner.DeriveKeyPair(seed);
+        return [ek_inner, seed];
     }
 
     [EncapsKey, DecapsKey] KeyGen() {
@@ -43,8 +43,8 @@ Scheme SeededKEMWrapper(KEM K_inner) extends KEM {
     }
 
     deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct) {
-        [K_inner.EncapsKey, K_inner.DecapsKey] kp = K_inner.DeriveKeyPair(dk);
-        return K_inner.Decaps(kp[1], ct);
+        [K_inner.EncapsKey, K_inner.DecapsKey] [ek_inner, dk_inner] = K_inner.DeriveKeyPair(dk);
+        return K_inner.Decaps(dk_inner, ct);
     }
 
     deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss) {

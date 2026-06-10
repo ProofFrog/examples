@@ -143,8 +143,7 @@ Reduction R_PRG_L(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_seedbased hybr
         seed_full = challenger.Query();
         BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
         BitString<NG.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] _pq_kp_tmp = KEM_PQ.DeriveKeyPair(seed_PQ);
-        KEM_PQ.EncapsKey ek_PQ = _pq_kp_tmp[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_unused] = KEM_PQ.DeriveKeyPair(seed_PQ);
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
@@ -188,12 +187,10 @@ Reduction R_PRG_R(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_seedbased hybr
         seed_full = challenger.Query();
         BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
         BitString<NG.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] _pq_kp_tmp = KEM_PQ.DeriveKeyPair(seed_PQ);
-        KEM_PQ.EncapsKey ek_PQ = _pq_kp_tmp[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_unused] = KEM_PQ.DeriveKeyPair(seed_PQ);
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
@@ -278,8 +275,7 @@ Reduction R_KG_R(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_seedbased hybri
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_E <- BitString<NG.Nseed>;
         NG.Scalar sk_E = NG.RandomScalar(seed_E);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
@@ -356,8 +352,7 @@ Reduction R_Dist_Random(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_seedbase
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         pq_keys = KEM_PQ.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
         BitString<hybrid.Nss> ss <- BitString<hybrid.Nss>;
         ctStar = [ct_PQ, ct_T];
@@ -421,8 +416,7 @@ Reduction R_Wrap_NoAbort(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G,
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.KeyGen();
         NG.Scalar dk_T <- NG.Scalar;
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         NG.Scalar sk_E <- NG.Scalar;
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
         [KEM_PQ.Ciphertext, NG.Element] ctStar = [ct_PQ, ct_T];

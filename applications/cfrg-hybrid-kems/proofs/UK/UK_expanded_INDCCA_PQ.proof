@@ -136,8 +136,7 @@ Reduction R_Correct_Ideal(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expan
         KEM_PQ.EncapsKey ek_PQ = corr[0];
         KEM_PQ.Ciphertext ct_PQ = corr[2];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -211,8 +210,7 @@ Game GameCaseSplitIdeal(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expande
         KEM_T.EncapsKey ek_T = t_keys[0];
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, kem_ct] = KEM_PQ.Encaps(ek_PQ);
         KEM_PQ.Ciphertext ct_PQ = kem_ct;
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [ct_PQ, ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -283,8 +281,7 @@ Reduction RC(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hybrid)
         [KEM_PQ.EncapsKey, KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ek_PQ, ss_PQ, kem_ct] = challenger.Initialize();
         t_keys = KEM_T.KeyGen();
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [kem_ct, ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -322,8 +319,7 @@ Reduction RD(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hybrid)
         t_keys = KEM_T.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        kem_ct = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_unused, kem_ct] = KEM_PQ.Encaps(ek_PQ);
         [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nin - (KEM_PQ.Nss + KEM_T.Nss)> rest = KEM_PQ.EncodeCiphertext(kem_ct) || KEM_T.EncodeCiphertext(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
         BitString<H.Nout> ss = challenger.Lookup(KEM_T.EncodeSharedSecret(ss_T), rest);
@@ -359,10 +355,8 @@ Reduction RE(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hybrid)
         t_keys = KEM_T.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        kem_ct = pq_enc[1];
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_unused, kem_ct] = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [kem_ct, ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
@@ -399,10 +393,8 @@ Game GameFreshSS(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_expanded hybri
         t_keys = KEM_T.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
         KEM_T.EncapsKey ek_T = t_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        kem_ct = pq_enc[1];
-        [KEM_T.SharedSecret, KEM_T.Ciphertext] _t_enc_tmp = KEM_T.Encaps(ek_T);
-        KEM_T.Ciphertext ct_T = _t_enc_tmp[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_unused, kem_ct] = KEM_PQ.Encaps(ek_PQ);
+        [KEM_T.SharedSecret, KEM_T.Ciphertext] [ss_T, ct_T] = KEM_T.Encaps(ek_T);
         BitString<H.Nout> ss <- BitString<H.Nout>;
         ctStar = [kem_ct, ct_T];
         return [[ek_PQ, ek_T], ss, ctStar];
