@@ -64,35 +64,33 @@ Reduction R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_seedbased hybrid)
     BitString<G.lambda> seed1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [hybrid.EncapsKey, hybrid.DecapsKey] kp0 = hybrid.KeyGen();
-        [hybrid.EncapsKey, hybrid.DecapsKey] kp1 = hybrid.KeyGen();
-        seed0 = kp0[1];
-        seed1 = kp1[1];
-        return [kp0[0], kp0[1], kp1[0], kp1[1]];
+        [hybrid.EncapsKey, hybrid.DecapsKey] [ek0, seed0] = hybrid.KeyGen();
+        [hybrid.EncapsKey, hybrid.DecapsKey] [ek1, seed1] = hybrid.KeyGen();
+        return [ek0, seed0, ek1, seed1];
     }
 
     Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
         BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed0);
         BitString<KEM_PQ.Nseed> seed_PQ_0 = seed_full_0[0 : KEM_PQ.Nseed];
         BitString<KEM_T.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.DeriveKeyPair(seed_PQ_0);
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_0 = KEM_T.DeriveKeyPair(seed_T_0);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.DeriveKeyPair(seed_PQ_0);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T, dk_T] = KEM_T.DeriveKeyPair(seed_T_0);
         KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
         KEM_T.Ciphertext ct_T_0 = ct0[1];
-        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(pq_kp_0[1], ct_PQ_0);
-        KEM_T.SharedSecret ss_T_0 = KEM_T.Decaps(t_kp_0[1], ct_T_0);
-        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || KEM_T.EncodeSharedSecret(ss_T_0) || KEM_PQ.EncodeCiphertext(ct_PQ_0) || KEM_T.EncodeCiphertext(ct_T_0) || KEM_PQ.EncodeEncapsKey(pq_kp_0[0]) || KEM_T.EncodeEncapsKey(t_kp_0[0]) || L.get();
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ, ct_PQ_0);
+        KEM_T.SharedSecret ss_T_0 = KEM_T.Decaps(dk_T, ct_T_0);
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || KEM_T.EncodeSharedSecret(ss_T_0) || KEM_PQ.EncodeCiphertext(ct_PQ_0) || KEM_T.EncodeCiphertext(ct_T_0) || KEM_PQ.EncodeEncapsKey(ek_PQ) || KEM_T.EncodeEncapsKey(ek_T) || L.get();
 
         BitString<G.lambda + G.stretch> seed_full_1 = G.evaluate(seed1);
         BitString<KEM_PQ.Nseed> seed_PQ_1 = seed_full_1[0 : KEM_PQ.Nseed];
         BitString<KEM_T.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.DeriveKeyPair(seed_PQ_1);
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_1 = KEM_T.DeriveKeyPair(seed_T_1);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ2, dk_PQ2] = KEM_PQ.DeriveKeyPair(seed_PQ_1);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T2, dk_T2] = KEM_T.DeriveKeyPair(seed_T_1);
         KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
         KEM_T.Ciphertext ct_T_1 = ct1[1];
-        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(pq_kp_1[1], ct_PQ_1);
-        KEM_T.SharedSecret ss_T_1 = KEM_T.Decaps(t_kp_1[1], ct_T_1);
-        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || KEM_T.EncodeSharedSecret(ss_T_1) || KEM_PQ.EncodeCiphertext(ct_PQ_1) || KEM_T.EncodeCiphertext(ct_T_1) || KEM_PQ.EncodeEncapsKey(pq_kp_1[0]) || KEM_T.EncodeEncapsKey(t_kp_1[0]) || L.get();
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ2, ct_PQ_1);
+        KEM_T.SharedSecret ss_T_1 = KEM_T.Decaps(dk_T2, ct_T_1);
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || KEM_T.EncodeSharedSecret(ss_T_1) || KEM_PQ.EncodeCiphertext(ct_PQ_1) || KEM_T.EncodeCiphertext(ct_T_1) || KEM_PQ.EncodeEncapsKey(ek_PQ2) || KEM_T.EncodeEncapsKey(ek_T2) || L.get();
 
         if (ct0 == ct1) {
             return false;

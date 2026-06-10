@@ -46,9 +46,9 @@ Scheme CK_seedbased(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L) extends KEM {
         BitString<G.lambda + G.stretch> seed_full = G.evaluate(seed);
         BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
         BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keypair = KEM_PQ.DeriveKeyPair(seed_PQ);
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keypair = KEM_T.DeriveKeyPair(seed_T);
-        return [[pq_keypair[0], t_keypair[0]], seed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T, dk_T] = KEM_T.DeriveKeyPair(seed_T);
+        return [[ek_PQ, ek_T], seed];
     }
 
     // Draft section 5.2:
@@ -118,9 +118,8 @@ Scheme CK_seedbased(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L) extends KEM {
         BitString<G.lambda + G.stretch> seed_full = G.evaluate(dk);
         BitString<KEM_PQ.Nseed> seed_PQ = seed_full[0 : KEM_PQ.Nseed];
         BitString<KEM_T.Nseed> seed_T = seed_full[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keypair = KEM_PQ.DeriveKeyPair(seed_PQ);
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.DeriveKeyPair(seed_PQ);
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T, dk_T] = KEM_T.DeriveKeyPair(seed_T);
-        KEM_PQ.DecapsKey dk_PQ = pq_keypair[1];
         KEM_PQ.Ciphertext ct_PQ = ct[0];
         KEM_T.Ciphertext ct_T = ct[1];
         KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ);

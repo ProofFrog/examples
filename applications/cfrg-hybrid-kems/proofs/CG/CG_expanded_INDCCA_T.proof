@@ -174,8 +174,7 @@ Reduction R_Dist_Random(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_expanded
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         pq_keys = KEM_PQ.KeyGen();
         KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
-        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] pq_enc = KEM_PQ.Encaps(ek_PQ);
-        KEM_PQ.Ciphertext ct_PQ = pq_enc[1];
+        [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         NG.Element ct_T = NG.Exp(NG.Generator(), sk_E);
         BitString<hybrid.Nss> ss <- BitString<hybrid.Nss>;
         ctStar = [ct_PQ, ct_T];

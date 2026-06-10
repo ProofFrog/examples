@@ -50,8 +50,7 @@ Scheme UG_seedbased(KEM K, NominalGroup NG, PRG G, KDF H, Label L) extends KEM {
         BitString<G.lambda + G.stretch> seed_full = G.evaluate(seed);
         BitString<K.Nseed> seed_PQ = seed_full[0 : K.Nseed];
         BitString<NG.Nseed> seed_T = seed_full[K.Nseed : K.Nseed + NG.Nseed];
-        [K.EncapsKey, K.DecapsKey] kem_keypair = K.DeriveKeyPair(seed_PQ);
-        K.EncapsKey ek_PQ = kem_keypair[0];
+        [K.EncapsKey, K.DecapsKey] [ek_PQ, dk_PQ] = K.DeriveKeyPair(seed_PQ);
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
         NG.Element ek_T = NG.Exp(NG.Generator(), dk_T);
         return [[ek_PQ, ek_T], seed];

@@ -102,16 +102,12 @@ Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0, ek_PQ_1, dk_PQ_1] = challenger.Initialize();
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_0 = KEM_T.KeyGen();
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_1 = KEM_T.KeyGen();
-        dk_T_0 = t_kp_0[1];
-        ek_T_0 = t_kp_0[0];
-        dk_T_1 = t_kp_1[1];
-        ek_T_1 = t_kp_1[0];
-        hybrid.EncapsKey ek0 = [ek_PQ_0, t_kp_0[0]];
-        hybrid.DecapsKey dk0 = [dk_PQ_0, t_kp_0[1], t_kp_0[0]];
-        hybrid.EncapsKey ek1 = [ek_PQ_1, t_kp_1[0]];
-        hybrid.DecapsKey dk1 = [dk_PQ_1, t_kp_1[1], t_kp_1[0]];
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.KeyGen();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_1, dk_T_1] = KEM_T.KeyGen();
+        hybrid.EncapsKey ek0 = [ek_PQ_0, ek_T_0];
+        hybrid.DecapsKey dk0 = [dk_PQ_0, dk_T_0, ek_T_0];
+        hybrid.EncapsKey ek1 = [ek_PQ_1, ek_T_1];
+        hybrid.DecapsKey dk1 = [dk_PQ_1, dk_T_1, ek_T_1];
         return [ek0, dk0, ek1, dk1];
     }
 
@@ -142,20 +138,14 @@ Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
     KEM_T.EncapsKey ek_T_1;
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_0 = KEM_PQ.KeyGen();
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_0 = KEM_T.KeyGen();
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_kp_1 = KEM_PQ.KeyGen();
-        [KEM_T.EncapsKey, KEM_T.DecapsKey] t_kp_1 = KEM_T.KeyGen();
-        dk_PQ_0 = pq_kp_0[1];
-        dk_T_0 = t_kp_0[1];
-        ek_T_0 = t_kp_0[0];
-        dk_PQ_1 = pq_kp_1[1];
-        dk_T_1 = t_kp_1[1];
-        ek_T_1 = t_kp_1[0];
-        hybrid.EncapsKey ek0 = [pq_kp_0[0], t_kp_0[0]];
-        hybrid.DecapsKey dk0 = [pq_kp_0[1], t_kp_0[1], t_kp_0[0]];
-        hybrid.EncapsKey ek1 = [pq_kp_1[0], t_kp_1[0]];
-        hybrid.DecapsKey dk1 = [pq_kp_1[1], t_kp_1[1], t_kp_1[0]];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ_0] = KEM_PQ.KeyGen();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.KeyGen();
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ2, dk_PQ_1] = KEM_PQ.KeyGen();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_1, dk_T_1] = KEM_T.KeyGen();
+        hybrid.EncapsKey ek0 = [ek_PQ, ek_T_0];
+        hybrid.DecapsKey dk0 = [dk_PQ_0, dk_T_0, ek_T_0];
+        hybrid.EncapsKey ek1 = [ek_PQ2, ek_T_1];
+        hybrid.DecapsKey dk1 = [dk_PQ_1, dk_T_1, ek_T_1];
         return [ek0, dk0, ek1, dk1];
     }
 

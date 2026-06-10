@@ -40,10 +40,9 @@ Game Random(KEM K, Set D, Set R, Function<D, R> H) {
 
     [K.EncapsKey, K.SharedSecret, K.Ciphertext] Initialize() {
         [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
-        [K.SharedSecret, K.Ciphertext] rsp = K.Encaps(ek);
+        [K.SharedSecret, K.Ciphertext] [ss_unused, ctStar] = K.Encaps(ek);
         K.SharedSecret ss <- K.SharedSecret;
-        ctStar = rsp[1];
-        return [ek, ss, rsp[1]];
+        return [ek, ss, ctStar];
     }
 
     K.SharedSecret? Decaps(K.Ciphertext c) {

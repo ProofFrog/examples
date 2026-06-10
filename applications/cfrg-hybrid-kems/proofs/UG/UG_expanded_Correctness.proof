@@ -94,8 +94,7 @@ Reduction R_KEM_PQ(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, UG_expanded hybr
 Reduction R_NG(KEM KEM_PQ, NominalGroup NG, KDF H, Label L, UG_expanded hybrid)
     compose NGCorrectness(NG) against KEMCorrectness(hybrid).Adversary {
     [hybrid.EncapsKey, hybrid.Ciphertext, hybrid.SharedSecret, hybrid.SharedSecret] Compute() {
-        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys = KEM_PQ.KeyGen();
-        KEM_PQ.EncapsKey ek_PQ = pq_keys[0];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ] = KEM_PQ.KeyGen();
         [KEM_PQ.SharedSecret, KEM_PQ.Ciphertext] [ss_PQ, ct_PQ] = KEM_PQ.Encaps(ek_PQ);
         BitString<NG.Nseed> seed_T <- BitString<NG.Nseed>;
         NG.Scalar dk_T = NG.RandomScalar(seed_T);
