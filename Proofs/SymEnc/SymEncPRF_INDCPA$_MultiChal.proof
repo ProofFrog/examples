@@ -1,7 +1,7 @@
 import '../../Primitives/PRF.primitive';
 import '../../Primitives/SymEnc.primitive';
 import '../../Schemes/SymEnc/SymEncPRF.scheme';
-import '../../Games/Helpers/Probability/UniqueSampling.game';
+import '../../Games/Helpers/Probability/DistinctSampling.game';
 import '../../Games/SymEnc/INDCPA$_MultiChal.game';
 import '../../Games/PRF/PRFSecurity.game';
 
@@ -13,7 +13,7 @@ import '../../Games/PRF/PRFSecurity.game';
 // that sampling r without replacement (birthday bound) makes each
 // RF output an independent uniform value, which masks m via XOR.
 //
-// The UniqueSampling assumption (birthday bound) is used twice, in opposite
+// The DistinctSampling assumption (birthday bound) is used twice, in opposite
 // directions. The first hop (forward: Replacement -> NoReplacement)
 // switches r to unique sampling so that the UniqueRF simplification
 // can replace RF(r) with a fresh uniform value. The second hop
@@ -26,12 +26,12 @@ import '../../Games/PRF/PRFSecurity.game';
 //   -> PRF.Real o R_PRF                   interchangeability
 //   -> PRF.Random o R_PRF                 by PRF assumption
 //   -> G_RF                               interchangeability (PRF replaced by RF)
-//   -> UniqueSampling.Repl o R_Uniq       interchangeability
-//   -> UniqueSampling.NoRepl o R_Uniq     by UniqueSampling assumption (birthday bound, forward)
+//   -> DistinctSampling.Repl o R_Uniq       interchangeability
+//   -> DistinctSampling.NoRepl o R_Uniq     by DistinctSampling assumption (birthday bound, forward)
 //   -> G_Uniq                             interchangeability (unique sampling with RF)
 //   -> G_UniqSimp                         interchangeability (RF(r)->uniform, m+z->z)
-//   -> UniqueSampling.NoRepl o R_Uniq2    interchangeability
-//   -> UniqueSampling.Repl o R_Uniq2      by UniqueSampling assumption (birthday bound, reverse)
+//   -> DistinctSampling.NoRepl o R_Uniq2    interchangeability
+//   -> DistinctSampling.Repl o R_Uniq2      by DistinctSampling assumption (birthday bound, reverse)
 //   -> G_Uniform                          interchangeability
 //   -> INDCPA$_MultiChal.Random                        interchangeability (merge independent samples)
 
@@ -46,7 +46,7 @@ let:
 
 assume:
     PRFSecurity(F);
-    UniqueSampling(BitString<F.in>);
+    DistinctSampling(BitString<F.in>);
 
 theorem:
     INDCPA$_MultiChal(E);
@@ -65,10 +65,10 @@ games:
     G_RF(E, F) against INDCPA$_MultiChal(E).Adversary;
 
     // Interchangeability: extract r-sampling to challenger
-    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
+    DistinctSampling(BitString<F.in>).Replacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
 
-    // By UniqueSampling assumption (forward): sample r without replacement
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
+    // By DistinctSampling assumption (forward): sample r without replacement
+    DistinctSampling(BitString<F.in>).NoReplacement compose R_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
 
     // Interchangeability: inline unique sampling
     G_Uniq(E, F) against INDCPA$_MultiChal(E).Adversary;
@@ -77,10 +77,10 @@ games:
     G_UniqSimp(E, F) against INDCPA$_MultiChal(E).Adversary;
 
     // Interchangeability: extract r-sampling to challenger
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
+    DistinctSampling(BitString<F.in>).NoReplacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
 
-    // By UniqueSampling assumption (reverse): sample r with replacement
-    UniqueSampling(BitString<F.in>).Replacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
+    // By DistinctSampling assumption (reverse): sample r with replacement
+    DistinctSampling(BitString<F.in>).Replacement compose R_Uniq2(E, F) against INDCPA$_MultiChal(E).Adversary;
 
     // Interchangeability: inline uniform sampling
     G_Uniform(E, F) against INDCPA$_MultiChal(E).Adversary;
@@ -110,8 +110,8 @@ Game G_RF(SymEnc E, PRF F) {
     }
 }
 
-// Reduction for forward UniqueSampling hop: delegates r-sampling to challenger
-Reduction R_Uniq(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against INDCPA$_MultiChal(E).Adversary {
+// Reduction for forward DistinctSampling hop: delegates r-sampling to challenger
+Reduction R_Uniq(SymEnc E, PRF F) compose DistinctSampling(BitString<F.in>) against INDCPA$_MultiChal(E).Adversary {
     Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
@@ -119,7 +119,7 @@ Reduction R_Uniq(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) agains
     }
 
     E.Ciphertext CTXT(E.Message m) {
-        BitString<F.in> r = challenger.Samp(RF.domain);
+        BitString<F.in> r = challenger.Samp();
         return [r, m + RF(r)];
     }
 }
@@ -127,13 +127,14 @@ Reduction R_Uniq(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) agains
 // G_Uniq: unique sampling guarantees distinct RF inputs
 Game G_Uniq(SymEnc E, PRF F) {
     Function<BitString<F.in>, BitString<F.out>> RF;
+    Set<BitString<F.in>> seen;
 
     Void Initialize() {
         RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
-        BitString<F.in> r <-uniq[RF.domain] BitString<F.in>;
+        BitString<F.in> r <-uniq[seen] BitString<F.in>;
         return [r, m + RF(r)];
     }
 }
@@ -144,20 +145,21 @@ Game G_Uniq(SymEnc E, PRF F) {
 //   2. UniformXOR: m + z -> z (z is uniform)
 Game G_UniqSimp(SymEnc E, PRF F) {
     Function<BitString<F.in>, BitString<F.out>> RF;
+    Set<BitString<F.in>> seen;
 
     Void Initialize() {
         RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
-        BitString<F.in> r <-uniq[RF.domain] BitString<F.in>;
+        BitString<F.in> r <-uniq[seen] BitString<F.in>;
         BitString<F.out> z <- BitString<F.out>;
         return [r, z];
     }
 }
 
-// Reduction for reverse UniqueSampling hop: r from challenger, z sampled uniformly
-Reduction R_Uniq2(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against INDCPA$_MultiChal(E).Adversary {
+// Reduction for reverse DistinctSampling hop: r from challenger, z sampled uniformly
+Reduction R_Uniq2(SymEnc E, PRF F) compose DistinctSampling(BitString<F.in>) against INDCPA$_MultiChal(E).Adversary {
     Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
@@ -165,7 +167,7 @@ Reduction R_Uniq2(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) again
     }
 
     E.Ciphertext CTXT(E.Message m) {
-        BitString<F.in> r = challenger.Samp(RF.domain);
+        BitString<F.in> r = challenger.Samp();
         BitString<F.out> z <- BitString<F.out>;
         return [r, z];
     }

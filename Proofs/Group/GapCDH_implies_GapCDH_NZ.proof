@@ -2,22 +2,22 @@
 //
 // GapCDH_NZ differs from GapCDH only in that sk is sampled from
 // ModInt<G.order> \ {0} instead of ModInt<G.order>. The two distributions
-// are statistically 1/|G|-close, which UniqueSampling turns into a
-// structural two-hop equivalence.
+// are statistically 1/|G|-close, which the NonzeroSampling helper turns into
+// a structural two-hop equivalence.
 //
-// Proof shape (each side uses one UniqueSampling hop):
+// Proof shape (each side uses one NonzeroSampling hop):
 //   0. GapCDH_NZ.Left                                    -- sk non-zero
-//   1. UniqueSampling.NoReplacement compose R_Left       -- interchangeability
-//   2. UniqueSampling.Replacement   compose R_Left       -- by UniqueSampling
+//   1. NonzeroSampling.Nonzero   compose R_Left          -- interchangeability
+//   2. NonzeroSampling.MaybeZero compose R_Left          -- by NonzeroSampling
 //   3. GapCDH.Left                                       -- interchangeability (sk uniform)
 //   4. GapCDH.Right                                      -- by GapCDH
-//   5. UniqueSampling.Replacement   compose R_Right      -- interchangeability
-//   6. UniqueSampling.NoReplacement compose R_Right      -- by UniqueSampling (reverse)
+//   5. NonzeroSampling.MaybeZero compose R_Right         -- interchangeability
+//   6. NonzeroSampling.Nonzero   compose R_Right         -- by NonzeroSampling (reverse)
 //   7. GapCDH_NZ.Right                                   -- interchangeability
 
 import '../../Games/Group/GapCDH.game';
 import '../../Games/Group/GapCDH_NZ.game';
-import '../../Games/Helpers/Probability/UniqueSampling.game';
+import '../../Games/Helpers/Probability/NonzeroSampling.game';
 
 proof:
 
@@ -26,7 +26,7 @@ let:
 
 assume:
     GapCDH(G);
-    UniqueSampling(ModInt<G.order>);
+    NonzeroSampling(G.order);
 
 theorem:
     GapCDH_NZ(G);
@@ -34,27 +34,27 @@ theorem:
 games:
     GapCDH_NZ(G).Left against GapCDH_NZ(G).Adversary;
 
-    UniqueSampling(ModInt<G.order>).NoReplacement compose R_Left(G) against GapCDH_NZ(G).Adversary;
-    UniqueSampling(ModInt<G.order>).Replacement   compose R_Left(G) against GapCDH_NZ(G).Adversary;
+    NonzeroSampling(G.order).Nonzero compose R_Left(G) against GapCDH_NZ(G).Adversary;
+    NonzeroSampling(G.order).MaybeZero compose R_Left(G) against GapCDH_NZ(G).Adversary;
 
     GapCDH(G).Left  against GapCDH_NZ(G).Adversary;
     GapCDH(G).Right against GapCDH_NZ(G).Adversary;
 
-    UniqueSampling(ModInt<G.order>).Replacement   compose R_Right(G) against GapCDH_NZ(G).Adversary;
-    UniqueSampling(ModInt<G.order>).NoReplacement compose R_Right(G) against GapCDH_NZ(G).Adversary;
+    NonzeroSampling(G.order).MaybeZero compose R_Right(G) against GapCDH_NZ(G).Adversary;
+    NonzeroSampling(G.order).Nonzero compose R_Right(G) against GapCDH_NZ(G).Adversary;
 
     GapCDH_NZ(G).Right against GapCDH_NZ(G).Adversary;
 
-// R_Left: delegates sk sampling to UniqueSampling and exposes the
+// R_Left: delegates sk sampling to NonzeroSampling and exposes the
 // GapCDH.Left-style Solve (y == xStar^sk).
 Reduction R_Left(Group G)
-    compose UniqueSampling(ModInt<G.order>)
+    compose NonzeroSampling(G.order)
     against GapCDH_NZ(G).Adversary {
     ModInt<G.order> sk;
     GroupElem<G> xStar;
 
     [GroupElem<G>, GroupElem<G>] Initialize() {
-        sk = challenger.Samp({0});
+        sk = challenger.Samp();
         ModInt<G.order> b <- ModInt<G.order>;
         xStar = G.generator ^ b;
         return [G.generator ^ sk, xStar];
@@ -72,13 +72,13 @@ Reduction R_Left(Group G)
 // R_Right: same as R_Left except Solve is constantly false (matches
 // GapCDH.Right / GapCDH_NZ.Right).
 Reduction R_Right(Group G)
-    compose UniqueSampling(ModInt<G.order>)
+    compose NonzeroSampling(G.order)
     against GapCDH_NZ(G).Adversary {
     ModInt<G.order> sk;
     GroupElem<G> xStar;
 
     [GroupElem<G>, GroupElem<G>] Initialize() {
-        sk = challenger.Samp({0});
+        sk = challenger.Samp();
         ModInt<G.order> b <- ModInt<G.order>;
         xStar = G.generator ^ b;
         return [G.generator ^ sk, xStar];

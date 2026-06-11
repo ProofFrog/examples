@@ -21,7 +21,7 @@ import '../../Games/KEM/INDCCA_MultiChal_ROM.game';
 import '../../Games/Group/GapCDH.game';
 import '../../Games/Group/GapCDH_NZ.game';
 import '../../Games/Helpers/Probability/ROMProgramming.game';
-import '../../Games/Helpers/Probability/UniqueSampling.game';
+import '../../Games/Helpers/Probability/NonzeroSampling.game';
 
 proof:
 
@@ -34,7 +34,7 @@ let:
 assume:
     GapCDH(G);
     ROMProgramming(GroupElem<G>, BitString<n>, H);
-    UniqueSampling(ModInt<G.order>);
+    NonzeroSampling(G.order);
 
 requires:
     G.order is prime;

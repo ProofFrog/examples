@@ -1,17 +1,45 @@
 // Assumption: sampling uniformly from a set S is indistinguishable from
-// sampling from S \ bookkeeping.
-
-// Justification: FrogLang's <-uniq[bookkeeping] semantics implicitly add
-// the sampled value to bookkeeping, so over q queries to Samp the
-// NoReplacement game is guaranteed to return q distinct values. The two
-// games are then identical conditioned on no collision occurring in the
-// Replacement game, since NoReplacement differs from Replacement only by
-// rejecting values already in bookkeeping. The birthday-paradox collision
-// probability over q independent uniform samples from S is at most
-// q(q-1)/(2|S|), so the statistical distance -- and hence the
-// distinguishing advantage -- is bounded by at most q^2 / |S|. (This
-// bound is meaningful only when q << |S|^(1/2); at q \approx |S|^(1/2)
-// it is trivial.)
+// sampling from S \ bookkeeping, where the caller supplies bookkeeping.
+//
+// SCOPE / WHEN TO USE. This is the general caller-supplied helper. It is the
+// RIGHT tool ONLY for the random-oracle freshness usage, where bookkeeping is
+// a random function's actual domain `H.domain` (which the implicit `<-uniq`
+// and RF semantics keep in sync with every query, including the adversary's
+// own Hash-oracle queries). In that setting excluding the full RO domain is
+// exactly what makes "H(sampledValue) is a fresh uniform value" sound. Its
+// only remaining consumers are the two ROM proofs
+//   Proofs/Group/DDHMultiChal_implies_HashedDDHMultiChal.proof
+//   Proofs/PubKeyEnc/HashedElGamal_INDCPA_ROM_MultiChal.proof
+// (a future RO-owning helper -- see the ROMProgramming/lazy-RO line of work --
+// should subsume even these so that the domain cannot be misreported).
+//
+// For other usages, prefer the honest, hard-to-misuse specializations whose
+// exclusion set is fixed or maintained internally (a caller cannot inflate it
+// to make the games trivially distinguishable):
+//   - NonzeroSampling   -- exclude a fixed element (q/|S|); e.g. GapCDH_NZ.
+//   - DistinctSampling  -- internal birthday bookkeeping (q^2/|S|); e.g. the
+//                          SymEncPRF nonce-freshness proofs.
+//
+// Justification: the two games are identical until the Replacement draw
+// lands in the caller-supplied bookkeeping set; by up-to-bad reasoning the
+// distinguishing advantage is at most the probability of that event summed
+// over all queries. A uniform draw lands in a set X with probability at most
+// |X|/|S|, so the UNCONDITIONAL bound is
+//
+//     advantage <= (sum over queries i of |X_i|) / |S|
+//
+// where X_i is the bookkeeping set supplied at query i. The familiar
+// q(q-1)/(2|S|) (<= q^2/|S|) birthday bound is the special case where
+// bookkeeping accumulates only previously-returned values (so |X_i| <= i);
+// the q*1/|S| bound is the special case where every X_i is a fixed singleton
+// (as in GapCDH_implies_GapCDH_NZ's R_Left, which passes the constant {0}).
+//
+// NOTE: the q^2/|S| claim is NOT valid for an arbitrary caller -- passing
+// bookkeeping = S \ {x} makes NoReplacement deterministic while Replacement
+// stays uniform (advantage ~ 1). The sum-of-cardinalities form above is the
+// honest, caller-agnostic statement. A machine-checked EasyCrypt proof of the
+// sum form (with the two corollaries) lives in
+// extras/easycrypt/helpers/UniqueSampling.ec.
 
 Game Replacement(Set S) {
     S Samp(Set<S> bookkeeping) {

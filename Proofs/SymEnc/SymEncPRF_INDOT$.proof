@@ -3,7 +3,7 @@ import '../../Primitives/SymEnc.primitive';
 import '../../Schemes/SymEnc/SymEncPRF.scheme';
 import '../../Games/SymEnc/INDOT$.game';
 import '../../Games/PRF/PRFSecurity.game';
-import '../../Games/Helpers/Probability/UniqueSampling.game';
+import '../../Games/Helpers/Probability/DistinctSampling.game';
 
 // Main result: SymEncPRF satisfies INDOT$
 // assuming PRF security and the birthday-bound sampling assumption.
@@ -14,11 +14,11 @@ import '../../Games/Helpers/Probability/UniqueSampling.game';
 //   -> PRF.Real o R_PRF                   interchangeability
 //   -> PRF.Random o R_PRF                 by PRF assumption
 //   -> G_RF                               interchangeability
-//   -> UniqueSampling.Repl o R_Sample     interchangeability
-//   -> UniqueSampling.NoRepl o R_Sample   by UniqueSampling assumption (birthday bound, forward)
+//   -> DistinctSampling.Repl o R_Sample     interchangeability
+//   -> DistinctSampling.NoRepl o R_Sample   by DistinctSampling assumption (birthday bound, forward)
 //   -> G_Uniq                             interchangeability
-//   -> UniqueSampling.NoRepl o R_Sample2  interchangeability (engine: RF(r)->uniform)
-//   -> UniqueSampling.Repl o R_Sample2    by UniqueSampling assumption (birthday bound, reverse)
+//   -> DistinctSampling.NoRepl o R_Sample2  interchangeability (engine: RF(r)->uniform)
+//   -> DistinctSampling.Repl o R_Sample2    by DistinctSampling assumption (birthday bound, reverse)
 //   -> OTUC.Random                        interchangeability
 
 proof:
@@ -32,7 +32,7 @@ let:
 
 assume:
     PRFSecurity(F);
-    UniqueSampling(BitString<F.in>);
+    DistinctSampling(BitString<F.in>);
     calls <= 1;
 
 theorem:
@@ -55,19 +55,19 @@ games:
     G_RF(E, F) against INDOT$(E).Adversary;
 
     // Interchangeability
-    UniqueSampling(BitString<F.in>).Replacement compose R_Sample(E, F) against INDOT$(E).Adversary;
+    DistinctSampling(BitString<F.in>).Replacement compose R_Sample(E, F) against INDOT$(E).Adversary;
 
-    // By UniqueSampling assumption (forward: Replacement -> NoReplacement)
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample(E, F) against INDOT$(E).Adversary;
+    // By DistinctSampling assumption (forward: Replacement -> NoReplacement)
+    DistinctSampling(BitString<F.in>).NoReplacement compose R_Sample(E, F) against INDOT$(E).Adversary;
 
     // Interchangeability
     G_Uniq(E, F) against INDOT$(E).Adversary;
 
     // Interchangeability (engine: UniqueRF simplification, RF(r) -> z <- R)
-    UniqueSampling(BitString<F.in>).NoReplacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
+    DistinctSampling(BitString<F.in>).NoReplacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
 
-    // By UniqueSampling assumption (reverse: NoReplacement -> Replacement)
-    UniqueSampling(BitString<F.in>).Replacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
+    // By DistinctSampling assumption (reverse: NoReplacement -> Replacement)
+    DistinctSampling(BitString<F.in>).Replacement compose R_Sample2(E, F) against INDOT$(E).Adversary;
 
     // Interchangeability: uniform r, uniform z, m + z -> uniform = OTUC.Random
     INDOT$(E).Random against INDOT$(E).Adversary;
@@ -112,8 +112,8 @@ Game G_RF(SymEnc E, PRF F) {
     }
 }
 
-// Reduction for forward UniqueSampling hop (Replacement -> NoReplacement on r)
-Reduction R_Sample(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against INDOT$(E).Adversary {
+// Reduction for forward DistinctSampling hop (Replacement -> NoReplacement on r)
+Reduction R_Sample(SymEnc E, PRF F) compose DistinctSampling(BitString<F.in>) against INDOT$(E).Adversary {
     Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
@@ -121,7 +121,7 @@ Reduction R_Sample(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) agai
     }
 
     E.Ciphertext CTXT(E.Message m) {
-        BitString<F.in> r = challenger.Samp(RF.domain);
+        BitString<F.in> r = challenger.Samp();
         BitString<F.out> z = RF(r);
         return [r, m + z];
     }
@@ -130,23 +130,24 @@ Reduction R_Sample(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) agai
 // Intermediate game: unique sampling with RF
 Game G_Uniq(SymEnc E, PRF F) {
     Function<BitString<F.in>, BitString<F.out>> RF;
+    Set<BitString<F.in>> seen;
 
     Void Initialize() {
         RF <- Function<BitString<F.in>, BitString<F.out>>;
     }
 
     E.Ciphertext CTXT(E.Message m) {
-        BitString<F.in> r <-uniq[RF.domain] BitString<F.in>;
+        BitString<F.in> r <-uniq[seen] BitString<F.in>;
         BitString<F.out> z = RF(r);
         return [r, m + z];
     }
 }
 
-// Reduction for reverse UniqueSampling hop (NoReplacement -> Replacement on r)
+// Reduction for reverse DistinctSampling hop (NoReplacement -> Replacement on r)
 // After UniqueRFSimplification, z = RF(r) becomes z <- uniform,
 // so this reduction just samples z uniformly and delegates r to challenger.
 // RF field is retained for domain bookkeeping even though it is not called.
-Reduction R_Sample2(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) against INDOT$(E).Adversary {
+Reduction R_Sample2(SymEnc E, PRF F) compose DistinctSampling(BitString<F.in>) against INDOT$(E).Adversary {
     Function<BitString<F.in>, BitString<F.out>> RF;
 
     Void Initialize() {
@@ -154,7 +155,7 @@ Reduction R_Sample2(SymEnc E, PRF F) compose UniqueSampling(BitString<F.in>) aga
     }
 
     E.Ciphertext CTXT(E.Message m) {
-        BitString<F.in> r = challenger.Samp(RF.domain);
+        BitString<F.in> r = challenger.Samp();
         BitString<F.out> z <- BitString<F.out>;
         return [r, m + z];
     }
