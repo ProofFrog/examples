@@ -1,0 +1,63 @@
+// Assumption: the value of a random oracle at a hidden, freshly sampled
+// input is indistinguishable from an independent uniform bitstring.
+//
+// The game owns the random function H : D -> BitString<n> and exposes it
+// only through the Hash oracle. Real.Challenge() samples a HIDDEN fresh
+// uniform input val and returns H(val); Ideal.Challenge() returns an
+// independent uniform bitstring. val itself is never revealed: revealing
+// it would make the games trivially distinguishable via a Hash(val) query.
+//
+// Justification: the games are identical until the adversary queries Hash
+// at one of the hidden challenge inputs (probability at most
+// q_chal * q_hash / |D| by the guessing bound, since each val is uniform
+// and independent of the adversary's view) or two challenge inputs
+// collide, correlating Real's outputs (probability at most
+// q_chal^2 / (2 * |D|)). Hence
+//
+//     advantage <= (q_chal^2 / 2 + q_chal * q_hash) / |D|
+//
+// where q_chal counts Challenge queries and q_hash counts Hash queries.
+//
+// This game carries the entire statistical content of "the random oracle
+// at a fresh hidden point looks uniform": proofs that use it need no
+// exclusion-set sampling (<-uniq) and no RF-freshness engine transform.
+// There is no exclusion set or bookkeeping anywhere in the interface, so
+// a caller cannot misuse it. For random oracles over tuple domains where
+// freshness comes from a single slot, use the ROFreshSampling2 ..
+// ROFreshSampling5 variants.
+
+Game Real(Set D, Int n) {
+    Function<D, BitString<n>> H;
+
+    Void Initialize() {
+        H <- Function<D, BitString<n>>;
+    }
+
+    BitString<n> Hash(D x) {
+        return H(x);
+    }
+
+    BitString<n> Challenge() {
+        D val <- D;
+        return H(val);
+    }
+}
+
+Game Ideal(Set D, Int n) {
+    Function<D, BitString<n>> H;
+
+    Void Initialize() {
+        H <- Function<D, BitString<n>>;
+    }
+
+    BitString<n> Hash(D x) {
+        return H(x);
+    }
+
+    BitString<n> Challenge() {
+        BitString<n> y <- BitString<n>;
+        return y;
+    }
+}
+
+export as ROFreshSampling;

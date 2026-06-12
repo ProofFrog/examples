@@ -1,24 +1,20 @@
 // Assumption: sampling uniformly from a set S is indistinguishable from
 // sampling from S \ bookkeeping, where the caller supplies bookkeeping.
 //
-// SCOPE / WHEN TO USE. This is the general caller-supplied helper. It is the
-// RIGHT tool ONLY for the random-oracle freshness usage, where bookkeeping is
-// a random function's actual domain `H.domain` (which the implicit `<-uniq`
-// and RF semantics keep in sync with every query, including the adversary's
-// own Hash-oracle queries). In that setting excluding the full RO domain is
-// exactly what makes "H(sampledValue) is a fresh uniform value" sound. Its
-// only remaining consumers are the two ROM proofs
-//   Proofs/Group/DDHMultiChal_implies_HashedDDHMultiChal.proof
-//   Proofs/PubKeyEnc/HashedElGamal_INDCPA_ROM_MultiChal.proof
-// (a future RO-owning helper -- see the ROMProgramming/lazy-RO line of work --
-// should subsume even these so that the domain cannot be misreported).
-//
-// For other usages, prefer the honest, hard-to-misuse specializations whose
-// exclusion set is fixed or maintained internally (a caller cannot inflate it
-// to make the games trivially distinguishable):
+// SCOPE / WHEN TO USE: in this repository, DON'T -- prefer the honest,
+// hard-to-misuse helpers whose interface has no caller-supplied set:
+//   - ROFreshSampling (and the tuple-domain ROFreshSampling2..5 variants)
+//     -- the game owns the random oracle and challenges at a hidden fresh
+//        input; replaces the former random-oracle-freshness usage of this
+//        game (exclude `H.domain`). No proof in this repository uses
+//        UniqueSampling any more.
 //   - NonzeroSampling   -- exclude a fixed element (q/|S|); e.g. GapCDH_NZ.
 //   - DistinctSampling  -- internal birthday bookkeeping (q^2/|S|); e.g. the
 //                          SymEncPRF nonce-freshness proofs.
+// This file is retained because (i) external proof trees still import it
+// pending their migration to the helpers above, and (ii) it is the subject
+// of the machine-checked EasyCrypt proof of the general sum-form bound
+// (see below). Candidate for deletion once both reasons lapse.
 //
 // Justification: the two games are identical until the Replacement draw
 // lands in the caller-supplied bookkeeping set; by up-to-bad reasoning the

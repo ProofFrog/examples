@@ -1,21 +1,22 @@
-// HashedDDHMultiChal follows from DDHMultiChal + UniqueSampling in the random oracle model.
+// HashedDDHMultiChal follows from DDHMultiChal + ROFreshSampling in the random oracle model.
 //
-// H is sampled as a random function. DDHMultiChal replaces the DH shared secret
-// with a random group element c. UniqueSampling switches from uniform
-// to exclusion sampling (explicit q/|D| guessing loss). With c excluded
-// from all adversary hash queries, H(c) is exactly an independent
-// uniform bitstring.
+// H is sampled as a random function. DDHMultiChal replaces the DH shared
+// secret with a random group element. ROFreshSampling then replaces the
+// hash of that hidden fresh group element with an independent uniform
+// bitstring (explicit guessing-bound loss); the helper game owns the
+// random oracle, so the reduction routes all hash evaluations through the
+// challenger's Hash oracle.
 //
 // Game sequence:
-//   HashedDDHMultiChal.Left                          -- [g^r, H(pk^r)]
-//   DDHMultiChal.Left  o R_DDH                       -- same by interchangeability
-//   DDHMultiChal.Right o R_DDH                       -- by DDHMultiChal: pk^r -> random c
-//   UniqueSampling.Replacement  o R_Uniq    -- interchangeability (uniform c)
-//   UniqueSampling.NoReplacement o R_Uniq   -- by UniqueSampling (q/|D| loss)
-//   HashedDDHMultiChal.Right                         -- H(c_uniq) -> random (exact)
+//   HashedDDHMultiChal.Left              -- [g^r, H(pk^r)]
+//   DDHMultiChal.Left  o R_DDH           -- same by interchangeability
+//   DDHMultiChal.Right o R_DDH           -- by DDHMultiChal: pk^r -> random c
+//   ROFreshSampling.Real  o R_Fresh      -- interchangeability (c hidden fresh)
+//   ROFreshSampling.Ideal o R_Fresh      -- by ROFreshSampling (guessing loss)
+//   HashedDDHMultiChal.Right             -- independent uniform bitstring
 
 import '../../Games/Group/DDHMultiChal.game';
-import '../../Games/Helpers/Probability/UniqueSampling.game';
+import '../../Games/Helpers/Probability/ROFreshSampling.game';
 import '../../Games/Group/HashedDDHMultiChal.game';
 
 proof:
@@ -27,7 +28,7 @@ let:
 
 assume:
     DDHMultiChal(G);
-    UniqueSampling(GroupElem<G>);
+    ROFreshSampling(GroupElem<G>, n);
 
 theorem:
     HashedDDHMultiChal(G, n, H);
@@ -38,8 +39,8 @@ games:
     DDHMultiChal(G).Left compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
     DDHMultiChal(G).Right compose R_DDH(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
 
-    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
-    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+    ROFreshSampling(GroupElem<G>, n).Real compose R_Fresh(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
+    ROFreshSampling(GroupElem<G>, n).Ideal compose R_Fresh(G, n, H) against HashedDDHMultiChal(G, n, H).Adversary;
 
     HashedDDHMultiChal(G, n, H).Right against HashedDDHMultiChal(G, n, H).Adversary;
 
@@ -59,9 +60,12 @@ Reduction R_DDH(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose 
     }
 }
 
-// UniqueSampling reduction: delegates sampling to the UniqueSampling challenger,
-// using H.domain (implicitly maintained) as the bookkeeping set.
-Reduction R_Uniq(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose UniqueSampling(GroupElem<G>) against HashedDDHMultiChal(G, n, H).Adversary {
+// RO-freshness reduction: the challenger owns the random oracle; the
+// reduction routes all hash evaluations through challenger.Hash and uses
+// the challenge hash directly (the fresh input stays hidden inside the
+// challenger, just as DDHMultiChal.Right never reveals its random group
+// element).
+Reduction R_Fresh(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose ROFreshSampling(GroupElem<G>, n) against HashedDDHMultiChal(G, n, H).Adversary {
     GroupElem<G> pk;
 
     GroupElem<G> Initialize() {
@@ -71,12 +75,12 @@ Reduction R_Uniq(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose
     }
 
     BitString<n> Hash(GroupElem<G> x) {
-        return H(x);
+        return challenger.Hash(x);
     }
 
     [GroupElem<G>, BitString<n>] Challenge() {
         ModInt<G.order> r <- ModInt<G.order>;
-        GroupElem<G> c = challenger.Samp(H.domain);
-        return [G.generator ^ r, H(c)];
+        BitString<n> h = challenger.Challenge();
+        return [G.generator ^ r, h];
     }
 }
