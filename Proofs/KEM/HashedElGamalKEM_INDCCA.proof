@@ -33,7 +33,7 @@ let:
 
 assume:
     GapCDH(G);
-    ROMProgramming(GroupElem<G>, BitString<n>, H);
+    ROMProgramming(GroupElem<G>, BitString<n>);
     NonzeroSampling(G.order);
 
 requires:
@@ -48,8 +48,8 @@ theorem:
 games:
     KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Real against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
 
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural    compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>).Natural    compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>).Programmed compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
 
     GapCDH_NZ(G).Left  compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
     GapCDH_NZ(G).Right compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
@@ -60,7 +60,7 @@ games:
 // ROMProgramming challenger. Holds sk locally and answers Decaps via
 // challenger.Query(c^sk).
 Reduction R_Program(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
-    compose ROMProgramming(GroupElem<G>, BitString<n>, H)
+    compose ROMProgramming(GroupElem<G>, BitString<n>)
     against KEM_INDCCA_MultiChal_ROM(HashedElGamalKEM(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
     ModInt<G.order> sk;
     GroupElem<G> ctStar;
