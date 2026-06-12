@@ -9,10 +9,18 @@
 // split form and returns their concatenation, mirroring the way the
 // CG_seedbased hybrid scheme consumes the PRG output.
 //
-// Honest:  sample s0, s1 independently from BitString<lambda>; return
-//          [s0, s1] to the adversary; answer Hash(x) by H(x).
-// Lazy:    sample s0 from BitString<lambda> and s1 <-uniq[{s0}] from
-//          BitString<lambda>; pre-sample y0_pq, y1_pq independently
+// H is sampled INSIDE each game at Initialize and is reachable only
+// through the Hash oracle. This is essential for soundness: the
+// assumption quantifies over all adversaries, and an adversary holding
+// H directly could evaluate it at the returned seeds and distinguish
+// Honest from Lazy trivially. (Earlier versions took H as a game
+// parameter sampled in the consuming proof's let: block, which made
+// the universal statement false.)
+//
+// Honest:  sample H; sample s0, s1 independently from BitString<lambda>;
+//          return [s0, s1] to the adversary; answer Hash(x) by H(x).
+// Lazy:    sample H; sample s0 from BitString<lambda> and s1 <-uniq[{s0}]
+//          from BitString<lambda>; pre-sample y0_pq, y1_pq independently
 //          from BitString<KEM_PQ.Nseed> and y0_t, y1_t independently
 //          from BitString<NG.Nseed>; return [s0, s1]; answer Hash(x)
 //          with the concatenation y0_pq || y0_t (resp. y1_pq || y1_t)
@@ -30,9 +38,11 @@
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';
 
-Game Honest(KEM KEM_PQ, NominalGroup NG, Int lambda,
-            Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> H) {
+Game Honest(KEM KEM_PQ, NominalGroup NG, Int lambda) {
+    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> H;
+
     [BitString<lambda>, BitString<lambda>] Initialize() {
+        H <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>>;
         BitString<lambda> s0 <- BitString<lambda>;
         BitString<lambda> s1 <- BitString<lambda>;
         return [s0, s1];
@@ -43,8 +53,8 @@ Game Honest(KEM KEM_PQ, NominalGroup NG, Int lambda,
     }
 }
 
-Game Lazy(KEM KEM_PQ, NominalGroup NG, Int lambda,
-          Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> H) {
+Game Lazy(KEM KEM_PQ, NominalGroup NG, Int lambda) {
+    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> H;
     BitString<lambda> s0;
     BitString<lambda> s1;
     BitString<KEM_PQ.Nseed> y0_pq;
@@ -53,6 +63,7 @@ Game Lazy(KEM KEM_PQ, NominalGroup NG, Int lambda,
     BitString<NG.Nseed>     y1_t;
 
     [BitString<lambda>, BitString<lambda>] Initialize() {
+        H <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>>;
         s0 <- BitString<lambda>;
         s1 <-uniq[{s0}] BitString<lambda>;
         y0_pq <- BitString<KEM_PQ.Nseed>;
