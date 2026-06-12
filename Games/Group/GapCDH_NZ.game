@@ -6,7 +6,7 @@
 // which only fires when sk is known-nonzero. Under prime-order G the
 // two variants differ by statistical distance at most 1/|G|, so
 // GapCDH(G) => GapCDH_NZ(G) is proven as a lemma via the
-// UniqueSampling helper (see Proofs/Group/GapCDH_implies_GapCDH_NZ.proof).
+// NonzeroSampling helper (see Proofs/Group/GapCDH_implies_GapCDH_NZ.proof).
 
 Game Left(Group G) {
     ModInt<G.order> sk;
