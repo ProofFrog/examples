@@ -1,0 +1,59 @@
+// Statistical helper -- the PRP/PRF switching lemma.
+//
+// A uniformly random PERMUTATION on BitString<n> is indistinguishable from
+// a uniformly random FUNCTION on BitString<n>, up to the birthday bound
+// q(q-1) / (2 * 2^n), where q is the number of DISTINCT queries to Eval.
+//
+// Both games own their oracle internally and MEMOISE on the input, so each
+// is self-consistent on repeated queries (a permutation/function is a fixed
+// object, not fresh randomness per call). They differ in exactly ONE line --
+// how a fresh output is drawn:
+//   - Permutation:    y <-uniq[used] BitString<n>   (WITHOUT replacement:
+//                     distinct from every prior output, so T stays injective)
+//   - RandomFunction: y <- BitString<n>             (WITH replacement:
+//                     output collisions allowed)
+// Over q distinct queries the two differ exactly when a with-replacement
+// draw collides with an earlier output -- the birthday event -- so the
+// distinguishing advantage is at most q(q-1) / (2 * 2^n).
+//
+// This is the INFORMATION-THEORETIC switching lemma, not the keyed-PRP
+// assumption. Typical use: a proof first applies the keyed PRP assumption to
+// replace F.evaluate(k, .) by a random permutation oracle, then applies this
+// helper to continue reasoning as if it were a random function. It is the
+// DistinctSampling birthday fact lifted to a memoised oracle (permutation =
+// outputs sampled without replacement, function = with replacement).
+//
+// Hard to misuse: no caller-supplied set; the only state is the game's own
+// input->output table T and the set `used` of outputs it has handed out.
+//
+// A machine-checked EasyCrypt proof of the birthday bound lives in the
+// co-located PRPPRFSwitching.ec.
+
+Game Permutation(Int n) {
+    Map<BitString<n>, BitString<n>> T;
+    Set<BitString<n>> used;
+
+    BitString<n> Eval(BitString<n> x) {
+        if (x in T) {
+            return T[x];
+        }
+        BitString<n> y <-uniq[used] BitString<n>;
+        T[x] = y;
+        return y;
+    }
+}
+
+Game RandomFunction(Int n) {
+    Map<BitString<n>, BitString<n>> T;
+
+    BitString<n> Eval(BitString<n> x) {
+        if (x in T) {
+            return T[x];
+        }
+        BitString<n> y <- BitString<n>;
+        T[x] = y;
+        return y;
+    }
+}
+
+export as PRPPRFSwitching;
