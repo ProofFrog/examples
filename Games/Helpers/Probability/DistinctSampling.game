@@ -21,8 +21,8 @@
 // then evaluates a random function RF(r); distinctness of the r's lets the
 // engine replace RF(r) with a fresh uniform value (UniqueRFSimplification).
 //
-// A machine-checked EasyCrypt proof of the birthday bound lives in
-// extras/easycrypt/helpers/UniqueSampling.ec (adv_bound_birthday corollary).
+// A machine-checked EasyCrypt proof of the birthday bound lives in the
+// co-located SamplingWithoutReplacement.ec (adv_bound_birthday corollary).
 
 Game Replacement(Set S) {
     S Samp() {
