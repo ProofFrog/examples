@@ -17,8 +17,8 @@
 // uniformly nonzero"; see Proofs/Group/GapCDH_implies_GapCDH_NZ.proof.
 //
 // The q/order bound is the machine-checked EasyCrypt corollary adv_bound_const
-// (excluding a fixed size-1 set each query) in
-// extras/easycrypt/helpers/UniqueSampling.ec.
+// (excluding a fixed size-1 set each query) in the co-located
+// SamplingWithoutReplacement.ec.
 
 Game MaybeZero(Int order) {
     ModInt<order> Samp() {
