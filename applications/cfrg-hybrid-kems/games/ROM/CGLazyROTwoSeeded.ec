@@ -1,0 +1,17 @@
+(* ==================================================================== *)
+(* CGLazyROTwoSeeded: CG_seedbased twin of LazyROTwoSeeded                 *)
+(*                                                                        *)
+(* CGLazyROTwoSeeded.game is structurally identical to LazyROTwoSeeded.game *)
+(* -- the only difference is that the second codomain half is NG.Nseed     *)
+(* (the nominal-group seed) instead of KEM_T.Nseed.  In the EasyCrypt       *)
+(* model both halves are abstract types (`pqh`, `th`) with arbitrary        *)
+(* lossless distributions, so the generic theory LazyROTwoSeeded proves     *)
+(* this game too: it is the single "one generic theory, two clones" family. *)
+(*                                                                        *)
+(* We import that theory here so the advantage bound (`adv_bound`,          *)
+(* adv <= 1/cardS = 2^-lambda) is checked and available co-located with     *)
+(* CGLazyROTwoSeeded.game.  Nothing is specialized: the KEM_PQ/KEM_T and    *)
+(* KEM_PQ/NG instantiations are the same abstract generic statement.        *)
+(* ==================================================================== *)
+
+require import LazyROTwoSeeded.
