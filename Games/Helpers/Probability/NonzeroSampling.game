@@ -1,0 +1,37 @@
+// Assumption: sampling a scalar uniformly is statistically close to sampling
+// it uniformly from the NONZERO scalars.
+//
+// MaybeZero samples val uniformly from ModInt<order>; Nonzero samples val
+// uniformly from ModInt<order> \ {0}. The two distributions are identical
+// except on the single value 0, so over q queries the distinguishing
+// advantage is at most q / order (union bound; 1/order per query).
+//
+// This is the honest, hard-to-misuse specialization of the old
+// caller-supplied UniqueSampling helper for the "exclude a fixed element"
+// usage: the excluded value (zero) is fixed by the game, NOT supplied by the
+// caller, so there is no way to inflate the exclusion set and make the two
+// games trivially distinguishable. Cryptographic intuition: "a uniform
+// exponent and a uniform NONZERO exponent are interchangeable up to 1/|G|."
+//
+// Used to bridge "secret key sampled uniformly" and "secret key sampled
+// uniformly nonzero"; see Proofs/Group/GapCDH_implies_GapCDH_NZ.proof.
+//
+// The q/order bound is the machine-checked EasyCrypt corollary adv_bound_const
+// (excluding a fixed size-1 set each query) in
+// extras/easycrypt/helpers/UniqueSampling.ec.
+
+Game MaybeZero(Int order) {
+    ModInt<order> Samp() {
+        ModInt<order> val <- ModInt<order>;
+        return val;
+    }
+}
+
+Game Nonzero(Int order) {
+    ModInt<order> Samp() {
+        ModInt<order> val <- ModInt<order> \ {0};
+        return val;
+    }
+}
+
+export as NonzeroSampling;

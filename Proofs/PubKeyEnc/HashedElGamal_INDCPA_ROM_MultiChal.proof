@@ -1,27 +1,29 @@
-// Hashed ElGamal is IND-INDCPA_MultiChal secure under DDHMultiChal + UniqueSampling in the ROM.
+// Hashed ElGamal is IND-INDCPA_MultiChal secure under DDHMultiChal + ROFreshSampling in the ROM.
 //
 // H is sampled as a random function (ROM). The adversary gets a Hash
-// oracle via the INDCPA_ROM_MultiChal game. DDHMultiChal replaces the DH shared secret with
-// a random group element c. UniqueSampling switches from uniform to
-// exclusion sampling (explicit q/|D| guessing loss). With c excluded
-// from adversary queries, H(c) is exactly a random bitstring that
-// masks the message via XOR.
+// oracle via the INDCPA_ROM_MultiChal game. DDHMultiChal replaces the DH
+// shared secret with a random group element. ROFreshSampling then replaces
+// the hash of that hidden fresh group element with an independent uniform
+// bitstring (explicit guessing-bound loss), which masks the message via
+// XOR as a one-time pad. The helper game owns the random oracle, so the
+// reduction routes all hash evaluations through the challenger's Hash
+// oracle.
 //
 // Game sequence (symmetric around the middle):
 //   INDCPA_ROM_MultiChal.Left
-//   DDHMultiChal.Left  o R_L                           -- interchangeability
-//   DDHMultiChal.Right o R_L                           -- by DDHMultiChal
-//   US.Replacement o R_Uniq_L                 -- interchangeability
-//   US.NoReplacement o R_Uniq_L               -- by UniqueSampling (q/|D| loss)
-//   US.NoReplacement o R_Uniq_R               -- exact (FreshInputRFToUniform)
-//   US.Replacement o R_Uniq_R                 -- by UniqueSampling (reverse)
-//   DDHMultiChal.Right o R_R                           -- interchangeability
-//   DDHMultiChal.Left  o R_R                           -- by DDHMultiChal (reverse)
+//   DDHMultiChal.Left  o R_L             -- interchangeability
+//   DDHMultiChal.Right o R_L             -- by DDHMultiChal
+//   ROFreshSampling.Real  o R_Fresh_L    -- interchangeability (c hidden fresh)
+//   ROFreshSampling.Ideal o R_Fresh_L    -- by ROFreshSampling (guessing loss)
+//   ROFreshSampling.Ideal o R_Fresh_R    -- interchangeability (one-time pad)
+//   ROFreshSampling.Real  o R_Fresh_R    -- by ROFreshSampling (reverse)
+//   DDHMultiChal.Right o R_R             -- interchangeability
+//   DDHMultiChal.Left  o R_R             -- by DDHMultiChal (reverse)
 //   INDCPA_ROM_MultiChal.Right
 
 import '../../Primitives/PubKeyEnc.primitive';
 import '../../Games/Group/DDHMultiChal.game';
-import '../../Games/Helpers/Probability/UniqueSampling.game';
+import '../../Games/Helpers/Probability/ROFreshSampling.game';
 import '../../Games/PubKeyEnc/INDCPA_ROM_MultiChal.game';
 import '../../Schemes/PubKeyEnc/HashedElGamal.scheme';
 
@@ -35,7 +37,7 @@ let:
 
 assume:
     DDHMultiChal(G);
-    UniqueSampling(GroupElem<G>);
+    ROFreshSampling(GroupElem<G>, n);
 
 theorem:
     INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H);
@@ -46,12 +48,12 @@ games:
     DDHMultiChal(G).Left compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
     DDHMultiChal(G).Right compose R_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
 
-    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
-    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROFreshSampling(GroupElem<G>, n).Real compose R_Fresh_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROFreshSampling(GroupElem<G>, n).Ideal compose R_Fresh_L(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
 
-    UniqueSampling(GroupElem<G>).NoReplacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROFreshSampling(GroupElem<G>, n).Ideal compose R_Fresh_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
 
-    UniqueSampling(GroupElem<G>).Replacement compose R_Uniq_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
+    ROFreshSampling(GroupElem<G>, n).Real compose R_Fresh_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
 
     DDHMultiChal(G).Right compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
     DDHMultiChal(G).Left compose R_R(G, n, H) against INDCPA_ROM_MultiChal(E, GroupElem<G>, BitString<n>, H).Adversary;
@@ -92,8 +94,10 @@ Reduction R_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose DD
     }
 }
 
-// UniqueSampling reduction (left message): delegates c-sampling to US challenger.
-Reduction R_Uniq_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose UniqueSampling(GroupElem<G>) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+// RO-freshness reduction (left message): the challenger owns the random
+// oracle; the reduction routes hashing through challenger.Hash and masks
+// mL with the challenge hash.
+Reduction R_Fresh_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose ROFreshSampling(GroupElem<G>, n) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
     GroupElem<G> pk;
 
     GroupElem<G> Initialize() {
@@ -103,19 +107,18 @@ Reduction R_Uniq_L(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compo
     }
 
     BitString<n> Hash(GroupElem<G> x) {
-        return H(x);
+        return challenger.Hash(x);
     }
 
     [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
         ModInt<G.order> r <- ModInt<G.order>;
-        GroupElem<G> c = challenger.Samp(H.domain);
-        BitString<n> h = H(c);
+        BitString<n> h = challenger.Challenge();
         return [G.generator ^ r, h + mL];
     }
 }
 
-// UniqueSampling reduction (right message): delegates c-sampling to US challenger.
-Reduction R_Uniq_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose UniqueSampling(GroupElem<G>) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+// RO-freshness reduction (right message): same with mR.
+Reduction R_Fresh_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose ROFreshSampling(GroupElem<G>, n) against INDCPA_ROM_MultiChal(HashedElGamal(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
     GroupElem<G> pk;
 
     GroupElem<G> Initialize() {
@@ -125,13 +128,12 @@ Reduction R_Uniq_R(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compo
     }
 
     BitString<n> Hash(GroupElem<G> x) {
-        return H(x);
+        return challenger.Hash(x);
     }
 
     [GroupElem<G>, BitString<n>] Challenge(BitString<n> mL, BitString<n> mR) {
         ModInt<G.order> r <- ModInt<G.order>;
-        GroupElem<G> c = challenger.Samp(H.domain);
-        BitString<n> h = H(c);
+        BitString<n> h = challenger.Challenge();
         return [G.generator ^ r, h + mR];
     }
 }

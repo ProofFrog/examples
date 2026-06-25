@@ -27,7 +27,7 @@ let:
 
 assume:
     CDH(G);
-    ROMProgramming(GroupElem<G>, BitString<n>, H);
+    ROMProgramming(GroupElem<G>, BitString<n>);
 
 theorem:
     HashedDDH(G, n, H);
@@ -35,8 +35,8 @@ theorem:
 games:
     HashedDDH(G, n, H).Left against HashedDDH(G, n, H).Adversary;
 
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Natural compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
-    ROMProgramming(GroupElem<G>, BitString<n>, H).Programmed compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>).Natural compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
+    ROMProgramming(GroupElem<G>, BitString<n>).Programmed compose R_ROM(G, n, H) against HashedDDH(G, n, H).Adversary;
 
     CDH(G).Left compose R_CDH(G, n, H) against HashedDDH(G, n, H).Adversary;
     CDH(G).Right compose R_CDH(G, n, H) against HashedDDH(G, n, H).Adversary;
@@ -45,7 +45,7 @@ games:
 
 // ROM programming reduction: samples pk and g^r itself, delegates the
 // hash value at pk^r to the ROMProgramming challenger.
-Reduction R_ROM(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose ROMProgramming(GroupElem<G>, BitString<n>, H) against HashedDDH(G, n, H).Adversary {
+Reduction R_ROM(Group G, Int n, Function<GroupElem<G>, BitString<n>> H) compose ROMProgramming(GroupElem<G>, BitString<n>) against HashedDDH(G, n, H).Adversary {
     [GroupElem<G>, GroupElem<G>, BitString<n>] Initialize() {
         ModInt<G.order> a <- ModInt<G.order>;
         GroupElem<G> pk = G.generator ^ a;

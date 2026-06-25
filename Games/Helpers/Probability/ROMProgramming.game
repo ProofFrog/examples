@@ -2,13 +2,27 @@
 // with a fresh random value is equivalent to evaluating it normally.
 // This is a perfect statistical equivalence when H is a random function.
 //
-// The target is fixed at initialization (non-adaptive).
+// The random function H is sampled INSIDE each game and is reachable only
+// through the Query oracle. (An earlier revision took H as a game
+// parameter; an adversary able to evaluate that H directly could compare
+// Initialize(target) with H(target) and distinguish the two sides, so the
+// universally-quantified statement was false. Reductions composed with
+// this game must route every access to the random oracle through
+// challenger.Query.)
+//
+// The target is fixed at initialization (non-adaptive) and may be chosen
+// by the caller; with H hidden, the equivalence is perfect for any
+// caller-supplied target, since Programmed answers Query(target)
+// consistently with the programmed value.
 //
 // Natural:    Initialize(target) returns H(target);     Query(x) returns H(x)
 // Programmed: Initialize(target) returns fresh u;       Query(x) returns u if x==target, else H(x)
 
-Game Natural(Set D, Set R, Function<D, R> H) {
+Game Natural(Set D, Set R) {
+    Function<D, R> H;
+
     R Initialize(D target) {
+        H <- Function<D, R>;
         return H(target);
     }
 
@@ -17,11 +31,13 @@ Game Natural(Set D, Set R, Function<D, R> H) {
     }
 }
 
-Game Programmed(Set D, Set R, Function<D, R> H) {
+Game Programmed(Set D, Set R) {
+    Function<D, R> H;
     D t;
     R u;
 
     R Initialize(D target) {
+        H <- Function<D, R>;
         t = target;
         u <- R;
         return u;

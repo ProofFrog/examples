@@ -52,8 +52,11 @@
 //
 // Assumptions: seeded-form LEAK_BIND_K_CT(KEM_PQ),
 // KDFCollisionResistance(H), KeyGenEquiv(KEM_PQ),
-// CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO). The latter two are
-// statistical helpers.
+// CGLazyROTwoSeeded(KEM_PQ, NG, lambda). The latter two are
+// statistical helpers. CGLazyROTwoSeeded samples its random oracle
+// internally (oracle access only), so the assumption is honest under
+// the universal adversary quantifier; the R_LazyRO_* reductions touch
+// the RO only via challenger.Hash.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';
@@ -110,7 +113,7 @@ assume:
     LEAK_BIND_K_CT(KEM_PQ);
     KDFCollisionResistance(H);
     KeyGenEquiv(KEM_PQ);
-    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO);
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda);
 
 theorem:
     LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO);
@@ -119,10 +122,10 @@ games:
     LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Breakable
         against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
-    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Honest
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Honest
         compose R_LazyRO_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
         against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
-    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Lazy
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Lazy
         compose R_LazyRO_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
         against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
@@ -154,10 +157,10 @@ games:
         compose R_KG_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
         against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
-    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Lazy
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Lazy
         compose R_LazyRO_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
         against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
-    CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO).Honest
+    CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Honest
         compose R_LazyRO_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
         against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
@@ -170,7 +173,7 @@ games:
 Reduction R_LazyRO_L(KEM KEM_PQ, NominalGroup NG, Int lambda,
                      Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                      KDF H, Label L, CG_seedbased hybrid)
-    compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO)
+    compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda)
     against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;
@@ -209,7 +212,7 @@ Reduction R_LazyRO_L(KEM KEM_PQ, NominalGroup NG, Int lambda,
 Reduction R_LazyRO_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
                      Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                      KDF H, Label L, CG_seedbased hybrid)
-    compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda, G_RO)
+    compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda)
     against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;

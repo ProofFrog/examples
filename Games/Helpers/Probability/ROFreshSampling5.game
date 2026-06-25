@@ -1,0 +1,100 @@
+// Assumption: the value of a random oracle over a 5-slot tuple domain, at
+// an input whose slot-J component is hidden and freshly sampled, is
+// indistinguishable from an independent uniform bitstring -- regardless of
+// the other components, which the caller supplies (possibly adversarially).
+//
+// 5-slot variant of ROFreshSampling (see that file for the full
+// discussion). The game owns H : [D0, D1, D2, D3, D4] -> BitString<n> and exposes
+// it only through the Hash oracle. For each slot J, Real.ChallengeJ takes
+// the other 4 components, samples a HIDDEN fresh uniform value for slot
+// J, and returns the hash; Ideal.ChallengeJ returns an independent uniform
+// bitstring. The hidden value is never revealed.
+//
+// Justification (per slot, as for ROFreshSampling): the games are
+// identical until the adversary queries Hash at a point whose challenged
+// slot holds one of the hidden values, or two hidden values collide, so
+//
+//     advantage <= (q_chal^2 + q_chal * q_hash) / min_J |DJ|
+//
+// with the minimum over the slots actually challenged. Consumers typically
+// use a single ChallengeJ oracle; the unused oracles are harmless.
+//
+// This replaces the UniqueSampling idiom in which a reduction maintained a
+// projection set (seen = seen union {x[J]}) as the exclusion set: there
+// is no set to maintain or misreport here.
+
+Game Real(Set D0, Set D1, Set D2, Set D3, Set D4, Int n) {
+    Function<[D0, D1, D2, D3, D4], BitString<n>> H;
+
+    Void Initialize() {
+        H <- Function<[D0, D1, D2, D3, D4], BitString<n>>;
+    }
+
+    BitString<n> Hash([D0, D1, D2, D3, D4] x) {
+        return H(x);
+    }
+
+    BitString<n> Challenge0(D1 t1, D2 t2, D3 t3, D4 t4) {
+        D0 val <- D0;
+        return H([val, t1, t2, t3, t4]);
+    }
+
+    BitString<n> Challenge1(D0 t0, D2 t2, D3 t3, D4 t4) {
+        D1 val <- D1;
+        return H([t0, val, t2, t3, t4]);
+    }
+
+    BitString<n> Challenge2(D0 t0, D1 t1, D3 t3, D4 t4) {
+        D2 val <- D2;
+        return H([t0, t1, val, t3, t4]);
+    }
+
+    BitString<n> Challenge3(D0 t0, D1 t1, D2 t2, D4 t4) {
+        D3 val <- D3;
+        return H([t0, t1, t2, val, t4]);
+    }
+
+    BitString<n> Challenge4(D0 t0, D1 t1, D2 t2, D3 t3) {
+        D4 val <- D4;
+        return H([t0, t1, t2, t3, val]);
+    }
+}
+
+Game Ideal(Set D0, Set D1, Set D2, Set D3, Set D4, Int n) {
+    Function<[D0, D1, D2, D3, D4], BitString<n>> H;
+
+    Void Initialize() {
+        H <- Function<[D0, D1, D2, D3, D4], BitString<n>>;
+    }
+
+    BitString<n> Hash([D0, D1, D2, D3, D4] x) {
+        return H(x);
+    }
+
+    BitString<n> Challenge0(D1 t1, D2 t2, D3 t3, D4 t4) {
+        BitString<n> y <- BitString<n>;
+        return y;
+    }
+
+    BitString<n> Challenge1(D0 t0, D2 t2, D3 t3, D4 t4) {
+        BitString<n> y <- BitString<n>;
+        return y;
+    }
+
+    BitString<n> Challenge2(D0 t0, D1 t1, D3 t3, D4 t4) {
+        BitString<n> y <- BitString<n>;
+        return y;
+    }
+
+    BitString<n> Challenge3(D0 t0, D1 t1, D2 t2, D4 t4) {
+        BitString<n> y <- BitString<n>;
+        return y;
+    }
+
+    BitString<n> Challenge4(D0 t0, D1 t1, D2 t2, D3 t3) {
+        BitString<n> y <- BitString<n>;
+        return y;
+    }
+}
+
+export as ROFreshSampling5;

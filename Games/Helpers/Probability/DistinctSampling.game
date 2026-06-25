@@ -1,0 +1,43 @@
+// Assumption: sampling values uniformly (with replacement) is statistically
+// close to sampling them so that all returned values are DISTINCT (without
+// replacement).
+//
+// Replacement   returns a fresh uniform value each call (collisions possible).
+// NoReplacement keeps its OWN set `seen` of previously-returned values and
+// samples val <-uniq[seen] S, which is guaranteed distinct from every earlier
+// output (FrogLang's <-uniq[seen] implicitly accumulates val into seen across
+// calls). Over q queries the two differ only when a uniform draw collides with
+// an earlier one, so the distinguishing advantage is at most the birthday
+// bound q(q-1)/(2|S|).
+//
+// This is the honest, hard-to-misuse replacement for the old caller-supplied
+// UniqueSampling helper's accumulating-bookkeeping usage: the exclusion set is
+// maintained INTERNALLY and only ever contains the game's own prior outputs,
+// so a caller cannot inflate it (e.g. pass S \ {x}) to make the two games
+// trivially distinguishable. Cryptographic intuition: "q uniform samples are
+// distinct except with birthday probability."
+//
+// Typical use: a reduction samples a nonce/RO-input r via this challenger and
+// then evaluates a random function RF(r); distinctness of the r's lets the
+// engine replace RF(r) with a fresh uniform value (UniqueRFSimplification).
+//
+// A machine-checked EasyCrypt proof of the birthday bound lives in
+// extras/easycrypt/helpers/UniqueSampling.ec (adv_bound_birthday corollary).
+
+Game Replacement(Set S) {
+    S Samp() {
+        S val <- S;
+        return val;
+    }
+}
+
+Game NoReplacement(Set S) {
+    Set<S> seen;
+
+    S Samp() {
+        S val <-uniq[seen] S;
+        return val;
+    }
+}
+
+export as DistinctSampling;

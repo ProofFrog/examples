@@ -206,8 +206,7 @@ Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, La
         [KEM_PQ.Ciphertext, NG.Element] ctStar = [ct_PQ, ct_T];
         BitString<hybrid.Nin> m_star =
             KEM_PQ.EncodeSharedSecret(ss_PQ) || ss_T || KEM_PQ.EncodeCiphertext(ct_PQ) || NG.Encode(ct_T) || KEM_PQ.EncodeEncapsKey(ek_PQ) || NG.Encode(ek_T) || L.get();
-        BitString<hybrid.Nss> ss_star <- BitString<hybrid.Nss>;
-        BitString<hybrid.Nss> ss = challenger.Initialize([dk_PQ, dk_T, ek_PQ, ek_T], ctStar, m_star, ss_star);
+        BitString<hybrid.Nss> ss = challenger.Initialize([dk_PQ, dk_T, ek_PQ, ek_T], ctStar, m_star);
         return [[ek_PQ, ek_T], ss, ctStar];
     }
 

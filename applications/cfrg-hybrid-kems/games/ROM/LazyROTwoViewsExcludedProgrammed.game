@@ -8,24 +8,39 @@
 //   - Indirect(q):  indirect access on an excluded domain q != qExcluded,
 //                   returns H(P.Pack(st, q)).
 // The caller supplies an injective hash-input packing
-// P : (State, Query) -> BitString<M> together with the distinguished
-// pair (mProgrammed, yProgrammed).
+// P : (State, Query) -> BitString<M> and a distinguished programmed input
+// mProgrammed.  The programmed OUTPUT is sampled inside the game (uniform),
+// not supplied by the caller.
 //
 // Honest:  sample a random function RF; return RF(mProgrammed) as the
 //          programmed secret; answer Indirect(q) with RF(P.Pack(st, q))
 //          and Direct(m) with RF(m).
 //
-// Lazy:    pre-sample the programmed value yProgrammed; store
+// Lazy:    sample the programmed value yProgrammed uniformly; store
 //          mProgrammed and qExcluded; maintain two lazy maps
 //            HT : BitString<M> -> BitString<n>  (for Direct)
 //            QT : Query        -> BitString<n>  (for Indirect)
-//          with cross-patching via P.Pack.  Direct has a priority
-//          branch for m == mProgrammed that returns yProgrammed.
+//          with cross-patching via P.Pack.  Both views route the
+//          programmed input mProgrammed to yProgrammed: Direct has a
+//          priority branch for m == mProgrammed, and Indirect has a
+//          priority branch for P.Pack(st, q) == mProgrammed.
 //
-// Equivalence is UNCONDITIONAL: by injectivity of Pack, no Indirect(q)
-// with q != qExcluded can induce a hash input equal to mProgrammed.
+// Equivalence is UNCONDITIONAL and holds for ANY caller-supplied
+// mProgrammed.  Earlier revisions sampled yProgrammed from the caller and
+// relied on the unstated precondition mProgrammed == P.Pack(st, qExcluded)
+// (so that, by injectivity of Pack, no Indirect(q) with q != qExcluded
+// could induce the programmed input).  Both were misuse-prone: a
+// non-uniform yProgrammed, or an mProgrammed reachable as P.Pack(st, q)
+// for some q != qExcluded, made the two sides distinguishable.  This
+// statement removes both traps: yProgrammed is internal and uniform, and
+// the Indirect priority branch routes a colliding query to yProgrammed
+// exactly as Honest does (where Indirect(q) = RF(P.Pack(st, q)) =
+// RF(mProgrammed) when they collide), so no injectivity precondition is
+// needed.  In the intended use mProgrammed == P.Pack(st, qExcluded) and,
+// by injectivity, the Indirect priority branch is never taken; it is
+// present only to make the equivalence hold universally.
 //
-// Ported verbatim from
+// Derived from
 // extras/examples/starfortress/proof/prooffrog/games/LazyROTwoViewsExcludedProgrammed.game.
 
 import '../../primitives/HashInputPacking.primitive';
@@ -36,7 +51,7 @@ Game Honest(HashInputPacking P, Int n) {
     Function<BitString<P.M>, BitString<n>> RF;
 
     BitString<n> Initialize(P.State st_in, P.Query qExcluded_in,
-                            BitString<P.M> mProgrammed_in, BitString<n> yProgrammed_in) {
+                            BitString<P.M> mProgrammed_in) {
         st = st_in;
         qExcluded = qExcluded_in;
         RF <- Function<BitString<P.M>, BitString<n>>;
@@ -65,11 +80,11 @@ Game Lazy(HashInputPacking P, Int n) {
     Map<P.Query, BitString<n>> QT;
 
     BitString<n> Initialize(P.State st_in, P.Query qExcluded_in,
-                            BitString<P.M> mProgrammed_in, BitString<n> yProgrammed_in) {
+                            BitString<P.M> mProgrammed_in) {
         st = st_in;
         qExcluded = qExcluded_in;
         mProgrammed = mProgrammed_in;
-        yProgrammed = yProgrammed_in;
+        yProgrammed <- BitString<n>;
         return yProgrammed;
     }
 
@@ -81,6 +96,10 @@ Game Lazy(HashInputPacking P, Int n) {
             return QT[q];
         }
         BitString<P.M> m_in = P.Pack(st, q);
+        if (m_in == mProgrammed) {
+            QT[q] = yProgrammed;
+            return yProgrammed;
+        }
         for ([BitString<P.M>, BitString<n>] e in HT.entries) {
             if (e[0] == m_in) {
                 QT[q] = e[1];
