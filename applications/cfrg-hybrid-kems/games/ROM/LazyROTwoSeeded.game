@@ -18,7 +18,7 @@
 //
 // Honest:  sample H; sample s0, s1 independently from BitString<lambda>;
 //          return [s0, s1] to the adversary; answer Hash(x) by H(x).
-// Lazy:    sample H; sample s0 from BitString<lambda> and s1 <-uniq[{s0}]
+// Lazy:    sample H; sample s0 from BitString<lambda> and s1 <- BitString<lambda> \ {s0}
 //          from BitString<lambda>; pre-sample y0_pq, y1_pq independently
 //          from BitString<KEM_PQ.Nseed> and y0_t, y1_t independently
 //          from BitString<KEM_T.Nseed>; return [s0, s1]; answer Hash(x)
@@ -66,7 +66,7 @@ Game Lazy(KEM KEM_PQ, KEM KEM_T, Int lambda) {
     [BitString<lambda>, BitString<lambda>] Initialize() {
         H <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>>;
         s0 <- BitString<lambda>;
-        s1 <-uniq[{s0}] BitString<lambda>;
+        s1 <- BitString<lambda> \ {s0};
         y0_pq <- BitString<KEM_PQ.Nseed>;
         y0_t  <- BitString<KEM_T.Nseed>;
         y1_pq <- BitString<KEM_PQ.Nseed>;
