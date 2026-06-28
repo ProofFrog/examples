@@ -266,7 +266,7 @@ Reduction R_KG_L(KEM KEM_PQ, KEM KEM_T, Int lambda,
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = challenger.Generate();
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_1, dk_PQ_1] = challenger.Generate();
         seed_0 <- BitString<lambda>;
-        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        seed_1 <- BitString<lambda> \ {seed_0};
         s_T_0 <- BitString<KEM_T.Nseed>;
         s_T_1 <- BitString<KEM_T.Nseed>;
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(s_T_0);
@@ -320,7 +320,7 @@ Reduction R_KG_R(KEM KEM_PQ, KEM KEM_T, Int lambda,
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = challenger.Generate();
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_1, dk_PQ_1] = challenger.Generate();
         seed_0 <- BitString<lambda>;
-        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        seed_1 <- BitString<lambda> \ {seed_0};
         s_T_0 <- BitString<KEM_T.Nseed>;
         s_T_1 <- BitString<KEM_T.Nseed>;
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(s_T_0);
@@ -372,7 +372,7 @@ Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, Int lambda,
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
         [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey, KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, s_PQ_0, ek_PQ_1, s_PQ_1] = challenger.Initialize();
         seed_0 <- BitString<lambda>;
-        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        seed_1 <- BitString<lambda> \ {seed_0};
         s_T_0 <- BitString<KEM_T.Nseed>;
         s_T_1 <- BitString<KEM_T.Nseed>;
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(s_T_0);
@@ -439,7 +439,7 @@ Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, Int lambda,
 
     [hybrid.EncapsKey, hybrid.DecapsKey, hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
         seed_0 <- BitString<lambda>;
-        seed_1 <-uniq[{seed_0}] BitString<lambda>;
+        seed_1 <- BitString<lambda> \ {seed_0};
         s_PQ_0 <- BitString<KEM_PQ.Nseed>;
         s_PQ_1 <- BitString<KEM_PQ.Nseed>;
         s_T_0 <- BitString<KEM_T.Nseed>;
