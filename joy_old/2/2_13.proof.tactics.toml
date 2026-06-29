@@ -6,22 +6,22 @@ description = "2_13 micro_0_left_2: inline the Key tuple (key1,key2) and reduce 
 added = "2026-06-14"
 game_before = '''
 proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var v_D_KeyGen_key10 : BitString<lambda>;
-  v_D_KeyGen_key10 <$ BitString<lambda>;
-  var v_D_KeyGen_key20 : BitString<lambda>;
-  v_D_KeyGen_key20 <$ BitString<lambda>;
-  var k : [BitString<lambda>, BitString<lambda>];
-  k = (v_D_KeyGen_key10, v_D_KeyGen_key20);
-  return (k[1] BinaryOperators.ADD (k[0] BinaryOperators.ADD m));
+  var __a0__ : BitString<lambda>;
+  __a0__ <$ BitString<lambda>;
+  var __a1__ : BitString<lambda>;
+  __a1__ <$ BitString<lambda>;
+  var __a2__ : [BitString<lambda>, BitString<lambda>];
+  __a2__ = (__a0__, __a1__);
+  return (__a2__[1] BinaryOperators.ADD (__a2__[0] BinaryOperators.ADD m));
 }
 '''
 game_after = '''
 proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var v_D_KeyGen_key10 : BitString<lambda>;
-  v_D_KeyGen_key10 <$ BitString<lambda>;
-  var v_D_KeyGen_key20 : BitString<lambda>;
-  v_D_KeyGen_key20 <$ BitString<lambda>;
-  return (v_D_KeyGen_key20 BinaryOperators.ADD (v_D_KeyGen_key10 BinaryOperators.ADD m));
+  var __a0__ : BitString<lambda>;
+  __a0__ <$ BitString<lambda>;
+  var __a1__ : BitString<lambda>;
+  __a1__ <$ BitString<lambda>;
+  return (__a1__ BinaryOperators.ADD (__a0__ BinaryOperators.ADD m));
 }
 '''
 tactic = '''
@@ -34,20 +34,20 @@ description = "2_13 micro_0_left_3: reassociate xor a (xor b c) -> xor (xor a b)
 added = "2026-06-14"
 game_before = '''
 proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var v_D_KeyGen_key10 : BitString<lambda>;
-  v_D_KeyGen_key10 <$ BitString<lambda>;
-  var v_D_KeyGen_key20 : BitString<lambda>;
-  v_D_KeyGen_key20 <$ BitString<lambda>;
-  return (v_D_KeyGen_key20 BinaryOperators.ADD (v_D_KeyGen_key10 BinaryOperators.ADD m));
+  var __a0__ : BitString<lambda>;
+  __a0__ <$ BitString<lambda>;
+  var __a1__ : BitString<lambda>;
+  __a1__ <$ BitString<lambda>;
+  return (__a1__ BinaryOperators.ADD (__a0__ BinaryOperators.ADD m));
 }
 '''
 game_after = '''
 proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var v_D_KeyGen_key10 : BitString<lambda>;
-  v_D_KeyGen_key10 <$ BitString<lambda>;
-  var v_D_KeyGen_key20 : BitString<lambda>;
-  v_D_KeyGen_key20 <$ BitString<lambda>;
-  return ((v_D_KeyGen_key20 BinaryOperators.ADD v_D_KeyGen_key10) BinaryOperators.ADD m);
+  var __a0__ : BitString<lambda>;
+  __a0__ <$ BitString<lambda>;
+  var __a1__ : BitString<lambda>;
+  __a1__ <$ BitString<lambda>;
+  return ((__a1__ BinaryOperators.ADD __a0__) BinaryOperators.ADD m);
 }
 '''
 tactic = '''
@@ -60,28 +60,28 @@ description = "2_13 micro_0_left_5: (key1 + key2) + m -> key1 (key1,key2 uniform
 added = "2026-06-14"
 game_before = '''
 proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var v_D_KeyGen_key10 : BitString<lambda>;
-  v_D_KeyGen_key10 <$ BitString<lambda>;
-  var v_D_KeyGen_key20 : BitString<lambda>;
-  v_D_KeyGen_key20 <$ BitString<lambda>;
-  return ((v_D_KeyGen_key10 BinaryOperators.ADD v_D_KeyGen_key20) BinaryOperators.ADD m);
+  var __a0__ : BitString<lambda>;
+  __a0__ <$ BitString<lambda>;
+  var __a1__ : BitString<lambda>;
+  __a1__ <$ BitString<lambda>;
+  return ((__a0__ BinaryOperators.ADD __a1__) BinaryOperators.ADD m);
 }
 '''
 game_after = '''
 proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var v_D_KeyGen_key10 : BitString<lambda>;
-  v_D_KeyGen_key10 <$ BitString<lambda>;
-  var v_D_KeyGen_key20 : BitString<lambda>;
-  v_D_KeyGen_key20 <$ BitString<lambda>;
-  return v_D_KeyGen_key10;
+  var __a0__ : BitString<lambda>;
+  __a0__ <$ BitString<lambda>;
+  var __a1__ : BitString<lambda>;
+  __a1__ <$ BitString<lambda>;
+  return __a0__;
 }
 '''
 tactic = '''
 proc.
 swap{1} 1 1.
 swap{2} 1 1.
-rnd (fun z => xor_lambda (xor_lambda z v_D_KeyGen_key20{1}) m{1})
-    (fun z => xor_lambda (xor_lambda z v_D_KeyGen_key20{1}) m{1}).
+rnd (fun z => xor_lambda (xor_lambda z __a1__{1}) m{1})
+    (fun z => xor_lambda (xor_lambda z __a1__{1}) m{1}).
 auto => />.
 smt(xor_lambda_invol xor_lambda_commut dbs_lambda_fu dbs_lambda_full).
 '''

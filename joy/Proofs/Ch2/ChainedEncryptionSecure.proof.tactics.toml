@@ -6,18 +6,18 @@ description = "hop 4 left_2: merges two independent samples c1 <$ d1; c2 <$ d2 (
 added = "2026-05-23"
 game_before = '''
 proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
-  var c1 : CiphertextSpace1;
-  c1 <$ CiphertextSpace1;
-  var challenger_ENC_c1 : CiphertextSpace2;
-  challenger_ENC_c1 <$ CiphertextSpace2;
-  return (c1, challenger_ENC_c1);
+  var __a0__ : CiphertextSpace1;
+  __a0__ <$ CiphertextSpace1;
+  var __a1__ : CiphertextSpace2;
+  __a1__ <$ CiphertextSpace2;
+  return (__a0__, __a1__);
 }
 '''
 game_after = '''
 proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
-  var c1 : [CiphertextSpace1, CiphertextSpace2];
-  c1 <$ (CiphertextSpace1, CiphertextSpace2);
-  return c1;
+  var __a0__ : [CiphertextSpace1, CiphertextSpace2];
+  __a0__ <$ (CiphertextSpace1, CiphertextSpace2);
+  return __a0__;
 }
 '''
 tactic = '''
