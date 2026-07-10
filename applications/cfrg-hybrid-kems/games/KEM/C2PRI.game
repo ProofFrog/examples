@@ -1,7 +1,7 @@
 // C2PRI (Ciphertext Second Pre-Image Resistance) security for a KEM.
 //
 // The adversary receives an honestly generated key pair and a challenge
-// encapsulation (ek, dk, ct*, k*), and tries to find a distinct ciphertext
+// encapsulation (ek, dk, ct*, ss*), and tries to find a distinct ciphertext
 // that decapsulates to the same shared secret.
 //
 // Reformulated as a left/right indistinguishability game (following
@@ -15,21 +15,21 @@
 import '../../primitives/KEM.primitive';
 
 Game Real(KEM K) {
-    K.SharedSecret kStar;
+    K.SharedSecret ssStar;
     K.Ciphertext ctStar;
     K.DecapsKey dk;
 
     [K.EncapsKey, K.DecapsKey, K.Ciphertext, K.SharedSecret] Initialize() {
         [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
-        [K.SharedSecret, K.Ciphertext] [kStar, ctStar] = K.Encaps(ek);
-        return [ek, dk, ctStar, kStar];
+        [K.SharedSecret, K.Ciphertext] [ssStar, ctStar] = K.Encaps(ek);
+        return [ek, dk, ctStar, ssStar];
     }
 
     Bool Submit(K.Ciphertext ct) {
         if (ct == ctStar) {
             return false;
         }
-        return K.Decaps(dk, ct) == kStar;
+        return K.Decaps(dk, ct) == ssStar;
     }
 }
 
@@ -38,8 +38,8 @@ Game Ideal(KEM K) {
 
     [K.EncapsKey, K.DecapsKey, K.Ciphertext, K.SharedSecret] Initialize() {
         [K.EncapsKey, K.DecapsKey] [ek, dk] = K.KeyGen();
-        [K.SharedSecret, K.Ciphertext] [ss, ctStar] = K.Encaps(ek);
-        return [ek, dk, ctStar, ss];
+        [K.SharedSecret, K.Ciphertext] [ssStar, ctStar] = K.Encaps(ek);
+        return [ek, dk, ctStar, ssStar];
     }
 
     Bool Submit(K.Ciphertext ct) {
