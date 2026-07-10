@@ -5,7 +5,7 @@
 //
 // Because the C2PRICombiner KDF input from draft section 5.1.3 omits
 // ct_PQ and ek_PQ, the underlying map (st, q) |-> Pack(st, q) is NOT
-// genuinely injective: two distinct PQ ciphertexts c_PQ and c_PQ' that
+// genuinely injective: two distinct PQ ciphertexts ct_PQ and ct_PQ' that
 // decapsulate to the same shared secret yield identical Pack outputs
 // when the rest of the slots agree. Pack is nevertheless declared
 // `deterministic injective`: the surrounding proof uses the C2PRI
@@ -15,7 +15,7 @@
 // injectivity declaration encodes that proof-side restriction.
 //
 // State carries dk_PQ and dk_T so Pack can recompute ss_PQ = K.Decaps(...)
-// and ss_T = ElementToSharedSecret(c_T^dk_T). ek_T is needed for the
+// and ss_T = ElementToSharedSecret(ct_T^dk_T). ek_T is needed for the
 // ek_T slot of the KDF input. ek_PQ is NOT needed (it does not appear in
 // the C2PRICombiner KDF input).
 
@@ -33,11 +33,11 @@ Scheme CGHashEncoding(KEM K, NominalGroup NG, Label L) extends HashInputPacking 
         K.DecapsKey dk_PQ = st[0];
         NG.Scalar dk_T = st[1];
         NG.Element ek_T = st[2];
-        K.Ciphertext c_PQ = q[0];
-        NG.Element c_T = q[1];
-        return K.EncodeSharedSecret(K.Decaps(dk_PQ, c_PQ))
-            || NG.ElementToSharedSecret(NG.Exp(c_T, dk_T))
-            || NG.Encode(c_T)
+        K.Ciphertext ct_PQ = q[0];
+        NG.Element ct_T = q[1];
+        return K.EncodeSharedSecret(K.Decaps(dk_PQ, ct_PQ))
+            || NG.ElementToSharedSecret(NG.Exp(ct_T, dk_T))
+            || NG.Encode(ct_T)
             || NG.Encode(ek_T)
             || L.get();
     }
