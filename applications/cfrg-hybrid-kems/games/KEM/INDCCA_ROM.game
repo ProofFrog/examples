@@ -22,11 +22,11 @@ Game Real(KEM K, Set D, Set R, Function<D, R> H) {
         return [ek, ssStar, ctStar];
     }
 
-    K.SharedSecret? Decaps(K.Ciphertext c) {
-        if (c == ctStar) {
+    K.SharedSecret? Decaps(K.Ciphertext ct) {
+        if (ct == ctStar) {
             return None;
         }
-        return K.Decaps(dk, c);
+        return K.Decaps(dk, ct);
     }
 
     R Hash(D m) {
@@ -45,11 +45,11 @@ Game Random(KEM K, Set D, Set R, Function<D, R> H) {
         return [ek, ssStar, ctStar];
     }
 
-    K.SharedSecret? Decaps(K.Ciphertext c) {
-        if (c == ctStar) {
+    K.SharedSecret? Decaps(K.Ciphertext ct) {
+        if (ct == ctStar) {
             return None;
         }
-        return K.Decaps(dk, c);
+        return K.Decaps(dk, ct);
     }
 
     R Hash(D m) {

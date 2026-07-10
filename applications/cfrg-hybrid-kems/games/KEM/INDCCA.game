@@ -19,11 +19,11 @@ Game Real(KEM K) {
         return [ek, ssStar, ctStar];
     }
 
-    K.SharedSecret? Decaps(K.Ciphertext c) {
-        if (c == ctStar) {
+    K.SharedSecret? Decaps(K.Ciphertext ct) {
+        if (ct == ctStar) {
             return None;
         }
-        return K.Decaps(dk, c);
+        return K.Decaps(dk, ct);
     }
 }
 
@@ -38,11 +38,11 @@ Game Random(KEM K) {
         return [ek, ssStar, ctStar];
     }
 
-    K.SharedSecret? Decaps(K.Ciphertext c) {
-        if (c == ctStar) {
+    K.SharedSecret? Decaps(K.Ciphertext ct) {
+        if (ct == ctStar) {
             return None;
         }
-        return K.Decaps(dk, c);
+        return K.Decaps(dk, ct);
     }
 }
 

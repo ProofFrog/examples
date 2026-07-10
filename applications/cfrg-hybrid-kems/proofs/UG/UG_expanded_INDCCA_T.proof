@@ -16,7 +16,7 @@
 //   3. SDH_SS: replace ss_T* (= ek_T^sk_E) inside the challenge KDF
 //      input by a uniform string. The reduction simulates the random
 //      oracle and recognizes "would-be" queries on ss_T* (= DH(ek_T,
-//      ct_T)) and on Decaps queries (= DH(c_T, dk_T)) using the gap
+//      ct_T)) and on Decaps queries (= DH(ct_T, dk_T)) using the gap
 //      DH oracle. This is gap-x-coordinate-DH (see SDH_SS.game).
 //   4. Drop the programming step (LazyROTwoViewsExcluded) and reverse
 //      the RandomScalarDist replacement.
@@ -139,14 +139,14 @@ Reduction R_Dist_Real(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded h
         return [[ek_PQ, ek_T], ss, ctStar];
     }
 
-    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
-        if (c == ctStar) { return None; }
-        KEM_PQ.Ciphertext c1 = c[0];
-        NG.Element c2 = c[1];
-        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
-        BitString<NG.Nss> dec_ss_T = NG.ElementToSharedSecret(NG.Exp(c2, dk_T));
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext ct) {
+        if (ct == ctStar) { return None; }
+        KEM_PQ.Ciphertext ct_PQ = ct[0];
+        NG.Element ct_T = ct[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], ct_PQ);
+        BitString<NG.Nss> dec_ss_T = NG.ElementToSharedSecret(NG.Exp(ct_T, dk_T));
         BitString<hybrid.Nin> kdf_in =
-            KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || dec_ss_T || KEM_PQ.EncodeCiphertext(c1) || NG.Encode(c2) || KEM_PQ.EncodeEncapsKey(pq_keys[0]) || NG.Encode(NG.Exp(NG.Generator(), dk_T)) || L.get();
+            KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || dec_ss_T || KEM_PQ.EncodeCiphertext(ct_PQ) || NG.Encode(ct_T) || KEM_PQ.EncodeEncapsKey(pq_keys[0]) || NG.Encode(NG.Exp(NG.Generator(), dk_T)) || L.get();
         return H(kdf_in);
     }
 
@@ -173,14 +173,14 @@ Reduction R_Dist_Random(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded
         return [[ek_PQ, ek_T], ss, ctStar];
     }
 
-    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
-        if (c == ctStar) { return None; }
-        KEM_PQ.Ciphertext c1 = c[0];
-        NG.Element c2 = c[1];
-        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], c1);
-        BitString<NG.Nss> dec_ss_T = NG.ElementToSharedSecret(NG.Exp(c2, dk_T));
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext ct) {
+        if (ct == ctStar) { return None; }
+        KEM_PQ.Ciphertext ct_PQ = ct[0];
+        NG.Element ct_T = ct[1];
+        KEM_PQ.SharedSecret dec_ss_PQ = KEM_PQ.Decaps(pq_keys[1], ct_PQ);
+        BitString<NG.Nss> dec_ss_T = NG.ElementToSharedSecret(NG.Exp(ct_T, dk_T));
         BitString<hybrid.Nin> kdf_in =
-            KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || dec_ss_T || KEM_PQ.EncodeCiphertext(c1) || NG.Encode(c2) || KEM_PQ.EncodeEncapsKey(pq_keys[0]) || NG.Encode(NG.Exp(NG.Generator(), dk_T)) || L.get();
+            KEM_PQ.EncodeSharedSecret(dec_ss_PQ) || dec_ss_T || KEM_PQ.EncodeCiphertext(ct_PQ) || NG.Encode(ct_T) || KEM_PQ.EncodeEncapsKey(pq_keys[0]) || NG.Encode(NG.Exp(NG.Generator(), dk_T)) || L.get();
         return H(kdf_in);
     }
 
@@ -210,8 +210,8 @@ Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, La
         return [[ek_PQ, ek_T], ss, ctStar];
     }
 
-    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
-        return challenger.Indirect(c);
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext ct) {
+        return challenger.Indirect(ct);
     }
 
     BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
@@ -237,8 +237,8 @@ Reduction R_Wrap_NoAbort(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G,
         return [[ek_PQ, ek_T], ss, ctStar];
     }
 
-    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
-        return challenger.Indirect(c);
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext ct) {
+        return challenger.Indirect(ct);
     }
 
     BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
@@ -269,33 +269,33 @@ Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded hy
         return [[ek_PQ, ek_T], ss_star, ctStar];
     }
 
-    hybrid.SharedSecret? Decaps(hybrid.Ciphertext c) {
-        if (c == ctStar) { return None; }
-        if (c in QT) { return QT[c]; }
-        KEM_PQ.Ciphertext c_PQ = c[0];
-        NG.Element c_T = c[1];
-        KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, c_PQ);
+    hybrid.SharedSecret? Decaps(hybrid.Ciphertext ct) {
+        if (ct == ctStar) { return None; }
+        if (ct in QT) { return QT[ct]; }
+        KEM_PQ.Ciphertext ct_PQ = ct[0];
+        NG.Element ct_T = ct[1];
+        KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ);
         BitString<KEM_PQ.Nss> ss_PQ_enc = KEM_PQ.EncodeSharedSecret(ss_PQ);
-        BitString<KEM_PQ.Nct> c_PQ_enc = KEM_PQ.EncodeCiphertext(c_PQ);
-        BitString<NG.Nelem> c_T_enc = NG.Encode(c_T);
+        BitString<KEM_PQ.Nct> ct_PQ_enc = KEM_PQ.EncodeCiphertext(ct_PQ);
+        BitString<NG.Nelem> ct_T_enc = NG.Encode(ct_T);
         BitString<KEM_PQ.Nek> ek_PQ_enc = KEM_PQ.EncodeEncapsKey(ek_PQ);
         BitString<NG.Nelem> ek_T_enc = NG.Encode(ek_T);
         BitString<L.Nlabel> label_enc = L.get();
         for ([BitString<hybrid.Nin>, BitString<hybrid.Nss>] e in HT.entries) {
             BitString<hybrid.Nin> m = e[0];
             if (m[0 : KEM_PQ.Nss] == ss_PQ_enc
-                && challenger.DH(c_T, m[KEM_PQ.Nss : KEM_PQ.Nss + NG.Nss])
-                && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct] == c_PQ_enc
-                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem] == c_T_enc
+                && challenger.DH(ct_T, m[KEM_PQ.Nss : KEM_PQ.Nss + NG.Nss])
+                && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct] == ct_PQ_enc
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem] == ct_T_enc
                 && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek] == ek_PQ_enc
                 && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem] == ek_T_enc
                 && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel] == label_enc) {
-                QT[c] = e[1];
+                QT[ct] = e[1];
                 return e[1];
             }
         }
         BitString<hybrid.Nss> s <- BitString<hybrid.Nss>;
-        QT[c] = s;
+        QT[ct] = s;
         return s;
     }
 
@@ -312,12 +312,12 @@ Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, UG_expanded hy
         }
         if (m in HT) { return HT[m]; }
         for ([[KEM_PQ.Ciphertext, NG.Element], BitString<hybrid.Nss>] e in QT.entries) {
-            [KEM_PQ.Ciphertext, NG.Element] [c_PQ, c_T] = e[0];
-            KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, c_PQ);
+            [KEM_PQ.Ciphertext, NG.Element] [ct_PQ, ct_T] = e[0];
+            KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ);
             if (m[0 : KEM_PQ.Nss] == KEM_PQ.EncodeSharedSecret(ss_PQ)
-                && challenger.DH(c_T, ss_T_slot)
-                && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct] == KEM_PQ.EncodeCiphertext(c_PQ)
-                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem] == NG.Encode(c_T)
+                && challenger.DH(ct_T, ss_T_slot)
+                && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct] == KEM_PQ.EncodeCiphertext(ct_PQ)
+                && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem] == NG.Encode(ct_T)
                 && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek] == KEM_PQ.EncodeEncapsKey(ek_PQ)
                 && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem] == NG.Encode(ek_T)
                 && m[KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem : KEM_PQ.Nss + NG.Nss + KEM_PQ.Nct + NG.Nelem + KEM_PQ.Nek + NG.Nelem + L.Nlabel] == L.get()) {
