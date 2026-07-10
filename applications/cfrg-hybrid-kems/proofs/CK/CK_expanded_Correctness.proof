@@ -63,6 +63,10 @@ assume:
 theorem:
     KEMCorrectness(hybrid);
 
+bound:
+      advantage(KEMCorrectness(KEM_PQ) compose R_KEM_PQ)
+    + advantage(KEMCorrectness(KEM_T) compose R_KEM_T);
+
 games:
     KEMCorrectness(hybrid).FromDecaps against KEMCorrectness(hybrid).Adversary;
     KEMCorrectness(KEM_PQ).FromDecaps compose R_KEM_PQ(KEM_PQ, KEM_T, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;

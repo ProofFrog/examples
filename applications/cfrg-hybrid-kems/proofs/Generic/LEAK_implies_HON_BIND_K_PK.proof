@@ -41,6 +41,9 @@ assume:
 theorem:
     HON_BIND_K_PK(K);
 
+bound:
+    advantage(LEAK_BIND_K_PK(K) compose R);
+
 games:
     HON_BIND_K_PK(K).Breakable against HON_BIND_K_PK(K).Adversary;
 

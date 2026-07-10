@@ -77,6 +77,20 @@ assume:
 theorem:
     KEM_INDCCA(hybrid);
 
+bound:
+      advantage(PRGSec(G) compose R_PRG_L)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_PQ_L)
+    + advantage(KeyGenEquiv(KEM_T) compose R_KG_T_L)
+    + advantage(KEMCorrectnessWithDK(KEM_PQ) compose R_Correct_Real)
+    + advantage(KEM_INDCCA(KEM_PQ) compose RB)
+    + advantage(KDFFirstKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss) compose RD)
+    + advantage(KDFFirstKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss) compose RE)
+    + advantage(KEM_INDCCA(KEM_PQ) compose RC)
+    + advantage(KEMCorrectnessWithDK(KEM_PQ) compose R_Correct_Ideal)
+    + advantage(KeyGenEquiv(KEM_T) compose R_KG_T_R)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_PQ_R)
+    + advantage(PRGSec(G) compose R_PRG_R);
+
 games:
     KEM_INDCCA(hybrid).Real against KEM_INDCCA(hybrid).Adversary;
 

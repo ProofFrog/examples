@@ -51,6 +51,9 @@ assume:
 theorem:
     LEAK_BIND_K_PK(hybrid);
 
+bound:
+    advantage(KDFCollisionResistance(H) compose R);
+
 games:
     LEAK_BIND_K_PK(hybrid).Breakable against LEAK_BIND_K_PK(hybrid).Adversary;
     KDFCollisionResistance(H).Breakable compose R(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_PK(hybrid).Adversary;

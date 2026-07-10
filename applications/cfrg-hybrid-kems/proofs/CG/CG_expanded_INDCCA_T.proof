@@ -97,6 +97,13 @@ assume:
 theorem:
     KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H);
 
+bound:
+      advantage(RandomScalarDist(NG) compose R_Dist_Real)
+    + advantage(KEM_C2PRI(KEM_PQ) compose R_C2PRI_L)
+    + advantage(SDH_SS(NG) compose R_Combined)
+    + advantage(KEM_C2PRI(KEM_PQ) compose R_C2PRI_R)
+    + advantage(RandomScalarDist(NG) compose R_Dist_Random);
+
 games:
     KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Real against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
 
