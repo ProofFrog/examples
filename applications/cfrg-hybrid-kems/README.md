@@ -34,9 +34,18 @@ constrain the scope of our results:
 
 - **Implicit rejection only.** Our `KEM.primitive` declares `Decaps`
   as total (no `bot` symbol), and the binding games therefore omit the
-  CDM24 Fig. 5 `bot`-guard. Our binding results are sound for
+  CDM24 Fig. 5 `bot`-guard. Relatedly, the hybrid ciphertext type
+  `[K.Ciphertext, NG.Element]` restricts the adversary's T-side
+  ciphertext to valid group elements, so decoding failures are not
+  expressible in the model. Our results are sound for
   implicitly-rejecting KEMs (FO-style; ML-KEM) but do **not** apply to
-  explicitly-rejecting KEMs without extending the primitive. See
+  explicitly-rejecting KEMs without extending the primitive. Note that
+  this excluded class is larger than "FO-style KEMs" suggests: as of
+  draft revision 12 (§4.2), `Exp` errors on non-decoding byte strings,
+  so UG/CG instantiated with a group where some `Nelem`-byte strings
+  do not decode (e.g. P-256, ristretto255) is itself an
+  explicitly-rejecting KEM. Our UG/CG results apply to
+  full-domain-decoding groups (X25519-style). See
   [Deviation 12](#deviation-12).
 - **No quantum-attacker model.** ProofFrog does not distinguish
   classical from quantum adversaries. Standard-model results lift to
@@ -211,10 +220,15 @@ assumption.
    definition: `DecapsKey = BitString<G.lambda>` and every `Decaps`
    call expands the seed afresh. The draft permits, as an
    implementation cache, an "expanded" form in which the decapsulation
-   key is the already-expanded keypair tuple
-   `[K_PQ.DK, (K_T.DK, K_T.EK) | (NG scalar, NG element)]` and the
+   key is the already-expanded component key material and the
    expansion is not re-run; this is what our `*_expanded.scheme`
-   files capture.
+   files capture. Each expanded scheme caches exactly the components
+   its framework's `Decaps` consumes: CG/CK store
+   `K_PQ.DK` plus `(K_T.DK, K_T.EK) | (NG scalar, NG element)`, while
+   UG/UK additionally store `K_PQ.EK`, which the universal combiner
+   feeds to the KDF. (Tuple order varies per scheme — see each file's
+   `Set DecapsKey` line; byte layouts are abstracted per
+   [Deviation 4](#deviation-4).)
 
    The two representations are interchangeable for properties in which
    the seed is *hidden from the adversary* (correctness, IND-CCA,
@@ -335,7 +349,15 @@ assumption.
     games do not include the CDM24 Fig. 5 `bot`-guard, which is sound
     for implicitly-rejecting KEMs (FO-style, ML-KEM) but means the
     results do not transfer to explicitly-rejecting KEMs without
-    extending [`KEM.primitive`](primitives/KEM.primitive).
+    extending [`KEM.primitive`](primitives/KEM.primitive). Under
+    draft revision 12 §4.2 this excluded class includes the UG/CG
+    hybrids themselves when instantiated with a group where some
+    `Nelem`-byte strings do not decode to an element (e.g. P-256,
+    ristretto255): there `Group_T.Exp` — and hence hybrid `Decaps` —
+    returns an error, whereas our `NG.Exp` is total and adversarial
+    T-side ciphertexts are type-restricted to valid `NG.Element`s.
+    Our UG/CG results therefore apply to full-domain-decoding groups
+    (X25519-style).
 13. **`Label` primitive wrapper.** The draft passes the
     domain-separation label as a raw byte string. FrogLang scheme
     parameters cannot be raw `BitString`s — they must be primitive
