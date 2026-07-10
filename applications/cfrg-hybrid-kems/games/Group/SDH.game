@@ -25,7 +25,7 @@ import '../../primitives/NominalGroup.primitive';
 
 Game Left(NominalGroup NG) {
     NG.Scalar x;
-    BitString<NG.Nelem> dhEnc;
+    BitString<NG.Nelem> ZStar;
 
     [NG.Element, NG.Element] Initialize() {
         x <- NG.Scalar;
@@ -33,16 +33,16 @@ Game Left(NominalGroup NG) {
         NG.Element g = NG.Generator();
         NG.Element X = NG.Exp(g, x);
         NG.Element Y = NG.Exp(g, y);
-        dhEnc = NG.Encode(NG.Exp(X, y));
+        ZStar = NG.Encode(NG.Exp(X, y));
         return [X, Y];
     }
 
-    Bool DH(NG.Element U, BitString<NG.Nelem> Venc) {
-        return NG.Encode(NG.Exp(U, x)) == Venc;
+    Bool DH(NG.Element U, BitString<NG.Nelem> VHat) {
+        return NG.Encode(NG.Exp(U, x)) == VHat;
     }
 
-    Bool Solve(BitString<NG.Nelem> Zenc) {
-        return Zenc == dhEnc;
+    Bool Solve(BitString<NG.Nelem> Z) {
+        return Z == ZStar;
     }
 }
 
@@ -56,11 +56,11 @@ Game Right(NominalGroup NG) {
         return [NG.Exp(g, x), NG.Exp(g, y)];
     }
 
-    Bool DH(NG.Element U, BitString<NG.Nelem> Venc) {
-        return NG.Encode(NG.Exp(U, x)) == Venc;
+    Bool DH(NG.Element U, BitString<NG.Nelem> VHat) {
+        return NG.Encode(NG.Exp(U, x)) == VHat;
     }
 
-    Bool Solve(BitString<NG.Nelem> Zenc) {
+    Bool Solve(BitString<NG.Nelem> Z) {
         return false;
     }
 }

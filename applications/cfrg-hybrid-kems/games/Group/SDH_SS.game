@@ -23,7 +23,7 @@ import '../../primitives/NominalGroup.primitive';
 
 Game Left(NominalGroup NG) {
     NG.Scalar x;
-    BitString<NG.Nss> dhSS;
+    BitString<NG.Nss> ZStar;
 
     [NG.Element, NG.Element] Initialize() {
         x <- NG.Scalar;
@@ -31,16 +31,16 @@ Game Left(NominalGroup NG) {
         NG.Element g = NG.Generator();
         NG.Element X = NG.Exp(g, x);
         NG.Element Y = NG.Exp(g, y);
-        dhSS = NG.ElementToSharedSecret(NG.Exp(X, y));
+        ZStar = NG.ElementToSharedSecret(NG.Exp(X, y));
         return [X, Y];
     }
 
-    Bool DH(NG.Element U, BitString<NG.Nss> Vss) {
-        return NG.ElementToSharedSecret(NG.Exp(U, x)) == Vss;
+    Bool DH(NG.Element U, BitString<NG.Nss> VHat) {
+        return NG.ElementToSharedSecret(NG.Exp(U, x)) == VHat;
     }
 
-    Bool Solve(BitString<NG.Nss> Zss) {
-        return Zss == dhSS;
+    Bool Solve(BitString<NG.Nss> Z) {
+        return Z == ZStar;
     }
 }
 
@@ -54,11 +54,11 @@ Game Right(NominalGroup NG) {
         return [NG.Exp(g, x), NG.Exp(g, y)];
     }
 
-    Bool DH(NG.Element U, BitString<NG.Nss> Vss) {
-        return NG.ElementToSharedSecret(NG.Exp(U, x)) == Vss;
+    Bool DH(NG.Element U, BitString<NG.Nss> VHat) {
+        return NG.ElementToSharedSecret(NG.Exp(U, x)) == VHat;
     }
 
-    Bool Solve(BitString<NG.Nss> Zss) {
+    Bool Solve(BitString<NG.Nss> Z) {
         return false;
     }
 }

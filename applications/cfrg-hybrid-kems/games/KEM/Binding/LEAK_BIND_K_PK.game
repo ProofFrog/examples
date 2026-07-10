@@ -33,9 +33,9 @@ Game Breakable(KEM K) {
     }
 
     Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
-        K.SharedSecret k0 = K.Decaps(dk0, ct0);
-        K.SharedSecret k1 = K.Decaps(dk1, ct1);
-        return k0 == k1 && ek0 != ek1;
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk1, ct1);
+        return ss0 == ss1 && ek0 != ek1;
     }
 }
 
@@ -52,8 +52,8 @@ Game Unbreakable(KEM K) {
     }
 
     Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
-        K.SharedSecret k0 = K.Decaps(dk0, ct0);
-        K.SharedSecret k1 = K.Decaps(dk1, ct1);
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk1, ct1);
         return false;
     }
 }

@@ -4,7 +4,7 @@
 //     H : BitString<P.M> -> BitString<n>
 // exposed via two views:
 //   - Direct(m):    direct access, returns H(m).
-//   - Indirect(q):  indirect access on an excluded domain q != qExcluded,
+//   - Indirect(q):  indirect access on an excluded domain q != qStar,
 //                   returns H(P.Pack(st, q)).
 // The caller supplies an injective hash-input packing
 // P : (State, Query) -> BitString<M>.
@@ -28,19 +28,19 @@ import '../../primitives/HashInputPacking.primitive';
 
 Game Honest(HashInputPacking P, Int n) {
     P.State st;
-    P.Query qExcluded;
+    P.Query qStar;
     Function<BitString<P.M>, BitString<n>> RF;
 
-    BitString<n> Initialize(P.State st_in, P.Query qExcluded_in) {
+    BitString<n> Initialize(P.State st_in, P.Query qStar_in) {
         st = st_in;
-        qExcluded = qExcluded_in;
+        qStar = qStar_in;
         RF <- Function<BitString<P.M>, BitString<n>>;
         BitString<n> ss <- BitString<n>;
         return ss;
     }
 
     BitString<n>? Indirect(P.Query q) {
-        if (q == qExcluded) {
+        if (q == qStar) {
             return None;
         }
         BitString<P.M> m_in = P.Pack(st, q);
@@ -54,19 +54,19 @@ Game Honest(HashInputPacking P, Int n) {
 
 Game Lazy(HashInputPacking P, Int n) {
     P.State st;
-    P.Query qExcluded;
+    P.Query qStar;
     Map<BitString<P.M>, BitString<n>> HT;
     Map<P.Query, BitString<n>> QT;
 
-    BitString<n> Initialize(P.State st_in, P.Query qExcluded_in) {
+    BitString<n> Initialize(P.State st_in, P.Query qStar_in) {
         st = st_in;
-        qExcluded = qExcluded_in;
+        qStar = qStar_in;
         BitString<n> ss <- BitString<n>;
         return ss;
     }
 
     BitString<n>? Indirect(P.Query q) {
-        if (q == qExcluded) {
+        if (q == qStar) {
             return None;
         }
         if (q in QT) {
