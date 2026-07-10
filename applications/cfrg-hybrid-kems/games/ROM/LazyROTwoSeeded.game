@@ -85,4 +85,9 @@ Game Lazy(KEM KEM_PQ, KEM KEM_T, Int lambda) {
     }
 }
 
+// Loss is the one-time collision s0 == s1 (independently sampled in Honest,
+// excluded in Lazy); the concatenated-halves reprogramming is loss-free. The
+// bound is independent of the number of Hash queries.
+advantage <= 1 / (2 ^ lambda);
+
 export as LazyROTwoSeeded;

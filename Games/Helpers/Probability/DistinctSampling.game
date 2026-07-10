@@ -40,4 +40,9 @@ Game NoReplacement(Set S) {
     }
 }
 
+// Birthday bound: over count_Samp uniform draws from S, the two games differ
+// only on a collision, so the distinguishing advantage is at most
+// count_Samp(count_Samp - 1)/(2|S|).
+advantage <= count_Samp * (count_Samp - 1) / (2 * |S|);
+
 export as DistinctSampling;

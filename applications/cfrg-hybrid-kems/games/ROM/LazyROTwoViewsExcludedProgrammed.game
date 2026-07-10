@@ -131,4 +131,8 @@ Game Lazy(HashInputPacking P, Int n) {
     }
 }
 
+// Perfect equivalence: lazy sampling with a uniform internal programmed point
+// is identically distributed to a random function (unconditional, any input).
+advantage <= 0;
+
 export as LazyROTwoViewsExcludedProgrammed;
