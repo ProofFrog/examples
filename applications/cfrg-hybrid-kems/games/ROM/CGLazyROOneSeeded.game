@@ -1,0 +1,71 @@
+// Helper game: statistical equivalence (free fact). Single-seed variant
+// of CGLazyROTwoSeeded.game, used by the seeded-form SAMEKEY proofs of
+// LEAK-BIND-K-CT on the CG_seedbased hybrid KEM (which program the
+// PRG-as-RO at ONE seed point to embed a single K_PQ SAMEKEY binding
+// challenge).
+//
+// One-point lazy-sampling equivalence for a random oracle
+//     H : BitString<lambda> -> BitString<KEM_PQ.Nseed + NG.Nseed>
+// at one freshly sampled domain point s0 -- exposed seed, RF value read
+// through a shared Hash oracle. The Lazy form pre-samples the programmed
+// output in its KEM_PQ-half / NG-half split form and returns their
+// concatenation, mirroring the way the CG_seedbased hybrid scheme
+// consumes the PRG output.
+//
+// H is sampled INSIDE each game at Initialize and is reachable only
+// through the Hash oracle. This is essential for soundness (an adversary
+// holding H directly could evaluate it at the returned seed and
+// distinguish Honest from Lazy).
+//
+// Honest:  sample H; sample s0 from BitString<lambda>; return s0;
+//          answer Hash(x) by H(x).
+// Lazy:    sample H; sample s0 from BitString<lambda>; pre-sample y0_pq
+//          from BitString<KEM_PQ.Nseed> and y0_t from BitString<NG.Nseed>;
+//          return s0; answer Hash(s0) with y0_pq || y0_t and H(x) elsewhere.
+//
+// Distinguishing advantage is 0: at a single fresh point Honest returns
+// H(s0) (uniform, and never otherwise exposed) and Lazy returns the
+// independent uniform y0_pq || y0_t; the two are identically distributed,
+// and the concatenation of independent uniform halves is exactly uniform
+// over the joint length.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+
+Game Honest(KEM KEM_PQ, NominalGroup NG, Int lambda) {
+    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> H;
+
+    BitString<lambda> Initialize() {
+        H <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>>;
+        BitString<lambda> s0 <- BitString<lambda>;
+        return s0;
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> Hash(BitString<lambda> x) {
+        return H(x);
+    }
+}
+
+Game Lazy(KEM KEM_PQ, NominalGroup NG, Int lambda) {
+    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> H;
+    BitString<lambda> s0;
+    BitString<KEM_PQ.Nseed> y0_pq;
+    BitString<NG.Nseed>     y0_t;
+
+    BitString<lambda> Initialize() {
+        H <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>>;
+        s0 <- BitString<lambda>;
+        y0_pq <- BitString<KEM_PQ.Nseed>;
+        y0_t  <- BitString<NG.Nseed>;
+        return s0;
+    }
+
+    BitString<KEM_PQ.Nseed + NG.Nseed> Hash(BitString<lambda> x) {
+        if (x == s0) {
+            return y0_pq || y0_t;
+        }
+        return H(x);
+    }
+}
+
+export as CGLazyROOneSeeded;

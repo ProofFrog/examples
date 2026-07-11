@@ -11,14 +11,14 @@
 // Decaps1 oracles, and forwards the Challenge call.
 //
 // Game sequence (4 entries, 3 hops):
-//   0. HON_BIND_K_CT(K).Breakable
-//   1. LEAK_BIND_K_CT(K).Breakable   compose R
-//   2. LEAK_BIND_K_CT(K).Unbreakable compose R   (assumption)
-//   3. HON_BIND_K_CT(K).Unbreakable
+//   0. HON_BIND_K_CT_DIFFKEY(K).Breakable
+//   1. LEAK_BIND_K_CT_DIFFKEY(K).Breakable   compose R
+//   2. LEAK_BIND_K_CT_DIFFKEY(K).Unbreakable compose R   (assumption)
+//   3. HON_BIND_K_CT_DIFFKEY(K).Unbreakable
 
 import '../../primitives/KEM.primitive';
-import '../../games/KEM/Binding/HON_BIND_K_CT.game';
-import '../../games/KEM/Binding/LEAK_BIND_K_CT.game';
+import '../../games/KEM/Binding/HON_BIND_K_CT_DIFFKEY.game';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_DIFFKEY.game';
 
 proof:
 
@@ -35,20 +35,20 @@ let:
                 SharedSecretSpace, CiphertextSpace, EncapsKeySpace, DecapsKeySpace);
 
 assume:
-    LEAK_BIND_K_CT(K);
+    LEAK_BIND_K_CT_DIFFKEY(K);
 
 theorem:
-    HON_BIND_K_CT(K);
+    HON_BIND_K_CT_DIFFKEY(K);
 
 games:
-    HON_BIND_K_CT(K).Breakable against HON_BIND_K_CT(K).Adversary;
+    HON_BIND_K_CT_DIFFKEY(K).Breakable against HON_BIND_K_CT_DIFFKEY(K).Adversary;
 
-    LEAK_BIND_K_CT(K).Breakable   compose R(K) against HON_BIND_K_CT(K).Adversary;
-    LEAK_BIND_K_CT(K).Unbreakable compose R(K) against HON_BIND_K_CT(K).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(K).Breakable   compose R(K) against HON_BIND_K_CT_DIFFKEY(K).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(K).Unbreakable compose R(K) against HON_BIND_K_CT_DIFFKEY(K).Adversary;
 
-    HON_BIND_K_CT(K).Unbreakable against HON_BIND_K_CT(K).Adversary;
+    HON_BIND_K_CT_DIFFKEY(K).Unbreakable against HON_BIND_K_CT_DIFFKEY(K).Adversary;
 
-Reduction R(KEM K) compose LEAK_BIND_K_CT(K) against HON_BIND_K_CT(K).Adversary {
+Reduction R(KEM K) compose LEAK_BIND_K_CT_DIFFKEY(K) against HON_BIND_K_CT_DIFFKEY(K).Adversary {
     K.DecapsKey dk0;
     K.DecapsKey dk1;
 

@@ -15,28 +15,28 @@
 //     return H(kdf_in_0) == H(kdf_in_1) && ct0 != ct1, exactly as the
 //     bare hybrid binding game would.
 //
-// When composed with KEM_PQ.LEAK_BIND_K_CT.Breakable the reduction
+// When composed with KEM_PQ.LEAK_BIND_K_CT_DIFFKEY.Breakable the reduction
 // reproduces the bare hybrid Breakable game. When composed with
 // .Unbreakable, the case-B branch is killed and the residual game is
 // exactly the case-A game that R_KDF then reduces to KDF collision
 // resistance.
 //
 // Game sequence (6 hops):
-//   0. LEAK_BIND_K_CT(CK_expanded).Breakable
-//   1. LEAK_BIND_K_CT(KEM_PQ).Breakable    compose R_PQ_Bind
-//   2. LEAK_BIND_K_CT(KEM_PQ).Unbreakable  compose R_PQ_Bind   (assumption)
+//   0. LEAK_BIND_K_CT_DIFFKEY(CK_expanded).Breakable
+//   1. LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Breakable    compose R_PQ_Bind
+//   2. LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Unbreakable  compose R_PQ_Bind   (assumption)
 //   3. KDFCollisionResistance(H).Breakable    compose R_KDF
 //   4. KDFCollisionResistance(H).Unbreakable  compose R_KDF    (assumption)
-//   5. LEAK_BIND_K_CT(CK_expanded).Unbreakable
+//   5. LEAK_BIND_K_CT_DIFFKEY(CK_expanded).Unbreakable
 //
-// Assumptions: KEM_PQ.LEAK_BIND_K_CT, KDFCollisionResistance(H).
+// Assumptions: KEM_PQ.LEAK_BIND_K_CT_DIFFKEY, KDFCollisionResistance(H).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';
 import '../../primitives/KDF.primitive';
 import '../../primitives/Label.primitive';
 import '../../schemes/CK/CK_expanded.scheme';
-import '../../games/KEM/Binding/LEAK_BIND_K_CT.game';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_DIFFKEY.game';
 import '../../games/KDF/KDFCollisionResistance.game';
 
 proof:
@@ -69,29 +69,29 @@ let:
     CK_expanded hybrid = CK_expanded(KEM_PQ, KEM_T, G, H, L);
 
 assume:
-    LEAK_BIND_K_CT(KEM_PQ);
+    LEAK_BIND_K_CT_DIFFKEY(KEM_PQ);
     KDFCollisionResistance(H);
 
 theorem:
-    LEAK_BIND_K_CT(hybrid);
+    LEAK_BIND_K_CT_DIFFKEY(hybrid);
 
 games:
-    LEAK_BIND_K_CT(hybrid).Breakable against LEAK_BIND_K_CT(hybrid).Adversary;
-    LEAK_BIND_K_CT(KEM_PQ).Breakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
-    LEAK_BIND_K_CT(KEM_PQ).Unbreakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
-    KDFCollisionResistance(H).Breakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
-    KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
-    LEAK_BIND_K_CT(hybrid).Unbreakable against LEAK_BIND_K_CT(hybrid).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(hybrid).Breakable against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Breakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Unbreakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Breakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(hybrid).Unbreakable against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
-// R_PQ_Bind: reduction to KEM_PQ.LEAK_BIND_K_CT. The reduction case-
+// R_PQ_Bind: reduction to KEM_PQ.LEAK_BIND_K_CT_DIFFKEY. The reduction case-
 // splits on (kdf_in_0 == kdf_in_1 && ct_PQ_0 != ct_PQ_1). In that
 // branch (case B) it forwards (ct_PQ_0, ct_PQ_1) to the challenger;
 // otherwise it acts as a passthrough that returns the bare hybrid
 // binding predicate H(kdf_in_0) == H(kdf_in_1) && ct0 != ct1. The
 // passthrough is what makes R_PQ_Bind compose Breakable canonicalize
-// to the bare LEAK_BIND_K_CT(CK_expanded).Breakable game.
+// to the bare LEAK_BIND_K_CT_DIFFKEY(CK_expanded).Breakable game.
 Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
-    compose LEAK_BIND_K_CT(KEM_PQ) against LEAK_BIND_K_CT(hybrid).Adversary {
+    compose LEAK_BIND_K_CT_DIFFKEY(KEM_PQ) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;
     KEM_PQ.DecapsKey dk_PQ_1;
@@ -128,7 +128,7 @@ Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
 // expanded keypairs locally; on Challenge, recomputes both kdf_in's
 // and forwards them to the KDF-CR challenger if ct0 != ct1.
 Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
-    compose KDFCollisionResistance(H) against LEAK_BIND_K_CT(hybrid).Adversary {
+    compose KDFCollisionResistance(H) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;
     KEM_PQ.DecapsKey dk_PQ_1;

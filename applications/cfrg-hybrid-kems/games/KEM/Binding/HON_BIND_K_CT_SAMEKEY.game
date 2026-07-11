@@ -1,0 +1,69 @@
+// HON-BIND-K-CT (SAMEKEY case): the output key K honestly-binds the
+// ciphertext CT, where BOTH ciphertexts are decapsulated under a SINGLE
+// key pair (the single-receiver / re-encapsulation scenario).
+//
+// In CDM24 ("Keeping Up with the KEMs", CCS 2024) notation this is the
+// b=0 slice of X-BIND-P-Q with X=HON, P={K}, Q={CT}: one honestly-
+// generated key pair is produced, and the adversary -- given only the
+// public (encapsulation) key plus access to its decapsulation oracle --
+// must construct two distinct ciphertexts that decapsulate to the same
+// shared secret under that one key. The b=1 slice (two independent key
+// pairs) is the companion game HON_BIND_K_CT_DIFFKEY; a KEM is
+// HON-BIND-K-CT secure iff it is secure in BOTH.
+//
+// HON differs from LEAK in that the adversary is not given the secret
+// (decapsulation) key directly; it only sees decapsulation outputs
+// through the oracle. By Lemma 4.3 of CDM24, LEAK-BIND-P-Q implies
+// HON-BIND-P-Q.
+//
+// Implicit-rejection assumption: CDM24 Fig. 5 includes the guard
+// "if k_0 = bot or k_1 = bot: return 0". We omit it because
+// KEM.primitive declares Decaps as total (SharedSecret, not
+// SharedSecret?) -- there is no bot symbol to test against. This is
+// sound under the assumption that the KEM is implicitly rejecting,
+// which is the case for the FO-style KEMs targeted by
+// draft-irtf-cfrg-hybrid-kems-10 (Decaps always returns a
+// pseudo-random shared secret, never bot). Explicit-rejection KEMs
+// would require extending KEM.primitive.
+
+import '../../../primitives/KEM.primitive';
+
+Game Breakable(KEM K) {
+    K.DecapsKey dk0;
+
+    K.EncapsKey Initialize() {
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        return ek0;
+    }
+
+    K.SharedSecret Decaps0(K.Ciphertext ct) {
+        return K.Decaps(dk0, ct);
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk0, ct1);
+        return ss0 == ss1 && ct0 != ct1;
+    }
+}
+
+Game Unbreakable(KEM K) {
+    K.DecapsKey dk0;
+
+    K.EncapsKey Initialize() {
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        return ek0;
+    }
+
+    K.SharedSecret Decaps0(K.Ciphertext ct) {
+        return K.Decaps(dk0, ct);
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk0, ct1);
+        return false;
+    }
+}
+
+export as HON_BIND_K_CT_SAMEKEY;

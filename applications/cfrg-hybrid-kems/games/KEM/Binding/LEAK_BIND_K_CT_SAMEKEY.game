@@ -1,0 +1,60 @@
+// LEAK-BIND-K-CT (SAMEKEY case): the output key K leakage-binds the
+// ciphertext CT, where BOTH ciphertexts are decapsulated under a SINGLE
+// key pair (the single-receiver / re-encapsulation scenario).
+//
+// In CDM24 ("Keeping Up with the KEMs", CCS 2024) notation this is the
+// b=0 slice of X-BIND-P-Q with X=LEAK, P={K}, Q={CT}: for K-CT the
+// public key is in neither P nor Q, so Fig. 5 lets the adversary choose
+// b and sets (sk1, pk1) <- (sk_b, pk_b); with b=0 both ciphertexts are
+// decapsulated under dk0. Given one honestly-generated secret key, the
+// adversary constructs two distinct ciphertexts that decapsulate to the
+// same shared secret under that one key. This is the BJKS24
+// re-encapsulation scenario that motivates K-CT binding.
+//
+// The b=1 slice (two independent key pairs) is the companion game
+// LEAK_BIND_K_CT_DIFFKEY. A KEM is LEAK-BIND-K-CT secure iff it is secure
+// in BOTH games.
+//
+// Implicit-rejection assumption: CDM24 Fig. 5 includes the guard
+// "if k_0 = bot or k_1 = bot: return 0". We omit it because
+// KEM.primitive declares Decaps as total (SharedSecret, not
+// SharedSecret?) -- there is no bot symbol to test against. This is
+// sound under the assumption that the KEM is implicitly rejecting,
+// which is the case for the FO-style KEMs targeted by
+// draft-irtf-cfrg-hybrid-kems-10 (Decaps always returns a
+// pseudo-random shared secret, never bot). Explicit-rejection KEMs
+// would require extending KEM.primitive.
+
+import '../../../primitives/KEM.primitive';
+
+Game Breakable(KEM K) {
+    K.DecapsKey dk0;
+
+    [K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        return [ek0, dk0];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk0, ct1);
+        return ss0 == ss1 && ct0 != ct1;
+    }
+}
+
+Game Unbreakable(KEM K) {
+    K.DecapsKey dk0;
+
+    [K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
+        return [ek0, dk0];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk0, ct1);
+        return false;
+    }
+}
+
+export as LEAK_BIND_K_CT_SAMEKEY;

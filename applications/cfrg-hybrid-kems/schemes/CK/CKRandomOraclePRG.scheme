@@ -5,7 +5,7 @@
 //   Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>> G_RO
 //     <- Function<...>;
 // and instantiates this scheme as the PRG argument to the hybrid KEM
-// being analysed; the same G_RO is passed to LEAK_BIND_K_CT_ROM so the
+// being analysed; the same G_RO is passed to LEAK_BIND_K_CT_ROM_{DIFFKEY,SAMEKEY} so the
 // HashG oracle exposes the same random function the scheme uses
 // internally.
 //
@@ -21,7 +21,7 @@
 // Function/BitString size expressions at instantiation. The wrapper is
 // therefore specialized to the CK_seedbased PRG output shape
 //   KEM_PQ.Nseed + KEM_T.Nseed
-// (still reusable across CK_seedbased seeded LEAK_BIND_K_CT and LEAK_BIND_K_PK).
+// (still reusable across CK_seedbased seeded LEAK_BIND_K_CT_{DIFFKEY,SAMEKEY} and LEAK_BIND_K_PK).
 // A separate CGRandomOraclePRG.scheme will be needed for CG_seedbased (NG-side
 // shape).
 

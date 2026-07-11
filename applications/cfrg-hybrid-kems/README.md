@@ -73,12 +73,24 @@ and the assumption games they cite.
 | Correctness | [✅ done](proofs/UG/UG_seedbased_Correctness.proof) | [✅ done](proofs/UG/UG_expanded_Correctness.proof) | [✅ done](proofs/UK/UK_seedbased_Correctness.proof) | [✅ done](proofs/UK/UK_expanded_Correctness.proof) | [✅ done](proofs/CG/CG_seedbased_Correctness.proof) | [✅ done](proofs/CG/CG_expanded_Correctness.proof) | [✅ done](proofs/CK/CK_seedbased_Correctness.proof) | [✅ done](proofs/CK/CK_expanded_Correctness.proof) |
 | IND-CCA (PQ branch) | [✅ done](proofs/UG/UG_seedbased_INDCCA_PQ.proof) | [✅ done](proofs/UG/UG_expanded_INDCCA_PQ.proof) | [✅ done](proofs/UK/UK_seedbased_INDCCA_PQ.proof) | [✅ done](proofs/UK/UK_expanded_INDCCA_PQ.proof) | [✅ done](proofs/CG/CG_seedbased_INDCCA_PQ.proof) | [✅ done](proofs/CG/CG_expanded_INDCCA_PQ.proof) | [✅ done](proofs/CK/CK_seedbased_INDCCA_PQ.proof) | [✅ done](proofs/CK/CK_expanded_INDCCA_PQ.proof) |
 | IND-CCA (T branch) | [✅ done](proofs/UG/UG_seedbased_INDCCA_T.proof) (ROM) | [✅ done](proofs/UG/UG_expanded_INDCCA_T.proof) (ROM) | [✅ done](proofs/UK/UK_seedbased_INDCCA_T.proof) | [✅ done](proofs/UK/UK_expanded_INDCCA_T.proof) | [✅ done](proofs/CG/CG_seedbased_INDCCA_T.proof) (ROM) | [✅ done](proofs/CG/CG_expanded_INDCCA_T.proof) (ROM) | [✅ done](proofs/CK/CK_seedbased_INDCCA_T.proof) | [✅ done](proofs/CK/CK_expanded_INDCCA_T.proof) |
-| LEAK-BIND-K-CT (std model) | [✅ done](proofs/UG/UG_seedbased_LEAK_BIND_K_CT.proof) | [✅ done](proofs/UG/UG_expanded_LEAK_BIND_K_CT.proof) | [✅ done](proofs/UK/UK_seedbased_LEAK_BIND_K_CT.proof) | [✅ done](proofs/UK/UK_expanded_LEAK_BIND_K_CT.proof) | ⚠️ unproven | [✅ done](proofs/CG/CG_expanded_LEAK_BIND_K_CT.proof) | ⚠️ unproven | [✅ done](proofs/CK/CK_expanded_LEAK_BIND_K_CT.proof) |
+| LEAK-BIND-K-CT (std model)[^kct] | [✅ DIFFKEY](proofs/UG/UG_seedbased_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/UG/UG_seedbased_LEAK_BIND_K_CT_SAMEKEY.proof) | [✅ DIFFKEY](proofs/UG/UG_expanded_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/UG/UG_expanded_LEAK_BIND_K_CT_SAMEKEY.proof) | [✅ DIFFKEY](proofs/UK/UK_seedbased_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/UK/UK_seedbased_LEAK_BIND_K_CT_SAMEKEY.proof) | [✅ DIFFKEY](proofs/UK/UK_expanded_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/UK/UK_expanded_LEAK_BIND_K_CT_SAMEKEY.proof) | ⚠️ unproven | [✅ DIFFKEY](proofs/CG/CG_expanded_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/CG/CG_expanded_LEAK_BIND_K_CT_SAMEKEY.proof) | ⚠️ unproven | [✅ DIFFKEY](proofs/CK/CK_expanded_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/CK/CK_expanded_LEAK_BIND_K_CT_SAMEKEY.proof) |
 | LEAK-BIND-K-PK (std model) | [✅ done](proofs/UG/UG_seedbased_LEAK_BIND_K_PK.proof) | [✅ done](proofs/UG/UG_expanded_LEAK_BIND_K_PK.proof) | [✅ done](proofs/UK/UK_seedbased_LEAK_BIND_K_PK.proof) | [✅ done](proofs/UK/UK_expanded_LEAK_BIND_K_PK.proof) | ⚠️ unproven | [✅ done](proofs/CG/CG_expanded_LEAK_BIND_K_PK.proof) | ⚠️ unproven | [✅ done](proofs/CK/CK_expanded_LEAK_BIND_K_PK.proof) |
-| LEAK-BIND-K-CT (PRG as ROM) | n/a | n/a | n/a | n/a | [✅ done](proofs/CG/CG_seedbased_LEAK_BIND_K_CT.proof) | n/a | [✅ done](proofs/CK/CK_seedbased_LEAK_BIND_K_CT.proof) | n/a |
+| LEAK-BIND-K-CT (PRG as ROM)[^kct] | n/a | n/a | n/a | n/a | [✅ DIFFKEY](proofs/CG/CG_seedbased_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/CG/CG_seedbased_LEAK_BIND_K_CT_SAMEKEY.proof) | n/a | [✅ DIFFKEY](proofs/CK/CK_seedbased_LEAK_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/CK/CK_seedbased_LEAK_BIND_K_CT_SAMEKEY.proof) | n/a |
 | LEAK-BIND-K-PK (PRG as ROM) | n/a | n/a | n/a | n/a | [✅ done](proofs/CG/CG_seedbased_LEAK_BIND_K_PK.proof) | n/a | [✅ done](proofs/CK/CK_seedbased_LEAK_BIND_K_PK.proof) | n/a |
-| HON-BIND-K-CT (std model) | implied | implied | implied | implied | [✅ done](proofs/CG/CG_seedbased_HON_BIND_K_CT.proof) | implied | [✅ done](proofs/CK/CK_seedbased_HON_BIND_K_CT.proof) | implied |
+| HON-BIND-K-CT (std model)[^kct] | implied | implied | implied | implied | [✅ DIFFKEY](proofs/CG/CG_seedbased_HON_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/CG/CG_seedbased_HON_BIND_K_CT_SAMEKEY.proof) | implied | [✅ DIFFKEY](proofs/CK/CK_seedbased_HON_BIND_K_CT_DIFFKEY.proof) / [✅ SAMEKEY](proofs/CK/CK_seedbased_HON_BIND_K_CT_SAMEKEY.proof) | implied |
 | HON-BIND-K-PK (std model) | implied | implied | implied | implied | [✅ done](proofs/CG/CG_seedbased_HON_BIND_K_PK.proof) | implied | [✅ done](proofs/CK/CK_seedbased_HON_BIND_K_PK.proof) | implied |
+
+[^kct]: **K-CT binding is proved in two slices.** CDM24 Fig. 5's
+    `X-BIND-K-CT` game lets the adversary choose a bit `b` selecting between
+    two scenarios: `b = 1` (**DIFFKEY**) challenges the adversary to produce a
+    ciphertext-collision across *two independently generated* receiver
+    keypairs, while `b = 0` (**SAMEKEY**) fixes a *single* receiver keypair and
+    challenges a re-encapsulation collision under it (the BJKS24 scenario). A
+    KEM is K-CT-binding iff it withstands *both*, so we mechanise each slice as
+    a straight-line game (`*_BIND_K_CT_DIFFKEY` and `*_BIND_K_CT_SAMEKEY`) and
+    prove both; `X-BIND-K-CT` = DIFFKEY ∧ SAMEKEY. (Encoding the adversary's
+    `b`-choice as a single `if (b)` game is canonicalizer-hostile; the two
+    straight-line games are equivalent and each mechanises cleanly.)
 
 For each of the four frameworks (UG, UK, CG, CK), we provide:
 
@@ -97,7 +109,10 @@ For each of the four frameworks (UG, UK, CG, CK), we provide:
    `NG` for UG/CG).
 5. **LEAK-BIND-K-{CT, PK}** in both seed and expanded forms (UG/UK seed
    form is mechanisable directly; CG/CK seed form uses the PRG-as-RO
-   construction of [Deviation 7](#deviation-7)).
+   construction of [Deviation 7](#deviation-7)). K-CT binding is proved as
+   two slices, `DIFFKEY` (`b = 1`, cross-key) and `SAMEKEY` (`b = 0`,
+   single-key re-encapsulation); the KEM is K-CT-binding iff both hold (see
+   the [K-CT footnote](#user-content-fn-kct)).
 6. **HON-BIND-K-{CT, PK}** for CG/CK in seed form (UG/UK get HON-BIND
    for free from LEAK-BIND via the generic implications in
    [`proofs/Generic/`](proofs/Generic/)).
@@ -107,11 +122,11 @@ For each of the four frameworks (UG, UK, CG, CK), we provide:
 | Path | Contents |
 |------|----------|
 | [`primitives/`](primitives/) | `KEM`, `NominalGroup`, `KDF`, `PRG`, `Label`, `HashInputPacking` |
-| [`games/KEM/`](games/KEM/) | `INDCCA`, `INDCCA_ROM`, `Correctness`, `CorrectnessWithDK`, `KeyGenEquiv`, `C2PRI`, plus the four binding games (and their ROM variants) |
+| [`games/KEM/`](games/KEM/) | `INDCCA`, `INDCCA_ROM`, `Correctness`, `CorrectnessWithDK`, `KeyGenEquiv`, `C2PRI`, plus the binding games (`{LEAK,HON}_BIND_K_PK`, and `{LEAK,HON}_BIND_K_CT` each split into `_DIFFKEY`/`_SAMEKEY` slices) and their ROM variants |
 | [`games/Group/`](games/Group/) | `SDH`, `SDH_SS`, `NGCorrectness`, `RandomScalarDist` |
 | [`games/KDF/`](games/KDF/) | `KDFCollisionResistance`, `KDFFirstKeyPRF`, `KDFSecondKeyPRF`, `KDFPRFSec` |
 | [`games/PRG/`](games/PRG/) | `PRGSec` |
-| [`games/ROM/`](games/ROM/) | `LazyROTwoViewsExcluded[Programmed]`, `LazyROTwoSeeded`, `CGLazyROTwoSeeded` (statistical helper games) |
+| [`games/ROM/`](games/ROM/) | `LazyROTwoViewsExcluded[Programmed]`, `LazyROTwoSeeded`, `CGLazyROTwoSeeded`, `LazyROOneSeeded`, `CGLazyROOneSeeded` (statistical helper games) |
 | [`schemes/{UG,UK,CG,CK}/`](schemes/) | `*_seedbased.scheme`, `*_expanded.scheme`; helper RO-flavoured PRG/KDF wrappers |
 | [`schemes/Helpers/`](schemes/Helpers/) | `SeededKEMWrapper.scheme` |
 | [`proofs/{UG,UK,CG,CK}/`](proofs/) | All correctness, IND-CCA, and binding proofs |
@@ -128,7 +143,7 @@ For each of the four frameworks (UG, UK, CG, CK), we provide:
 | §5.5 (C2PRICombiner with `NG`) | [`schemes/CG/CG_seedbased.scheme`](schemes/CG/CG_seedbased.scheme), [`CG_expanded.scheme`](schemes/CG/CG_expanded.scheme) |
 | §5.6 (C2PRICombiner with two KEMs) | [`schemes/CK/CK_seedbased.scheme`](schemes/CK/CK_seedbased.scheme), [`CK_expanded.scheme`](schemes/CK/CK_expanded.scheme) |
 | §6.2.1 (IND-CCA, complementary branches) | [`proofs/{UG,UK,CG,CK}/*_INDCCA_{PQ,T}.proof`](proofs/) |
-| §6.4.1 (Binding) | [`proofs/{UG,UK,CG,CK}/*_LEAK_BIND_K_{CT,PK}.proof`](proofs/), [`proofs/{CG,CK}/*_HON_BIND_K_{CT,PK}.proof`](proofs/) |
+| §6.4.1 (Binding) | [`proofs/{UG,UK,CG,CK}/*_LEAK_BIND_K_{CT_{DIFFKEY,SAMEKEY},PK}.proof`](proofs/), [`proofs/{CG,CK}/*_HON_BIND_K_{CT_{DIFFKEY,SAMEKEY},PK}.proof`](proofs/) |
 | §6.4.2 (KDF security requirements) | [`games/KDF/`](games/KDF/) |
 
 ## Assumption table
@@ -143,7 +158,7 @@ assumption.
 | KEM IND-CCA | `KEM` | [`INDCCA`](games/KEM/INDCCA.game) / [`INDCCA_ROM`](games/KEM/INDCCA_ROM.game) | All `*_INDCCA_*` proofs |
 | KEM C2PRI (ciphertext 2nd preimage resistance) | `KEM` (the PQ component) | [`C2PRI`](games/KEM/C2PRI.game) | `CK_*_INDCCA_T`, `CG_*_INDCCA_T`, expanded-form `{CG,CK}_LEAK_BIND_*` |
 | KEM `KeyGenEquiv` | `KEM` | [`KeyGenEquiv`](games/KEM/KeyGenEquiv.game) | Bridging seed-form ↔ expanded-form (treated as a free fact for spec-compliant KEMs; see [Deviation 8](#deviation-8)) |
-| KEM LEAK-BIND-K-{CT,PK} | `KEM` (the PQ component) | [`LEAK_BIND_K_CT`](games/KEM/Binding/LEAK_BIND_K_CT.game) / [`LEAK_BIND_K_PK`](games/KEM/Binding/LEAK_BIND_K_PK.game) (plus ROM variants) | All `{CG,CK}_*_LEAK_BIND_K_*` |
+| KEM LEAK-BIND-K-{CT,PK} | `KEM` (the PQ component) | [`LEAK_BIND_K_CT_DIFFKEY`](games/KEM/Binding/LEAK_BIND_K_CT_DIFFKEY.game) + [`LEAK_BIND_K_CT_SAMEKEY`](games/KEM/Binding/LEAK_BIND_K_CT_SAMEKEY.game) / [`LEAK_BIND_K_PK`](games/KEM/Binding/LEAK_BIND_K_PK.game) (plus ROM variants) | All `{CG,CK}_*_LEAK_BIND_K_*` |
 | PRG security | `PRG` | [`PRGSec`](games/PRG/PRGSec.game) | All seed-form proofs (used together with `KeyGenEquiv` to bridge seed and expanded forms) |
 | KDF collision-resistance | `KDF` | [`KDFCollisionResistance`](games/KDF/KDFCollisionResistance.game) | All `*_LEAK_BIND_K_*` and `*_HON_BIND_K_*` |
 | KDF first-key PRF | `KDF` | [`KDFFirstKeyPRF`](games/KDF/KDFFirstKeyPRF.game) | `{UG,UK,CG,CK}_*_INDCCA_PQ` (UG/CG cite single-key form; UK/CK cite split-key form) |
@@ -153,7 +168,8 @@ assumption.
 | Random-scalar distribution | `NominalGroup` | [`RandomScalarDist`](games/Group/RandomScalarDist.game) | UG / CG IND-CCA-T (ROM) |
 | `SDH_SS` (shared-secret-keyed SDH variant) | `NominalGroup` | [`SDH_SS`](games/Group/SDH_SS.game) | `{UG,CG}_*_INDCCA_T` (ROM) — see [Deviation 10](#deviation-10) |
 | `LazyROTwoViews*` (statistical helpers) | — | [`games/ROM/`](games/ROM/) | UG / CG IND-CCA-T (ROM hops) |
-| `LazyROTwoSeeded` / `CGLazyROTwoSeeded` (statistical helpers) | — | [`games/ROM/`](games/ROM/) | Seed-form `{CG,CK}_*_LEAK_BIND_K_*` ([Deviation 7](#deviation-7)) |
+| `LazyROTwoSeeded` / `CGLazyROTwoSeeded` (statistical helpers) | — | [`games/ROM/`](games/ROM/) | Seed-form `{CG,CK}_*_LEAK_BIND_K_*_DIFFKEY` ([Deviation 7](#deviation-7)) |
+| `LazyROOneSeeded` / `CGLazyROOneSeeded` (statistical helpers) | — | [`games/ROM/`](games/ROM/) | Seed-form `{CG,CK}_*_LEAK_BIND_K_CT_SAMEKEY` (single-key analogue of the two-seed helpers; [Deviation 7](#deviation-7)) |
 
 ## Deviations from the draft
 
@@ -258,10 +274,15 @@ assumption.
    3. *A statistical helper game closes the gap between the bare
       programmed-RO view and the form the reduction needs.*
       [`LazyROTwoSeeded`](games/ROM/LazyROTwoSeeded.game) and
-      [`CGLazyROTwoSeeded`](games/ROM/CGLazyROTwoSeeded.game)
-      bound that gap by `2^{-lambda}` — they are statistical, not
-      cryptographic, assumptions, in the same spirit as the
-      `LazyROTwoViews*` helpers used by the UG/CG IND-CCA-T proofs.
+      [`CGLazyROTwoSeeded`](games/ROM/CGLazyROTwoSeeded.game) (used by the
+      DIFFKEY slice, which programs `G` on two challenge seeds), and their
+      single-seed analogues
+      [`LazyROOneSeeded`](games/ROM/LazyROOneSeeded.game) and
+      [`CGLazyROOneSeeded`](games/ROM/CGLazyROOneSeeded.game) (used by the
+      SAMEKEY slice, which programs `G` on one) bound that gap by
+      `2^{-lambda}` — they are statistical, not cryptographic, assumptions,
+      in the same spirit as the `LazyROTwoViews*` helpers used by the UG/CG
+      IND-CCA-T proofs.
 8. **`KeyGenEquiv` as a free fact.** The
    [`KeyGenEquiv`](games/KEM/KeyGenEquiv.game) game asserts that
    `KeyGen()` is distributionally equivalent to

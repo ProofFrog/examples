@@ -1,17 +1,19 @@
-// HON-BIND-K-CT: the output key K honestly-binds the ciphertext CT.
+// LEAK-BIND-K-CT (DIFFKEY case): the output key K leakage-binds the
+// ciphertext CT, where the two ciphertexts are decapsulated under two
+// DIFFERENT, independently-generated key pairs.
 //
 // In CDM24 ("Keeping Up with the KEMs", CCS 2024) notation this is
-// X-BIND-P-Q with X=HON, P={K}, Q={CT}: two honestly-generated key
-// pairs are produced, and the adversary -- given only the public
-// (encapsulation) keys plus access to decapsulation oracles --
-// must construct two distinct ciphertexts that decapsulate to the
-// same shared secret.
+// X-BIND-P-Q with X=LEAK, P={K}, Q={CT}. For K-CT the public key is in
+// neither P nor Q, so CDM24 Fig. 5 lets the adversary choose a bit b and
+// sets (sk1, pk1) <- (sk_b, pk_b). This game is the b=1 slice: given two
+// honestly-generated secret keys, the adversary constructs ct0, ct1 that
+// decapsulate to the same shared secret under dk0 and dk1 respectively.
+// The b=0 slice (both ciphertexts under one key) is the companion game
+// LEAK_BIND_K_CT_SAMEKEY. A KEM is LEAK-BIND-K-CT secure iff it is secure
+// in BOTH games (the adversary picks the b it does better at).
 //
-// HON differs from LEAK in that the adversary is not given the
-// secret (decapsulation) keys directly; it only sees decapsulation
-// outputs through the oracles. By Lemma 4.3 of CDM24, LEAK-BIND-P-Q
-// implies HON-BIND-P-Q, so HON-BIND is a strictly weaker (easier to
-// satisfy) notion than the corresponding LEAK-BIND notion.
+// This is the notion targeted by draft-irtf-cfrg-hybrid-kems-10
+// section 6.2.2 / 6.4.2.
 //
 // Implicit-rejection assumption: CDM24 Fig. 5 includes the guard
 // "if k_0 = bot or k_1 = bot: return 0". We omit it because
@@ -29,18 +31,10 @@ Game Breakable(KEM K) {
     K.DecapsKey dk0;
     K.DecapsKey dk1;
 
-    [K.EncapsKey, K.EncapsKey] Initialize() {
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
         [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
         [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
-        return [ek0, ek1];
-    }
-
-    K.SharedSecret Decaps0(K.Ciphertext ct) {
-        return K.Decaps(dk0, ct);
-    }
-
-    K.SharedSecret Decaps1(K.Ciphertext ct) {
-        return K.Decaps(dk1, ct);
+        return [ek0, dk0, ek1, dk1];
     }
 
     Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
@@ -54,18 +48,10 @@ Game Unbreakable(KEM K) {
     K.DecapsKey dk0;
     K.DecapsKey dk1;
 
-    [K.EncapsKey, K.EncapsKey] Initialize() {
+    [K.EncapsKey, K.DecapsKey, K.EncapsKey, K.DecapsKey] Initialize() {
         [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.KeyGen();
         [K.EncapsKey, K.DecapsKey] [ek1, dk1] = K.KeyGen();
-        return [ek0, ek1];
-    }
-
-    K.SharedSecret Decaps0(K.Ciphertext ct) {
-        return K.Decaps(dk0, ct);
-    }
-
-    K.SharedSecret Decaps1(K.Ciphertext ct) {
-        return K.Decaps(dk1, ct);
+        return [ek0, dk0, ek1, dk1];
     }
 
     Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
@@ -75,4 +61,4 @@ Game Unbreakable(KEM K) {
     }
 }
 
-export as HON_BIND_K_CT;
+export as LEAK_BIND_K_CT_DIFFKEY;
