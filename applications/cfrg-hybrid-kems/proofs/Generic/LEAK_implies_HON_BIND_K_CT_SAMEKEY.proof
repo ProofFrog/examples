@@ -42,6 +42,9 @@ assume:
 theorem:
     HON_BIND_K_CT_SAMEKEY(K);
 
+bound:
+    advantage(LEAK_BIND_K_CT_SAMEKEY(K) compose R);
+
 games:
     HON_BIND_K_CT_SAMEKEY(K).Breakable against HON_BIND_K_CT_SAMEKEY(K).Adversary;
 

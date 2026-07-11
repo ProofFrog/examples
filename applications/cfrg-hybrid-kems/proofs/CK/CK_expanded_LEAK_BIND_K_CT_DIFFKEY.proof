@@ -76,7 +76,7 @@ theorem:
     LEAK_BIND_K_CT_DIFFKEY(hybrid);
 
 bound:
-      advantage(LEAK_BIND_K_CT(KEM_PQ) compose R_PQ_Bind)
+      advantage(LEAK_BIND_K_CT_DIFFKEY(KEM_PQ) compose R_PQ_Bind)
     + advantage(KDFCollisionResistance(H) compose R_KDF);
 
 games:

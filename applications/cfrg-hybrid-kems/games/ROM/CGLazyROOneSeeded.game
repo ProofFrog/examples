@@ -68,4 +68,10 @@ Game Lazy(KEM KEM_PQ, NominalGroup NG, Int lambda) {
     }
 }
 
+// Loss is 0: a single fresh reprogrammed point is identically distributed
+// under Honest (H(s0), never otherwise exposed) and Lazy (independent uniform
+// halves). No collision term (only one seed, unlike CGLazyROTwoSeeded); the
+// bound is independent of the number of Hash queries.
+advantage <= 0;
+
 export as CGLazyROOneSeeded;
