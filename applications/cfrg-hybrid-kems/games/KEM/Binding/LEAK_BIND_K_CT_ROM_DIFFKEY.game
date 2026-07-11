@@ -1,7 +1,9 @@
-// LEAK-BIND-K-CT in the random oracle model.
+// LEAK-BIND-K-CT (DIFFKEY case) in the random oracle model.
 //
-// ROM analogue of LEAK_BIND_K_CT.game, parameterized over a random
-// oracle Function G_RO (modelling the PRG as an RO). The proof's let:
+// ROM analogue of LEAK_BIND_K_CT_DIFFKEY.game (the b=1 slice: two
+// ciphertexts decapsulated under two independent key pairs), parameterized
+// over a random oracle Function G_RO (modelling the PRG as an RO). The
+// b=0 slice is LEAK_BIND_K_CT_ROM_SAMEKEY. The proof's let:
 // block samples G_RO once and instantiates a CKRandomOraclePRG wrapper
 // around the same G_RO as the PRG argument to the hybrid KEM, so
 // scheme-internal PRG calls and the adversary's HashG queries hit the
@@ -55,4 +57,4 @@ Game Unbreakable(KEM K, Set D, Set R, Function<D, R> G_RO) {
     }
 }
 
-export as LEAK_BIND_K_CT_ROM;
+export as LEAK_BIND_K_CT_ROM_DIFFKEY;

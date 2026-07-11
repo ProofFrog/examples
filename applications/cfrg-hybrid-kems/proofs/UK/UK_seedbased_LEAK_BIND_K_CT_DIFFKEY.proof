@@ -13,7 +13,7 @@ import '../../primitives/PRG.primitive';
 import '../../primitives/KDF.primitive';
 import '../../primitives/Label.primitive';
 import '../../schemes/UK/UK_seedbased.scheme';
-import '../../games/KEM/Binding/LEAK_BIND_K_CT.game';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_DIFFKEY.game';
 import '../../games/KDF/KDFCollisionResistance.game';
 
 proof:
@@ -49,16 +49,16 @@ assume:
     KDFCollisionResistance(H);
 
 theorem:
-    LEAK_BIND_K_CT(hybrid);
+    LEAK_BIND_K_CT_DIFFKEY(hybrid);
 
 games:
-    LEAK_BIND_K_CT(hybrid).Breakable against LEAK_BIND_K_CT(hybrid).Adversary;
-    KDFCollisionResistance(H).Breakable compose R(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
-    KDFCollisionResistance(H).Unbreakable compose R(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT(hybrid).Adversary;
-    LEAK_BIND_K_CT(hybrid).Unbreakable against LEAK_BIND_K_CT(hybrid).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(hybrid).Breakable against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Breakable compose R(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Unbreakable compose R(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(hybrid).Unbreakable against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
 Reduction R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, UK_seedbased hybrid)
-    compose KDFCollisionResistance(H) against LEAK_BIND_K_CT(hybrid).Adversary {
+    compose KDFCollisionResistance(H) against LEAK_BIND_K_CT_DIFFKEY(hybrid).Adversary {
 
     BitString<G.lambda> seed0;
     BitString<G.lambda> seed1;

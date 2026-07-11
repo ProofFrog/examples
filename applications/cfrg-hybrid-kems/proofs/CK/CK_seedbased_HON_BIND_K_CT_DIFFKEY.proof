@@ -11,19 +11,19 @@
 // In the expanded form, the proof is the C2PRICombiner case-split:
 // matching kdf_in's force ss_PQ_0 == ss_PQ_1 and (since ct_T_0,
 // ek_T_0 also match) ct_PQ_0 != ct_PQ_1 -- i.e. a KEM_PQ binding
-// break. We forward to KEM_PQ.HON_BIND_K_CT (Case B), and otherwise
+// break. We forward to KEM_PQ.HON_BIND_K_CT_DIFFKEY (Case B), and otherwise
 // reduce to KDFCollisionResistance(H) (Case A).
 //
 // Game sequence (18 entries, 17 hops):
-//   0.  HON_BIND_K_CT(hybrid).Breakable
+//   0.  HON_BIND_K_CT_DIFFKEY(hybrid).Breakable
 //   1.  PRGSec(G).Real           compose R_PRG_L
 //   2.  PRGSec(G).Random         compose R_PRG_L      (assumption)
 //   3.  KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L
 //   4.  KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_PQ_L (assumption)
 //   5.  KeyGenEquiv(KEM_T).FromDeriveKeyPair  compose R_KG_T_L
 //   6.  KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_L  (assumption)
-//   7.  HON_BIND_K_CT(KEM_PQ).Breakable    compose R_PQ_Bind
-//   8.  HON_BIND_K_CT(KEM_PQ).Unbreakable  compose R_PQ_Bind   (assumption)
+//   7.  HON_BIND_K_CT_DIFFKEY(KEM_PQ).Breakable    compose R_PQ_Bind
+//   8.  HON_BIND_K_CT_DIFFKEY(KEM_PQ).Unbreakable  compose R_PQ_Bind   (assumption)
 //   9.  KDFCollisionResistance(H).Breakable    compose R_KDF
 //  10.  KDFCollisionResistance(H).Unbreakable  compose R_KDF   (assumption)
 //  11.  KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_R
@@ -32,17 +32,17 @@
 //  14.  KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R (assumption)
 //  15.  PRGSec(G).Random         compose R_PRG_R
 //  16.  PRGSec(G).Real           compose R_PRG_R     (assumption)
-//  17.  HON_BIND_K_CT(hybrid).Unbreakable
+//  17.  HON_BIND_K_CT_DIFFKEY(hybrid).Unbreakable
 //
 // Assumptions: PRGSec(G), KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T),
-//              HON_BIND_K_CT(KEM_PQ), KDFCollisionResistance(H).
+//              HON_BIND_K_CT_DIFFKEY(KEM_PQ), KDFCollisionResistance(H).
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';
 import '../../primitives/KDF.primitive';
 import '../../primitives/Label.primitive';
 import '../../schemes/CK/CK_seedbased.scheme';
-import '../../games/KEM/Binding/HON_BIND_K_CT.game';
+import '../../games/KEM/Binding/HON_BIND_K_CT_DIFFKEY.game';
 import '../../games/KDF/KDFCollisionResistance.game';
 import '../../games/PRG/PRGSec.game';
 import '../../games/KEM/KeyGenEquiv.game';
@@ -79,54 +79,54 @@ assume:
     PRGSec(G);
     KeyGenEquiv(KEM_PQ);
     KeyGenEquiv(KEM_T);
-    HON_BIND_K_CT(KEM_PQ);
+    HON_BIND_K_CT_DIFFKEY(KEM_PQ);
     KDFCollisionResistance(H);
 
 theorem:
-    HON_BIND_K_CT(hybrid);
+    HON_BIND_K_CT_DIFFKEY(hybrid);
 
 games:
-    HON_BIND_K_CT(hybrid).Breakable against HON_BIND_K_CT(hybrid).Adversary;
+    HON_BIND_K_CT_DIFFKEY(hybrid).Breakable against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
     // Forward: PRGSec, KeyGenEquiv(KEM_PQ), KeyGenEquiv(KEM_T)
-    PRGSec(G).Real    compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    PRGSec(G).Random  compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    PRGSec(G).Real    compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    PRGSec(G).Random  compose R_PRG_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
-    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_PQ_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
-    KeyGenEquiv(KEM_T).FromDeriveKeyPair  compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromDeriveKeyPair  compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_L(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
-    // Inner: case-split on KEM_PQ.HON_BIND_K_CT
-    HON_BIND_K_CT(KEM_PQ).Breakable   compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    HON_BIND_K_CT(KEM_PQ).Unbreakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    // Inner: case-split on KEM_PQ.HON_BIND_K_CT_DIFFKEY
+    HON_BIND_K_CT_DIFFKEY(KEM_PQ).Breakable   compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    HON_BIND_K_CT_DIFFKEY(KEM_PQ).Unbreakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
     // Case A: KDF collision resistance
-    KDFCollisionResistance(H).Breakable   compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    KDFCollisionResistance(H).Breakable   compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
     // Reverse (Unbreakable side)
-    KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    KeyGenEquiv(KEM_T).FromDeriveKeyPair  compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromKeyGen         compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KeyGenEquiv(KEM_T).FromDeriveKeyPair  compose R_KG_T_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
-    KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_PQ_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
-    PRGSec(G).Random  compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
-    PRGSec(G).Real    compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT(hybrid).Adversary;
+    PRGSec(G).Random  compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
+    PRGSec(G).Real    compose R_PRG_R(KEM_PQ, KEM_T, G, H, L, hybrid) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
-    HON_BIND_K_CT(hybrid).Unbreakable against HON_BIND_K_CT(hybrid).Adversary;
+    HON_BIND_K_CT_DIFFKEY(hybrid).Unbreakable against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
 // ===================================================================
 // Forward reductions: two queries to the challenger, one per honest
-// key. Tailored to HON_BIND_K_CT's interface (no challenge ciphertext;
+// key. Tailored to HON_BIND_K_CT_DIFFKEY's interface (no challenge ciphertext;
 // two Decaps oracles plus a Challenge oracle that returns the binding
 // predicate).
 // ===================================================================
 
 Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
-    compose PRGSec(G) against HON_BIND_K_CT(hybrid).Adversary {
+    compose PRGSec(G) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_0;
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_1;
     [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys_0;
@@ -177,7 +177,7 @@ Reduction R_PRG_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hyb
 }
 
 Reduction R_KG_PQ_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
-    compose KeyGenEquiv(KEM_PQ) against HON_BIND_K_CT(hybrid).Adversary {
+    compose KeyGenEquiv(KEM_PQ) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_0;
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_1;
     BitString<KEM_T.Nseed> seed_T_0;
@@ -228,7 +228,7 @@ Reduction R_KG_PQ_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased h
 }
 
 Reduction R_KG_T_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
-    compose KeyGenEquiv(KEM_T) against HON_BIND_K_CT(hybrid).Adversary {
+    compose KeyGenEquiv(KEM_T) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_0;
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_1;
     [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys_0;
@@ -273,7 +273,7 @@ Reduction R_KG_T_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hy
 }
 
 // ===================================================================
-// R_PQ_Bind: case-split reduction to KEM_PQ.HON_BIND_K_CT.
+// R_PQ_Bind: case-split reduction to KEM_PQ.HON_BIND_K_CT_DIFFKEY.
 //
 // Generates KEM_T keys locally; obtains KEM_PQ ek's from challenger.
 // Decapsulation oracles forward the PQ component to challenger.Decaps0/1
@@ -283,7 +283,7 @@ Reduction R_KG_T_L(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hy
 // Otherwise return the bare hybrid binding predicate (passthrough).
 // ===================================================================
 Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_seedbased hybrid)
-    compose HON_BIND_K_CT(KEM_PQ) against HON_BIND_K_CT(hybrid).Adversary {
+    compose HON_BIND_K_CT_DIFFKEY(KEM_PQ) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
 
     [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys_0;
     [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys_1;
@@ -334,7 +334,7 @@ Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_seedbased hybrid)
 // kdf_in's and forwards them to the KDF-CR challenger.
 // ===================================================================
 Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_seedbased hybrid)
-    compose KDFCollisionResistance(H) against HON_BIND_K_CT(hybrid).Adversary {
+    compose KDFCollisionResistance(H) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
 
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_0;
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_1;
@@ -389,7 +389,7 @@ Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_seedbased hybrid)
 // ===================================================================
 
 Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
-    compose KeyGenEquiv(KEM_T) against HON_BIND_K_CT(hybrid).Adversary {
+    compose KeyGenEquiv(KEM_T) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_0;
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_1;
     [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys_0;
@@ -425,7 +425,7 @@ Reduction R_KG_T_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hy
 }
 
 Reduction R_KG_PQ_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
-    compose KeyGenEquiv(KEM_PQ) against HON_BIND_K_CT(hybrid).Adversary {
+    compose KeyGenEquiv(KEM_PQ) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_0;
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_1;
     BitString<KEM_T.Nseed> seed_T_0;
@@ -465,7 +465,7 @@ Reduction R_KG_PQ_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased h
 }
 
 Reduction R_PRG_R(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
-    compose PRGSec(G) against HON_BIND_K_CT(hybrid).Adversary {
+    compose PRGSec(G) against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary {
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_0;
     [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] pq_keys_1;
     [KEM_T.EncapsKey, KEM_T.DecapsKey] t_keys_0;

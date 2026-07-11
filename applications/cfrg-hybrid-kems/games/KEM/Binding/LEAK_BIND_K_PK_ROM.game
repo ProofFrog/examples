@@ -7,7 +7,7 @@
 // scheme-internal PRG calls and the adversary's HashG queries hit the
 // same random function.
 //
-// Mirrors LEAK_BIND_K_CT_ROM.game's shape (generic over Set D, Set R),
+// Mirrors LEAK_BIND_K_CT_ROM_DIFFKEY.game's shape (generic over Set D, Set R),
 // so the same game serves CK_seedbased and CG_seedbased by varying the codomain at
 // instantiation time.
 

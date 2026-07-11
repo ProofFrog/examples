@@ -1,0 +1,131 @@
+// Proof that CK_expanded hybrid KEM satisfies LEAK-BIND-K-CT (SAMEKEY).
+//
+// SAMEKEY (b=0): both ciphertexts are decapsulated under a single hybrid
+// key pair. C2PRICombiner: ct_PQ and ek_PQ are NOT in the KDF input, so a
+// same-key binding break does not directly imply a KDF collision: the
+// case where kdf_in_0 == kdf_in_1 forces ss_PQ_0 == ss_PQ_1,
+// ct_T_0 == ct_T_1, and (since ct0 != ct1) ct_PQ_0 != ct_PQ_1 -- which is
+// precisely a same-key LEAK-BIND-K-CT (SAMEKEY) break on KEM_PQ.
+//
+// Proof strategy: R_PQ_Bind case-splits on
+// (kdf_in_0 == kdf_in_1 && ct_PQ_0 != ct_PQ_1), forwarding the two PQ
+// ciphertexts to the KEM_PQ SAMEKEY challenger in that branch; otherwise
+// it returns the bare hybrid binding predicate. R_KDF then reduces the
+// residual case to KDF collision resistance.
+//
+// Assumptions: KEM_PQ.LEAK_BIND_K_CT_SAMEKEY, KDFCollisionResistance(H).
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/PRG.primitive';
+import '../../primitives/KDF.primitive';
+import '../../primitives/Label.primitive';
+import '../../schemes/CK/CK_expanded.scheme';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_SAMEKEY.game';
+import '../../games/KDF/KDFCollisionResistance.game';
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int kem_t_nseed;
+    Int kem_t_nss;
+    Int kem_t_nct;
+    Int kem_t_nek;
+    Int prg_stretch;
+    Int kdf_nout;
+    Int nlabel;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set KEMTCiphertextSpace;
+    Set KEMTEncapsKeySpace;
+    Set KEMTDecapsKeySpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    KEM KEM_T = KEM(kem_t_nseed, kem_t_nss, kem_t_nct, kem_t_nek,
+                    BitString<kem_t_nss>, KEMTCiphertextSpace, KEMTEncapsKeySpace, KEMTDecapsKeySpace);
+    PRG G = PRG(kem_pq_nseed, kem_t_nseed);
+    KDF H = KDF(kem_pq_nss + kem_t_nss + kem_t_nct + kem_t_nek + nlabel, kdf_nout);
+    Label L = Label(nlabel);
+    CK_expanded hybrid = CK_expanded(KEM_PQ, KEM_T, G, H, L);
+
+assume:
+    LEAK_BIND_K_CT_SAMEKEY(KEM_PQ);
+    KDFCollisionResistance(H);
+
+theorem:
+    LEAK_BIND_K_CT_SAMEKEY(hybrid);
+
+games:
+    LEAK_BIND_K_CT_SAMEKEY(hybrid).Breakable against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+    LEAK_BIND_K_CT_SAMEKEY(KEM_PQ).Breakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+    LEAK_BIND_K_CT_SAMEKEY(KEM_PQ).Unbreakable compose R_PQ_Bind(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Breakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+    LEAK_BIND_K_CT_SAMEKEY(hybrid).Unbreakable against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+
+Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
+    compose LEAK_BIND_K_CT_SAMEKEY(KEM_PQ) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_T.DecapsKey dk_T_0;
+    KEM_T.EncapsKey ek_T_0;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = challenger.Initialize();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.KeyGen();
+        hybrid.EncapsKey ek0 = [ek_PQ_0, ek_T_0];
+        hybrid.DecapsKey dk0 = [dk_PQ_0, dk_T_0, ek_T_0];
+        return [ek0, dk0];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_T.Ciphertext ct_T_0 = ct0[1];
+        KEM_T.Ciphertext ct_T_1 = ct1[1];
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(KEM_PQ.Decaps(dk_PQ_0, ct0[0])) || KEM_T.EncodeSharedSecret(KEM_T.Decaps(dk_T_0, ct_T_0)) || KEM_T.EncodeCiphertext(ct_T_0) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(KEM_PQ.Decaps(dk_PQ_0, ct1[0])) || KEM_T.EncodeSharedSecret(KEM_T.Decaps(dk_T_0, ct_T_1)) || KEM_T.EncodeCiphertext(ct_T_1) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+
+        if (kdf_in_0 == kdf_in_1 && ct0[0] != ct1[0]) {
+            return challenger.Challenge(ct0[0], ct1[0]);
+        }
+        return H.evaluate(kdf_in_0) == H.evaluate(kdf_in_1) && ct0 != ct1;
+    }
+}
+
+Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, KDF H, Label L, CK_expanded hybrid)
+    compose KDFCollisionResistance(H) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_T.DecapsKey dk_T_0;
+    KEM_T.EncapsKey ek_T_0;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ, dk_PQ_0] = KEM_PQ.KeyGen();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.KeyGen();
+        hybrid.EncapsKey ek0 = [ek_PQ, ek_T_0];
+        hybrid.DecapsKey dk0 = [dk_PQ_0, dk_T_0, ek_T_0];
+        return [ek0, dk0];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
+        KEM_T.Ciphertext ct_T_0 = ct0[1];
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_0);
+        KEM_T.SharedSecret ss_T_0 = KEM_T.Decaps(dk_T_0, ct_T_0);
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || KEM_T.EncodeSharedSecret(ss_T_0) || KEM_T.EncodeCiphertext(ct_T_0) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+
+        KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
+        KEM_T.Ciphertext ct_T_1 = ct1[1];
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_1);
+        KEM_T.SharedSecret ss_T_1 = KEM_T.Decaps(dk_T_0, ct_T_1);
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || KEM_T.EncodeSharedSecret(ss_T_1) || KEM_T.EncodeCiphertext(ct_T_1) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+
+        if (ct0 == ct1) {
+            return false;
+        }
+        return challenger.Challenge(kdf_in_0, kdf_in_1);
+    }
+}

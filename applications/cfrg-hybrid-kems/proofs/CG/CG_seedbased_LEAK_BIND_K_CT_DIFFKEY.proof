@@ -12,25 +12,25 @@
 // at the PRG output stage.
 //
 // K_PQ assumption shape: this proof assumes seeded-form
-// LEAK_BIND_K_CT(KEM_PQ) -- KEM_PQ.DecapsKey = BitString<Nseed>. For
+// LEAK_BIND_K_CT_DIFFKEY(KEM_PQ) -- KEM_PQ.DecapsKey = BitString<Nseed>. For
 // KEMs whose KeyGen is defined as DeriveKeyPair(uniform seed) (ML-KEM
 // per FIPS 203, HQC, ...) this is the spec-natural form.
 //
 // Game sequence (14 entries, 13 hops):
-//   0.  LEAK_BIND_K_CT_ROM(hybrid).Breakable
+//   0.  LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid).Breakable
 //   1.  CGLazyROTwoSeeded.Honest             compose R_LazyRO_L  (equiv)
 //   2.  CGLazyROTwoSeeded.Lazy               compose R_LazyRO_L  (assumption, free fact)
 //   3.  KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_L     (equiv)
 //   4.  KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_L     (assumption)
-//   5.  LEAK_BIND_K_CT(KEM_PQ).Breakable    compose R_PQ_Bind    (equiv)
-//   6.  LEAK_BIND_K_CT(KEM_PQ).Unbreakable  compose R_PQ_Bind    (assumption)
+//   5.  LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Breakable    compose R_PQ_Bind    (equiv)
+//   6.  LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Unbreakable  compose R_PQ_Bind    (assumption)
 //   7.  KDFCollisionResistance(H).Breakable    compose R_KDF     (equiv)
 //   8.  KDFCollisionResistance(H).Unbreakable  compose R_KDF     (assumption)
 //   9.  KeyGenEquiv(KEM_PQ).FromKeyGen        compose R_KG_R     (equiv)
 //   10. KeyGenEquiv(KEM_PQ).FromDeriveKeyPair compose R_KG_R     (assumption)
 //   11. CGLazyROTwoSeeded.Lazy               compose R_LazyRO_R  (equiv)
 //   12. CGLazyROTwoSeeded.Honest             compose R_LazyRO_R  (assumption, free fact)
-//   13. LEAK_BIND_K_CT_ROM(hybrid).Unbreakable
+//   13. LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid).Unbreakable
 //
 // The CGLazyROTwoSeeded pair of hops is a statistical fact (collision
 // term 2^-lambda) that switches between the bare-game form (G_RO
@@ -40,17 +40,17 @@
 //
 // The KeyGenEquiv pair of hops then bridges KEM_PQ.DeriveKeyPair(uniform)
 // (which the lazy form's split y0_pq exposes) and KEM_PQ.KeyGen()
-// (which the LEAK_BIND_K_CT challenger calls).
+// (which the LEAK_BIND_K_CT_DIFFKEY challenger calls).
 //
 // C2PRICombiner case-split: CG_seedbased's KDF input is
 //   ss_PQ || ss_T || ct_T || ek_T || label
 // (no ct_PQ or ek_PQ slots). A binding break with kdf_in_0 == kdf_in_1
 // forces ss_PQ_0 == ss_PQ_1, ct_T_0 == ct_T_1, ek_T_0 == ek_T_1.
 // Combined with ct0 != ct1 this implies ct_PQ_0 != ct_PQ_1 -- a
-// LEAK_BIND_K_CT break on KEM_PQ. R_PQ_Bind forwards (ct_PQ_0, ct_PQ_1)
+// LEAK_BIND_K_CT_DIFFKEY break on KEM_PQ. R_PQ_Bind forwards (ct_PQ_0, ct_PQ_1)
 // in that case; otherwise the residual is the KDF-collision case.
 //
-// Assumptions: seeded-form LEAK_BIND_K_CT(KEM_PQ),
+// Assumptions: seeded-form LEAK_BIND_K_CT_DIFFKEY(KEM_PQ),
 // KDFCollisionResistance(H), KeyGenEquiv(KEM_PQ),
 // CGLazyROTwoSeeded(KEM_PQ, NG, lambda). The latter two are
 // statistical helpers. CGLazyROTwoSeeded samples its random oracle
@@ -66,8 +66,8 @@ import '../../primitives/Label.primitive';
 import '../../schemes/CG/CG_seedbased.scheme';
 import '../../schemes/CG/CGRandomOraclePRG.scheme';
 import '../../schemes/Helpers/SeededKEMWrapper.scheme';
-import '../../games/KEM/Binding/LEAK_BIND_K_CT_ROM.game';
-import '../../games/KEM/Binding/LEAK_BIND_K_CT.game';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_ROM_DIFFKEY.game';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_DIFFKEY.game';
 import '../../games/KDF/KDFCollisionResistance.game';
 import '../../games/KEM/KeyGenEquiv.game';
 import '../../games/ROM/CGLazyROTwoSeeded.game';
@@ -100,7 +100,7 @@ let:
     NominalGroup NG = NominalGroup(ng_nseed, ng_nelem, ng_nss,
                                    NGElementSpace, NGScalarSpace);
     // Sample G_RO once; pass the same Function to CGRandomOraclePRG (so
-    // the scheme's PRG calls hit it) and to LEAK_BIND_K_CT_ROM (so the
+    // the scheme's PRG calls hit it) and to LEAK_BIND_K_CT_ROM_DIFFKEY (so the
     // adversary's HashG queries hit the same RO).
     Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO
         <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>>;
@@ -110,62 +110,62 @@ let:
     CG_seedbased hybrid = CG_seedbased(KEM_PQ, NG, G, H, L);
 
 assume:
-    LEAK_BIND_K_CT(KEM_PQ);
+    LEAK_BIND_K_CT_DIFFKEY(KEM_PQ);
     KDFCollisionResistance(H);
     KeyGenEquiv(KEM_PQ);
     CGLazyROTwoSeeded(KEM_PQ, NG, lambda);
 
 theorem:
-    LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO);
+    LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO);
 
 games:
-    LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Breakable
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Breakable
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
     CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Honest
         compose R_LazyRO_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
     CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Lazy
         compose R_LazyRO_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
     KeyGenEquiv(KEM_PQ).FromDeriveKeyPair
         compose R_KG_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
     KeyGenEquiv(KEM_PQ).FromKeyGen
         compose R_KG_L(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
-    LEAK_BIND_K_CT(KEM_PQ).Breakable
+    LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Breakable
         compose R_PQ_Bind(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
-    LEAK_BIND_K_CT(KEM_PQ).Unbreakable
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    LEAK_BIND_K_CT_DIFFKEY(KEM_PQ).Unbreakable
         compose R_PQ_Bind(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
     KDFCollisionResistance(H).Breakable
         compose R_KDF(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
     KDFCollisionResistance(H).Unbreakable
         compose R_KDF(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
     KeyGenEquiv(KEM_PQ).FromKeyGen
         compose R_KG_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
     KeyGenEquiv(KEM_PQ).FromDeriveKeyPair
         compose R_KG_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
     CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Lazy
         compose R_LazyRO_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
     CGLazyROTwoSeeded(KEM_PQ, NG, lambda).Honest
         compose R_LazyRO_R(KEM_PQ, NG, lambda, G_RO, H, L, hybrid)
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
-    LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Unbreakable
-        against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
+    LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Unbreakable
+        against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;
 
 // R_LazyRO_L / R_LazyRO_R: switch between the bare-game and lazy-RO
 // forms via the CGLazyROTwoSeeded helper game (statistical equivalence
@@ -174,7 +174,7 @@ Reduction R_LazyRO_L(KEM KEM_PQ, NominalGroup NG, Int lambda,
                      Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                      KDF H, Label L, CG_seedbased hybrid)
     compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda)
-    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+    against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;
     KEM_PQ.DecapsKey dk_PQ_1;
@@ -213,7 +213,7 @@ Reduction R_LazyRO_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
                      Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                      KDF H, Label L, CG_seedbased hybrid)
     compose CGLazyROTwoSeeded(KEM_PQ, NG, lambda)
-    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+    against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;
     KEM_PQ.DecapsKey dk_PQ_1;
@@ -242,7 +242,7 @@ Reduction R_LazyRO_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
     }
 }
 
-// R_KG_L / R_KG_R: bridge KEM_PQ.KeyGen() (used by the LEAK_BIND_K_CT
+// R_KG_L / R_KG_R: bridge KEM_PQ.KeyGen() (used by the LEAK_BIND_K_CT_DIFFKEY
 // challenger) and KEM_PQ.DeriveKeyPair(uniform_seed) (which CG_seedbased.KeyGen()
 // expands to). Each reduction calls challenger.Generate() twice to
 // produce the two hybrid keypairs the binding game expects.
@@ -250,7 +250,7 @@ Reduction R_KG_L(KEM KEM_PQ, NominalGroup NG, Int lambda,
                  Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                  KDF H, Label L, CG_seedbased hybrid)
     compose KeyGenEquiv(KEM_PQ)
-    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+    against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;
     KEM_PQ.DecapsKey dk_PQ_1;
@@ -304,7 +304,7 @@ Reduction R_KG_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
                  Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                  KDF H, Label L, CG_seedbased hybrid)
     compose KeyGenEquiv(KEM_PQ)
-    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+    against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     KEM_PQ.DecapsKey dk_PQ_0;
     KEM_PQ.DecapsKey dk_PQ_1;
@@ -344,7 +344,7 @@ Reduction R_KG_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
     }
 }
 
-// R_PQ_Bind: reduction to seeded-form K_PQ.LEAK_BIND_K_CT.
+// R_PQ_Bind: reduction to seeded-form K_PQ.LEAK_BIND_K_CT_DIFFKEY.
 //
 // Programs G_RO(seed_i) := s_PQ_i || s_T_i where s_PQ_i is the K_PQ
 // challenger's dk_PQ_i (seeded form) and s_T_i is sampled internally.
@@ -356,8 +356,8 @@ Reduction R_KG_R(KEM KEM_PQ, NominalGroup NG, Int lambda,
 Reduction R_PQ_Bind(KEM KEM_PQ, NominalGroup NG, Int lambda,
                     Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                     KDF H, Label L, CG_seedbased hybrid)
-    compose LEAK_BIND_K_CT(KEM_PQ)
-    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+    compose LEAK_BIND_K_CT_DIFFKEY(KEM_PQ)
+    against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     KEM_PQ.DecapsKey s_PQ_0;
     KEM_PQ.DecapsKey s_PQ_1;
@@ -417,7 +417,7 @@ Reduction R_KDF(KEM KEM_PQ, NominalGroup NG, Int lambda,
                 Function<BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>> G_RO,
                 KDF H, Label L, CG_seedbased hybrid)
     compose KDFCollisionResistance(H)
-    against LEAK_BIND_K_CT_ROM(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
+    against LEAK_BIND_K_CT_ROM_DIFFKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary {
 
     BitString<KEM_PQ.Nseed> s_PQ_0;
     BitString<KEM_PQ.Nseed> s_PQ_1;

@@ -1,0 +1,61 @@
+// Helper game: statistical equivalence (free fact). Single-seed variant
+// of LazyROTwoSeeded.game, used by the seeded-form SAMEKEY proofs of
+// LEAK-BIND-K-CT on the CK_seedbased hybrid KEM (which program the
+// PRG-as-RO at ONE seed point to embed a single K_PQ SAMEKEY binding
+// challenge).
+//
+// One-point lazy-sampling equivalence for a random oracle
+//     H : BitString<lambda> -> BitString<KEM_PQ.Nseed + KEM_T.Nseed>
+// at one freshly sampled domain point s0 -- exposed seed, RF value read
+// through a shared Hash oracle.
+//
+// H is sampled INSIDE each game at Initialize and is reachable only
+// through the Hash oracle (essential for soundness).
+//
+// Honest:  sample H; sample s0; return s0; answer Hash(x) by H(x).
+// Lazy:    sample H; sample s0; pre-sample y0_pq, y0_t; return s0; answer
+//          Hash(s0) with y0_pq || y0_t and H(x) elsewhere.
+//
+// Distinguishing advantage is 0: at a single fresh point Honest returns
+// H(s0) (uniform, never otherwise exposed) and Lazy returns the
+// independent uniform y0_pq || y0_t; the two are identically distributed.
+
+import '../../primitives/KEM.primitive';
+
+Game Honest(KEM KEM_PQ, KEM KEM_T, Int lambda) {
+    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>> H;
+
+    BitString<lambda> Initialize() {
+        H <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>>;
+        BitString<lambda> s0 <- BitString<lambda>;
+        return s0;
+    }
+
+    BitString<KEM_PQ.Nseed + KEM_T.Nseed> Hash(BitString<lambda> x) {
+        return H(x);
+    }
+}
+
+Game Lazy(KEM KEM_PQ, KEM KEM_T, Int lambda) {
+    Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>> H;
+    BitString<lambda> s0;
+    BitString<KEM_PQ.Nseed> y0_pq;
+    BitString<KEM_T.Nseed>  y0_t;
+
+    BitString<lambda> Initialize() {
+        H <- Function<BitString<lambda>, BitString<KEM_PQ.Nseed + KEM_T.Nseed>>;
+        s0 <- BitString<lambda>;
+        y0_pq <- BitString<KEM_PQ.Nseed>;
+        y0_t  <- BitString<KEM_T.Nseed>;
+        return s0;
+    }
+
+    BitString<KEM_PQ.Nseed + KEM_T.Nseed> Hash(BitString<lambda> x) {
+        if (x == s0) {
+            return y0_pq || y0_t;
+        }
+        return H(x);
+    }
+}
+
+export as LazyROOneSeeded;

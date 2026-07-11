@@ -1,0 +1,68 @@
+// Generic proof that LEAK-BIND-K-CT (SAMEKEY) implies HON-BIND-K-CT
+// (SAMEKEY) for any KEM.
+//
+// This is CDM24 ("Keeping Up with the KEMs", CCS 2024) Lemma 4.3
+// specialized to (P, Q) = (K, CT) in the b=0 single-key slice: every KEM
+// that leakage-binds the shared secret to the ciphertext under a single
+// key pair also honestly-binds it. The HON adversary is strictly weaker
+// because it does not receive the decapsulation key directly, only oracle
+// access.
+//
+// The reduction R obtains the (single) decapsulation key from a LEAK
+// SAMEKEY challenger, uses it locally to answer the HON adversary's
+// Decaps0 oracle, and forwards the Challenge call.
+//
+// Game sequence (4 entries, 3 hops):
+//   0. HON_BIND_K_CT_SAMEKEY(K).Breakable
+//   1. LEAK_BIND_K_CT_SAMEKEY(K).Breakable   compose R
+//   2. LEAK_BIND_K_CT_SAMEKEY(K).Unbreakable compose R   (assumption)
+//   3. HON_BIND_K_CT_SAMEKEY(K).Unbreakable
+
+import '../../primitives/KEM.primitive';
+import '../../games/KEM/Binding/HON_BIND_K_CT_SAMEKEY.game';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_SAMEKEY.game';
+
+proof:
+
+let:
+    Int Nseed;
+    Int Nss;
+    Int Nct;
+    Int Nek;
+    Set SharedSecretSpace;
+    Set CiphertextSpace;
+    Set EncapsKeySpace;
+    Set DecapsKeySpace;
+    KEM K = KEM(Nseed, Nss, Nct, Nek,
+                SharedSecretSpace, CiphertextSpace, EncapsKeySpace, DecapsKeySpace);
+
+assume:
+    LEAK_BIND_K_CT_SAMEKEY(K);
+
+theorem:
+    HON_BIND_K_CT_SAMEKEY(K);
+
+games:
+    HON_BIND_K_CT_SAMEKEY(K).Breakable against HON_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    LEAK_BIND_K_CT_SAMEKEY(K).Breakable   compose R(K) against HON_BIND_K_CT_SAMEKEY(K).Adversary;
+    LEAK_BIND_K_CT_SAMEKEY(K).Unbreakable compose R(K) against HON_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    HON_BIND_K_CT_SAMEKEY(K).Unbreakable against HON_BIND_K_CT_SAMEKEY(K).Adversary;
+
+Reduction R(KEM K) compose LEAK_BIND_K_CT_SAMEKEY(K) against HON_BIND_K_CT_SAMEKEY(K).Adversary {
+    K.DecapsKey dk0;
+
+    K.EncapsKey Initialize() {
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = challenger.Initialize();
+        return ek0;
+    }
+
+    K.SharedSecret Decaps0(K.Ciphertext ct) {
+        return K.Decaps(dk0, ct);
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        return challenger.Challenge(ct0, ct1);
+    }
+}
