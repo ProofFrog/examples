@@ -34,4 +34,8 @@ Game Nonzero(Int order) {
     }
 }
 
+// Union bound: over count_Samp queries, uniform and uniform-nonzero draws
+// differ only when 0 is drawn, so the advantage is at most count_Samp/order.
+advantage <= count_Samp / order;
+
 export as NonzeroSampling;

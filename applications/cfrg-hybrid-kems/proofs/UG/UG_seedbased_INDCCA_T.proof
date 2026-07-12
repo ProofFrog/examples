@@ -95,6 +95,15 @@ assume:
 theorem:
     KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H);
 
+bound:
+      advantage(PRGSec(G) compose R_PRG_L)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_L)
+    + advantage(RandomScalarDist(NG) compose R_Dist_Real)
+    + advantage(SDH_SS(NG) compose R_Combined)
+    + advantage(RandomScalarDist(NG) compose R_Dist_Random)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_R)
+    + advantage(PRGSec(G) compose R_PRG_R);
+
 games:
     KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Real against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary;
 

@@ -33,4 +33,8 @@ Game Ideal(Set S) {
     }
 }
 
+// Guessing bound: over count_Eq queries against an unrevealed uniform target
+// in S, the distinguishing advantage is at most count_Eq/|S|.
+advantage <= count_Eq / |S|;
+
 export as RandomTargetGuessing;

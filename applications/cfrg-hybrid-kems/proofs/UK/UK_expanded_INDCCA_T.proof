@@ -60,6 +60,14 @@ assume:
 theorem:
     KEM_INDCCA(hybrid);
 
+bound:
+      advantage(KEMCorrectnessWithDK(KEM_T) compose R_Correct_T_Real)
+    + advantage(KEM_INDCCA(KEM_T) compose R_KEM_T_L)
+    + advantage(KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss) compose R_PRF_Fwd)
+    + advantage(KDFSecondKeyPRF(H, KEM_PQ.Nss, KEM_T.Nss) compose R_PRF_Rev)
+    + advantage(KEM_INDCCA(KEM_T) compose R_KEM_T_R)
+    + advantage(KEMCorrectnessWithDK(KEM_T) compose R_Correct_T_Ideal);
+
 games:
     KEM_INDCCA(hybrid).Real against KEM_INDCCA(hybrid).Adversary;
 

@@ -101,4 +101,8 @@ Game Lazy(HashInputPacking P, Int n) {
     }
 }
 
+// Perfect equivalence: lazy sampling with cross-view patching is identically
+// distributed to a random function (unconditional, by injectivity of Pack).
+advantage <= 0;
+
 export as LazyROTwoViewsExcluded;

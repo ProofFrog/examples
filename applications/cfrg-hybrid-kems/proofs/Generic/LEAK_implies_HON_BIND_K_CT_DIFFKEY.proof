@@ -40,6 +40,9 @@ assume:
 theorem:
     HON_BIND_K_CT_DIFFKEY(K);
 
+bound:
+    advantage(LEAK_BIND_K_CT_DIFFKEY(K) compose R);
+
 games:
     HON_BIND_K_CT_DIFFKEY(K).Breakable against HON_BIND_K_CT_DIFFKEY(K).Adversary;
 

@@ -51,4 +51,8 @@ Game Programmed(Set D, Set R) {
     }
 }
 
+// Perfect equivalence: programming a hidden random function at one fresh
+// point is identically distributed to evaluating it, so there is no loss.
+advantage <= 0;
+
 export as ROMProgramming;

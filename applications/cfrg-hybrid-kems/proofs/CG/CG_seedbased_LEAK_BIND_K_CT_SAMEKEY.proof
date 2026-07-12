@@ -95,6 +95,12 @@ assume:
 theorem:
     LEAK_BIND_K_CT_ROM_SAMEKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO);
 
+bound:
+      advantage(KeyGenEquiv(KEM_PQ) compose R_KG_L)
+    + advantage(LEAK_BIND_K_CT_SAMEKEY(KEM_PQ) compose R_PQ_Bind)
+    + advantage(KDFCollisionResistance(H) compose R_KDF)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_R);
+
 games:
     LEAK_BIND_K_CT_ROM_SAMEKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Breakable
         against LEAK_BIND_K_CT_ROM_SAMEKEY(hybrid, BitString<lambda>, BitString<KEM_PQ.Nseed + NG.Nseed>, G_RO).Adversary;

@@ -65,6 +65,18 @@ assume:
 theorem:
     KEM_INDCCA(hybrid);
 
+bound:
+      advantage(PRGSec(G) compose R_PRG_L)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_L)
+    + advantage(KEMCorrectnessWithDK(KEM_PQ) compose R_Correct_Real)
+    + advantage(KEM_INDCCA(KEM_PQ) compose RB)
+    + advantage(KDFPRFSec(H, KEM_PQ.Nss) compose RD)
+    + advantage(KDFPRFSec(H, KEM_PQ.Nss) compose RE)
+    + advantage(KEM_INDCCA(KEM_PQ) compose RC)
+    + advantage(KEMCorrectnessWithDK(KEM_PQ) compose R_Correct_Ideal)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_R)
+    + advantage(PRGSec(G) compose R_PRG_R);
+
 games:
     KEM_INDCCA(hybrid).Real against KEM_INDCCA(hybrid).Adversary;
 

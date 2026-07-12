@@ -84,6 +84,14 @@ assume:
 theorem:
     KEMCorrectness(hybrid);
 
+bound:
+      advantage(PRGSec(G) compose R_PRG_L)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_PQ_L)
+    + advantage(KEMCorrectness(KEM_PQ) compose R_KEM_PQ)
+    + advantage(NGCorrectness(NG) compose R_NG)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_PQ_R)
+    + advantage(PRGSec(G) compose R_PRG_R);
+
 games:
     KEMCorrectness(hybrid).FromDecaps against KEMCorrectness(hybrid).Adversary;
     PRGSec(G).Real compose R_PRG_L(KEM_PQ, NG, G, H, L, hybrid) against KEMCorrectness(hybrid).Adversary;

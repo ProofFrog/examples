@@ -85,6 +85,16 @@ assume:
 theorem:
     HON_BIND_K_CT_DIFFKEY(hybrid);
 
+bound:
+      advantage(PRGSec(G) compose R_PRG_L)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_PQ_L)
+    + advantage(KeyGenEquiv(KEM_T) compose R_KG_T_L)
+    + advantage(HON_BIND_K_CT_DIFFKEY(KEM_PQ) compose R_PQ_Bind)
+    + advantage(KDFCollisionResistance(H) compose R_KDF)
+    + advantage(KeyGenEquiv(KEM_T) compose R_KG_T_R)
+    + advantage(KeyGenEquiv(KEM_PQ) compose R_KG_PQ_R)
+    + advantage(PRGSec(G) compose R_PRG_R);
+
 games:
     HON_BIND_K_CT_DIFFKEY(hybrid).Breakable against HON_BIND_K_CT_DIFFKEY(hybrid).Adversary;
 
