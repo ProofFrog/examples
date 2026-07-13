@@ -1,23 +1,35 @@
 // Concrete HashInputPacking for the C2PRICombiner KDF input used in
-// CG_seedbased:
+// the CG proofs:
 //     ss_PQ || ss_T || ct_T || ek_T || label
-// where State = [dk_PQ, dk_T, ek_T] and Query = [ct_PQ, ct_T].
+// where State = [dk_T, ek_T] and Query = [ss_PQ, ct_T].
 //
-// Because the C2PRICombiner KDF input from draft section 5.1.3 omits
-// ct_PQ and ek_PQ, the underlying map (st, q) |-> Pack(st, q) is NOT
-// genuinely injective: two distinct PQ ciphertexts ct_PQ and ct_PQ' that
-// decapsulate to the same shared secret yield identical Pack outputs
-// when the rest of the slots agree. Pack is nevertheless declared
-// `deterministic injective`: the surrounding proof uses the C2PRI
-// property of the post-quantum component to add an abort branch to
-// Decaps that excludes precisely the ss_PQ-colliding queries, and on
-// the resulting non-aborting query domain Pack is injective. The
-// injectivity declaration encodes that proof-side restriction.
+// The query space is the DERIVED pair (ss_PQ, ct_T), not the raw
+// ciphertext pair (ct_PQ, ct_T): callers of the LazyROTwoViewsExcluded
+// helpers decapsulate first (ss_PQ = K.Decaps(dk_PQ, ct_PQ)) and pass
+// the decapsulated shared secret as the query. Because the
+// C2PRICombiner KDF input from draft section 5.1.3 omits ct_PQ and
+// ek_PQ, the KDF input is a function of exactly this derived pair --
+// and on the derived pair it is genuinely injective: ss_PQ appears in
+// the clear through K.EncodeSharedSecret and ct_T through NG.Encode,
+// both declared injective. Two distinct PQ ciphertexts that decapsulate
+// to the same shared secret therefore map to the SAME query, and the
+// lazy helper answers them consistently -- exactly as the real random
+// oracle does. (Keying the helper by raw ciphertexts instead would
+// require Decaps-collision resistance of K, a stronger assumption than
+// the C2PRI property the CG proofs carry.)
 //
-// State carries dk_PQ and dk_T so Pack can recompute ss_PQ = K.Decaps(...)
-// and ss_T = ElementToSharedSecret(ct_T^dk_T). ek_T is needed for the
-// ek_T slot of the KDF input. ek_PQ is NOT needed (it does not appear in
-// the C2PRICombiner KDF input).
+// The excluded query qStar is the challenge's derived pair
+// (ss_PQ_star, ct_T_star). A non-challenge ciphertext can reach it only
+// by a second preimage of the challenge (ct_PQ != ct_PQ_star with
+// Decaps(dk_PQ, ct_PQ) == ss_PQ_star at ct_T == ct_T_star), which is
+// precisely the branch the surrounding proof's C2PRI hop aborts before
+// the helper is consulted.
+//
+// State carries dk_T so Pack can recompute ss_T =
+// ElementToSharedSecret(ct_T^dk_T), and ek_T for the ek_T slot of the
+// KDF input. ek_PQ and dk_PQ are NOT needed (decapsulation happens at
+// the call site, and ek_PQ does not appear in the C2PRICombiner KDF
+// input).
 
 import '../../primitives/HashInputPacking.primitive';
 import '../../primitives/KEM.primitive';
@@ -25,17 +37,16 @@ import '../../primitives/NominalGroup.primitive';
 import '../../primitives/Label.primitive';
 
 Scheme CGHashEncoding(KEM K, NominalGroup NG, Label L) extends HashInputPacking {
-    Set State = [K.DecapsKey, NG.Scalar, NG.Element];
-    Set Query = [K.Ciphertext, NG.Element];
+    Set State = [NG.Scalar, NG.Element];
+    Set Query = [K.SharedSecret, NG.Element];
     Int M = K.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel;
 
     deterministic injective BitString<M> Pack(State st, Query q) {
-        K.DecapsKey dk_PQ = st[0];
-        NG.Scalar dk_T = st[1];
-        NG.Element ek_T = st[2];
-        K.Ciphertext ct_PQ = q[0];
+        NG.Scalar dk_T = st[0];
+        NG.Element ek_T = st[1];
+        K.SharedSecret ss_PQ = q[0];
         NG.Element ct_T = q[1];
-        return K.EncodeSharedSecret(K.Decaps(dk_PQ, ct_PQ))
+        return K.EncodeSharedSecret(ss_PQ)
             || NG.ElementToSharedSecret(NG.Exp(ct_T, dk_T))
             || NG.Encode(ct_T)
             || NG.Encode(ek_T)

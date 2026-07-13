@@ -510,14 +510,18 @@ Reduction R_C2PRI_R(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased hy
 // R_Wrap_Prog: reduce to LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss).
 //
 // In Honest mode, the challenger samples a fresh random function RF and
-// returns RF(m_star) for the challenge; Indirect(ct) returns RF(Pack(st, ct))
-// for ct != qExcluded. Routing scheme.evaluate / Hash through RF is
-// equivalent to routing through the let-block H (both are independent
-// fresh random functions of matching type).
+// returns RF(m_star) for the challenge; Indirect is queried on the
+// DERIVED pair [dec_ss_PQ, ct_T] (decapsulation happens here in the
+// wrapper) and returns RF(Pack(st, [dec_ss_PQ, ct_T])), so ciphertexts
+// whose PQ components decapsulate identically hit the same oracle
+// point -- matching the real oracle. Routing scheme.evaluate / Hash
+// through RF is equivalent to routing through the let-block H (both
+// are independent fresh random functions of matching type).
 //
 // The abort branch is replicated here using the locally-stored dk_PQ
 // and ss_PQ_star, matching the abort branch introduced by the
-// preceding C2PRI hop.
+// preceding C2PRI hop; it is what makes the excluded derived query
+// (the challenge's pair [ss_PQ_star, ct_T_star]) unreachable.
 // ===================================================================
 Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, Label L, CG_seedbased hybrid, Function<BitString<KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel>, BitString<hybrid.Nss>> H)
     compose LazyROTwoViewsExcludedProgrammed(P, hybrid.Nss) against KEM_INDCCA_ROM(hybrid, BitString<hybrid.Nin>, BitString<hybrid.Nss>, H).Adversary {
@@ -537,7 +541,7 @@ Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, La
         [KEM_PQ.Ciphertext, NG.Element] ctStar = [ct_PQ_star, ct_T_star];
         BitString<hybrid.Nin> m_star =
             KEM_PQ.EncodeSharedSecret(ss_PQ_star) || ss_T || NG.Encode(ct_T_star) || NG.Encode(ek_T) || L.get();
-        BitString<hybrid.Nss> ss = challenger.Initialize([dk_PQ, dk_T, ek_T], ctStar, m_star);
+        BitString<hybrid.Nss> ss = challenger.Initialize([dk_T, ek_T], [ss_PQ_star, ct_T_star], m_star);
         return [[ek_PQ, ek_T], ss, ctStar];
     }
 
@@ -551,7 +555,7 @@ Reduction R_Wrap_Prog(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G, La
             BitString<hybrid.Nss> r <- BitString<hybrid.Nss>;
             return r;
         }
-        return challenger.Indirect(ct);
+        return challenger.Indirect([dec_ss_PQ, ct_T]);
     }
 
     BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
@@ -580,7 +584,7 @@ Reduction R_Wrap_NoAbort(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G,
         NG.Scalar sk_E <- NG.Scalar;
         ct_T_star = NG.Exp(NG.Generator(), sk_E);
         [KEM_PQ.Ciphertext, NG.Element] ctStar = [ct_PQ_star, ct_T_star];
-        BitString<hybrid.Nss> ss = challenger.Initialize([dk_PQ, dk_T, ek_T], ctStar);
+        BitString<hybrid.Nss> ss = challenger.Initialize([dk_T, ek_T], [ss_PQ_star, ct_T_star]);
         return [[ek_PQ, ek_T], ss, ctStar];
     }
 
@@ -594,7 +598,7 @@ Reduction R_Wrap_NoAbort(KEM KEM_PQ, NominalGroup NG, HashInputPacking P, PRG G,
             BitString<hybrid.Nss> r <- BitString<hybrid.Nss>;
             return r;
         }
-        return challenger.Indirect(ct);
+        return challenger.Indirect([dec_ss_PQ, ct_T]);
     }
 
     BitString<hybrid.Nss> Hash(BitString<hybrid.Nin> m) {
@@ -621,7 +625,7 @@ Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased h
     KEM_PQ.SharedSecret ss_PQ_star;
     BitString<hybrid.Nss> ss_star;
     Map<BitString<hybrid.Nin>, BitString<hybrid.Nss>> HT;
-    Map<[KEM_PQ.Ciphertext, NG.Element], BitString<hybrid.Nss>> QT;
+    Map<[KEM_PQ.SharedSecret, NG.Element], BitString<hybrid.Nss>> QT;
 
     [hybrid.EncapsKey, hybrid.SharedSecret, hybrid.Ciphertext] Initialize() {
         [NG.Element, NG.Element] [ek_T, ct_T] = challenger.Initialize();
@@ -641,7 +645,8 @@ Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased h
             BitString<hybrid.Nss> r <- BitString<hybrid.Nss>;
             return r;
         }
-        if (ct in QT) { return QT[ct]; }
+        [KEM_PQ.SharedSecret, NG.Element] d = [ss_PQ, ct_T];
+        if (d in QT) { return QT[d]; }
         BitString<KEM_PQ.Nss> ss_PQ_enc = KEM_PQ.EncodeSharedSecret(ss_PQ);
         BitString<NG.Nelem> ct_T_enc = NG.Encode(ct_T);
         BitString<NG.Nelem> ek_T_enc = NG.Encode(ek_T);
@@ -653,12 +658,12 @@ Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased h
                 && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + NG.Nelem] == ct_T_enc
                 && m[KEM_PQ.Nss + NG.Nss + NG.Nelem : KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem] == ek_T_enc
                 && m[KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem : KEM_PQ.Nss + NG.Nss + NG.Nelem + NG.Nelem + L.Nlabel] == label_enc) {
-                QT[ct] = e[1];
+                QT[d] = e[1];
                 return e[1];
             }
         }
         BitString<hybrid.Nss> s <- BitString<hybrid.Nss>;
-        QT[ct] = s;
+        QT[d] = s;
         return s;
     }
 
@@ -672,9 +677,8 @@ Reduction R_Combined(KEM KEM_PQ, NominalGroup NG, PRG G, Label L, CG_seedbased h
             return ss_star;
         }
         if (m in HT) { return HT[m]; }
-        for ([[KEM_PQ.Ciphertext, NG.Element], BitString<hybrid.Nss>] e in QT.entries) {
-            [KEM_PQ.Ciphertext, NG.Element] [ct_PQ, ct_T] = e[0];
-            KEM_PQ.SharedSecret ss_PQ = KEM_PQ.Decaps(dk_PQ, ct_PQ);
+        for ([[KEM_PQ.SharedSecret, NG.Element], BitString<hybrid.Nss>] e in QT.entries) {
+            [KEM_PQ.SharedSecret, NG.Element] [ss_PQ, ct_T] = e[0];
             if (m[0 : KEM_PQ.Nss] == KEM_PQ.EncodeSharedSecret(ss_PQ)
                 && challenger.DH(ct_T, ss_T_slot)
                 && m[KEM_PQ.Nss + NG.Nss : KEM_PQ.Nss + NG.Nss + NG.Nelem] == NG.Encode(ct_T)
