@@ -16,7 +16,7 @@ HON-BIND-K-{CT,PK}.
 
 > This README describes what the artifact contains and how to run it.
 > The results, the assumptions they rest on, the modelling choices and
-> their limits, and our comments to the working group are in
+> their limits, and our comments to the research group are in
 > **[REPORT-CFRG-20260722.md](REPORT-CFRG-20260722.md)**; the per-proof
 > assumption counts are in its companion
 > **[BOUNDS-CFRG-20260722.md](BOUNDS-CFRG-20260722.md)**. Read the report
@@ -37,7 +37,6 @@ HON-BIND-K-{CT,PK}.
 | [`schemes/Helpers/`](schemes/Helpers/) | `SeededKEMWrapper.scheme` |
 | [`proofs/{UG,UK,CG,CK}/`](proofs/) | All correctness, IND-CCA, and binding proofs |
 | [`proofs/Generic/`](proofs/Generic/) | `LEAK_implies_HON_BIND_K_{CT,PK}` |
-| [`generated/`](generated/) | Auto-generated bound tables, inlined into [`BOUNDS-CFRG-20260722.md`](BOUNDS-CFRG-20260722.md); derived from the `bound:` clauses, so do not hand-edit either. |
 
 ## Naming conventions
 

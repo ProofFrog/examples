@@ -1,4 +1,4 @@
-# A machine-checked analysis of the four hybrid KEM combiners of draft-irtf-cfrg-hybrid-kems: comments for the IRTF CFRG working group last call
+# A machine-checked analysis of the four hybrid KEM combiners of draft-irtf-cfrg-hybrid-kems: comments for the IRTF CFRG research group last call
 
 **Douglas Stebila and Camryn Steckel**, University of Waterloo
 
@@ -278,7 +278,7 @@ This section expands on [Section 2](#2-draft--10-versus-draft--12) and details d
 
 ## 7. Reproducing these results
 
-The ProofFrog models, the proof scripts, and the generated bound tables are at <https://github.com/ProofFrog/examples/tree/main/applications/cfrg-hybrid-kems>. The results reported here are those of commit `a2e66f7`.
+The ProofFrog models and the proof scripts are at <https://github.com/ProofFrog/examples/tree/main/applications/cfrg-hybrid-kems>. The results reported here are those of the tag [`cfrg-rglc-20260722`](https://github.com/ProofFrog/examples/tree/cfrg-rglc-20260722/applications/cfrg-hybrid-kems), which fixes the state of that directory as of this report.
 
 [`README.md`](README.md) in that directory gives the commands to parse and type-check the primitives, games and schemes, and to verify every proof. Verifying a single proof also prints its hop sequence and the advantage bound it establishes.
 
