@@ -1,23 +1,23 @@
-schema_version = 1
+schema_version = 2
 
 [[entry]]
 transform = "Merge Product Samples"
 description = "hop 4 left_2: merges two independent samples c1 <$ d1; c2 <$ d2 (returning (c1, c2)) into one product sample c <$ d1 `*` d2. rndsem{1} 0 folds LHS into a single dlet sample; have eqd builds dprod_dlet + dlet_dunit equality between the dprod and dlet/dmap form; rnd with identity bijection then matches the two samplings."
 added = "2026-05-23"
 game_before = '''
-proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
-  var __a0__ : CiphertextSpace1;
-  __a0__ <$ CiphertextSpace1;
-  var __a1__ : CiphertextSpace2;
-  __a1__ <$ CiphertextSpace2;
-  return (__a0__, __a1__);
+proc ENC(v : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var v : CiphertextSpace1;
+  v <$ CiphertextSpace1;
+  var v : CiphertextSpace2;
+  v <$ CiphertextSpace2;
+  return (v, v);
 }
 '''
 game_after = '''
-proc ENC(m : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
-  var __a0__ : [CiphertextSpace1, CiphertextSpace2];
-  __a0__ <$ (CiphertextSpace1, CiphertextSpace2);
-  return __a0__;
+proc ENC(v : MessageSpace) : [CiphertextSpace1, CiphertextSpace2] = {
+  var v : [CiphertextSpace1, CiphertextSpace2];
+  v <$ (CiphertextSpace1, CiphertextSpace2);
+  return v;
 }
 '''
 tactic = '''

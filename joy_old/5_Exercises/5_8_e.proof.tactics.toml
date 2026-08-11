@@ -1,4 +1,4 @@
-schema_version = 1
+schema_version = 2
 
 [[entry]]
 transform = "<hop>"
@@ -6,30 +6,30 @@ description = "5_8_e hop_1: PRGSecurity(G).Real o R1 ~ INDOT$(P).Real o R2 (dete
 added = "2026-05-31"
 game_before = '''
 proc Query() : BitString<lambda + 2 * lambda> = {
-  var challenger_Query_s0 : BitString<lambda>;
-  challenger_Query_s0 <$ BitString<lambda>;
-  var _r0 : BitString<G.lambda + G.stretch>;
-  _r0 <@ G.evaluate(challenger_Query_s0);
-  var _r1 : BitString<G.lambda + G.stretch>;
-  _r1 <@ G.evaluate(0^lambda);
-  return (_r0 BinaryOperators.ADD _r1);
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<G.lambda + G.stretch>;
+  v <@ G.evaluate(v);
+  var v : BitString<G.lambda + G.stretch>;
+  v <@ G.evaluate(0^lambda);
+  return (v BinaryOperators.ADD v);
 }
 '''
 game_after = '''
 proc Query() : BitString<lambda + 2 * lambda> = {
-  var v_P_KeyGen_k0 : BitString<lambda>;
-  v_P_KeyGen_k0 <$ BitString<lambda>;
-  var challenger_CTXT_k0 : BitString<lambda>;
-  challenger_CTXT_k0 = v_P_KeyGen_k0;
-  var _r0 : BitString<G.lambda + G.stretch>;
-  _r0 <@ G.evaluate(challenger_CTXT_k0);
-  var _r1 : BitString<G.lambda + G.stretch>;
-  _r1 <@ G.evaluate(0^lambda);
-  var challenger_CTXT_c0 : BitString<lambda + 2 * lambda>;
-  challenger_CTXT_c0 = (_r0 BinaryOperators.ADD _r1);
-  var result : BitString<3 * lambda>;
-  result = challenger_CTXT_c0;
-  return result;
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<lambda>;
+  v = v;
+  var v : BitString<G.lambda + G.stretch>;
+  v <@ G.evaluate(v);
+  var v : BitString<G.lambda + G.stretch>;
+  v <@ G.evaluate(0^lambda);
+  var v : BitString<lambda + 2 * lambda>;
+  v = (v BinaryOperators.ADD v);
+  var v : BitString<3 * lambda>;
+  v = v;
+  return v;
 }
 '''
 tactic = '''
@@ -53,18 +53,18 @@ description = "5_8_e hop_3: INDOT$(P).Random o R2 ~ PRGSecurity(H).Random (dead 
 added = "2026-05-31"
 game_before = '''
 proc Query() : BitString<lambda + 2 * lambda> = {
-  var challenger_CTXT_c0 : BitString<lambda + 2 * lambda>;
-  challenger_CTXT_c0 <$ BitString<lambda + 2 * lambda>;
-  var result : BitString<3 * lambda>;
-  result = challenger_CTXT_c0;
-  return result;
+  var v : BitString<lambda + 2 * lambda>;
+  v <$ BitString<lambda + 2 * lambda>;
+  var v : BitString<3 * lambda>;
+  v = v;
+  return v;
 }
 '''
 game_after = '''
 proc Query() : BitString<lambda + 2 * lambda> = {
-  var r : BitString<lambda + 2 * lambda>;
-  r <$ BitString<lambda + 2 * lambda>;
-  return r;
+  var v : BitString<lambda + 2 * lambda>;
+  v <$ BitString<lambda + 2 * lambda>;
+  return v;
 }
 '''
 tactic = '''

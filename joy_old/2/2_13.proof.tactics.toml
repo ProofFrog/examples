@@ -1,27 +1,27 @@
-schema_version = 1
+schema_version = 2
 
 [[entry]]
 transform = "Inline Local Tuple Literal"
 description = "2_13 micro_0_left_2: inline the Key tuple (key1,key2) and reduce the projections; deterministic body, closes by auto."
 added = "2026-06-14"
 game_before = '''
-proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var __a0__ : BitString<lambda>;
-  __a0__ <$ BitString<lambda>;
-  var __a1__ : BitString<lambda>;
-  __a1__ <$ BitString<lambda>;
-  var __a2__ : [BitString<lambda>, BitString<lambda>];
-  __a2__ = (__a0__, __a1__);
-  return (__a2__[1] BinaryOperators.ADD (__a2__[0] BinaryOperators.ADD m));
+proc CTXT(v : BitString<lambda>) : BitString<lambda> = {
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : [BitString<lambda>, BitString<lambda>];
+  v = (v, v);
+  return (v[1] BinaryOperators.ADD (v[0] BinaryOperators.ADD v));
 }
 '''
 game_after = '''
-proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var __a0__ : BitString<lambda>;
-  __a0__ <$ BitString<lambda>;
-  var __a1__ : BitString<lambda>;
-  __a1__ <$ BitString<lambda>;
-  return (__a1__ BinaryOperators.ADD (__a0__ BinaryOperators.ADD m));
+proc CTXT(v : BitString<lambda>) : BitString<lambda> = {
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  return (v BinaryOperators.ADD (v BinaryOperators.ADD v));
 }
 '''
 tactic = '''
@@ -33,21 +33,21 @@ transform = "XOR Cancellation"
 description = "2_13 micro_0_left_3: reassociate xor a (xor b c) -> xor (xor a b) c; needs the xor_lambda_assoc foundation axiom."
 added = "2026-06-14"
 game_before = '''
-proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var __a0__ : BitString<lambda>;
-  __a0__ <$ BitString<lambda>;
-  var __a1__ : BitString<lambda>;
-  __a1__ <$ BitString<lambda>;
-  return (__a1__ BinaryOperators.ADD (__a0__ BinaryOperators.ADD m));
+proc CTXT(v : BitString<lambda>) : BitString<lambda> = {
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  return (v BinaryOperators.ADD (v BinaryOperators.ADD v));
 }
 '''
 game_after = '''
-proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var __a0__ : BitString<lambda>;
-  __a0__ <$ BitString<lambda>;
-  var __a1__ : BitString<lambda>;
-  __a1__ <$ BitString<lambda>;
-  return ((__a1__ BinaryOperators.ADD __a0__) BinaryOperators.ADD m);
+proc CTXT(v : BitString<lambda>) : BitString<lambda> = {
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  return ((v BinaryOperators.ADD v) BinaryOperators.ADD v);
 }
 '''
 tactic = '''
@@ -59,21 +59,21 @@ transform = "Uniform XOR Simplification"
 description = "2_13 micro_0_left_5: (key1 + key2) + m -> key1 (key1,key2 uniform). Reorder the two samples, couple key1 via the self-inverse xor-by-(key2+m) bijection; the dead second sample drops by funiform."
 added = "2026-06-14"
 game_before = '''
-proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var __a0__ : BitString<lambda>;
-  __a0__ <$ BitString<lambda>;
-  var __a1__ : BitString<lambda>;
-  __a1__ <$ BitString<lambda>;
-  return ((__a0__ BinaryOperators.ADD __a1__) BinaryOperators.ADD m);
+proc CTXT(v : BitString<lambda>) : BitString<lambda> = {
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  return ((v BinaryOperators.ADD v) BinaryOperators.ADD v);
 }
 '''
 game_after = '''
-proc CTXT(m : BitString<lambda>) : BitString<lambda> = {
-  var __a0__ : BitString<lambda>;
-  __a0__ <$ BitString<lambda>;
-  var __a1__ : BitString<lambda>;
-  __a1__ <$ BitString<lambda>;
-  return __a0__;
+proc CTXT(v : BitString<lambda>) : BitString<lambda> = {
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  return v;
 }
 '''
 tactic = '''

@@ -1,17 +1,17 @@
-schema_version = 1
+schema_version = 2
 
 [[entry]]
 transform = "XOR Cancellation"
 description = "hop 0 left: discharges xor cancellation `xor_lambda k (xor_lambda k m) = m` on the OTP correctness Test return value. The equiv is purely deterministic (no sampling, no module calls), so `proc; auto => />` reduces it to the pointwise xor identity which smt closes with the per-clone xor_lambda involution + commutativity axioms."
 added = "2026-06-01"
 game_before = '''
-proc Test(k : BitString<lambda>, m : BitString<lambda>) : BitString<lambda>? = {
-  return (k BinaryOperators.ADD (k BinaryOperators.ADD m));
+proc Test(v : BitString<lambda>, v : BitString<lambda>) : BitString<lambda>? = {
+  return (v BinaryOperators.ADD (v BinaryOperators.ADD v));
 }
 '''
 game_after = '''
-proc Test(k : BitString<lambda>, m : BitString<lambda>) : BitString<lambda>? = {
-  return m;
+proc Test(v : BitString<lambda>, v : BitString<lambda>) : BitString<lambda>? = {
+  return v;
 }
 '''
 tactic = '''

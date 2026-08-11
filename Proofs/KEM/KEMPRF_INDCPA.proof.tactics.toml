@@ -1,4 +1,4 @@
-schema_version = 1
+schema_version = 2
 
 [[entry]]
 transform = "<oracle>:challenge"
@@ -6,54 +6,54 @@ description = "hop 0 challenge -- post-init transformed body; det-axiom finisher
 added = "2026-06-06"
 game_before = '''
 proc Initialize() : PKeySpace = {
-  var _tup : [PKeySpace, SKeySpace];
-  _tup <@ K.KeyGen();
-  pk = _tup[0];
-  sk = _tup[1];
-  return pk;
+  var v : [PKeySpace, SKeySpace];
+  v <@ K.KeyGen();
+  v = v[0];
+  v = v[1];
+  return v;
 }
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var v_KF_Encaps_x0 : [SharedSecretSpace, CiphertextSpace];
-  v_KF_Encaps_x0 <@ K.Encaps(pk);
-  var v_KF_Encaps_k0 : BitString<lambda>;
-  v_KF_Encaps_k0 = v_KF_Encaps_x0[0];
-  var v_KF_Encaps_c0 : CiphertextSpace;
-  v_KF_Encaps_c0 = v_KF_Encaps_x0[1];
-  var v_KF_Encaps_ss0 : BitString<out>;
-  v_KF_Encaps_ss0 <@ F.evaluate(v_KF_Encaps_k0, v_KF_Encaps_c0);
-  var _tup : [BitString<out>, CiphertextSpace];
-  _tup = (v_KF_Encaps_ss0, v_KF_Encaps_c0);
-  var ss : BitString<out>;
-  ss = _tup[0];
-  var ctxt : CiphertextSpace;
-  ctxt = _tup[1];
-  return (ss, ctxt);
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : BitString<lambda>;
+  v = v[0];
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<out>;
+  v <@ F.evaluate(v, v);
+  var v : [BitString<out>, CiphertextSpace];
+  v = (v, v);
+  var v : BitString<out>;
+  v = v[0];
+  var v : CiphertextSpace;
+  v = v[1];
+  return (v, v);
 }
 '''
 game_after = '''
 proc Initialize() : PKeySpace = {
-  var challenger_Initialize__tup0 : [PKeySpace, SKeySpace];
-  challenger_Initialize__tup0 <@ K.KeyGen();
-  challenger_pk = challenger_Initialize__tup0[0];
-  challenger_sk = challenger_Initialize__tup0[1];
-  return challenger_pk;
+  var v : [PKeySpace, SKeySpace];
+  v <@ K.KeyGen();
+  v = v[0];
+  v = v[1];
+  return v;
 }
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var challenger_Challenge__tup0 : [SharedSecretSpace, CiphertextSpace];
-  challenger_Challenge__tup0 <@ K.Encaps(challenger_pk);
-  var challenger_Challenge_ss0 : SharedSecretSpace;
-  challenger_Challenge_ss0 = challenger_Challenge__tup0[0];
-  var challenger_Challenge_ctxt0 : CiphertextSpace;
-  challenger_Challenge_ctxt0 = challenger_Challenge__tup0[1];
-  var _tup : [SharedSecretSpace, CiphertextSpace];
-  _tup = (challenger_Challenge_ss0, challenger_Challenge_ctxt0);
-  var ss : SharedSecretSpace;
-  ss = _tup[0];
-  var ct : CiphertextSpace;
-  ct = _tup[1];
-  var _r0 : BitString<F.out>;
-  _r0 <@ F.evaluate(ss, ct);
-  return (_r0, ct);
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : SharedSecretSpace;
+  v = v[0];
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v = (v, v);
+  var v : SharedSecretSpace;
+  v = v[0];
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<F.out>;
+  v <@ F.evaluate(v, v);
+  return (v, v);
 }
 '''
 tactic = '''
@@ -74,47 +74,47 @@ description = "hop 2 challenge -- post-init transformed body; order-swap to alig
 added = "2026-06-06"
 game_before = '''
 proc Initialize() : PKeySpace = {
-  var challenger_Initialize__tup0 : [PKeySpace, SKeySpace];
-  challenger_Initialize__tup0 <@ K.KeyGen();
-  challenger_pk = challenger_Initialize__tup0[0];
-  challenger_sk = challenger_Initialize__tup0[1];
-  return challenger_pk;
+  var v : [PKeySpace, SKeySpace];
+  v <@ K.KeyGen();
+  v = v[0];
+  v = v[1];
+  return v;
 }
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var challenger_Challenge_rsp0 : [SharedSecretSpace, CiphertextSpace];
-  challenger_Challenge_rsp0 <@ K.Encaps(challenger_pk);
-  var challenger_Challenge_ss0 : SharedSecretSpace;
-  challenger_Challenge_ss0 <$ SharedSecretSpace;
-  var challenger_Challenge_ctxt0 : CiphertextSpace;
-  challenger_Challenge_ctxt0 = challenger_Challenge_rsp0[1];
-  var _tup : [SharedSecretSpace, CiphertextSpace];
-  _tup = (challenger_Challenge_ss0, challenger_Challenge_ctxt0);
-  var ss : SharedSecretSpace;
-  ss = _tup[0];
-  var ct : CiphertextSpace;
-  ct = _tup[1];
-  var _r0 : BitString<F.out>;
-  _r0 <@ F.evaluate(ss, ct);
-  return (_r0, ct);
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : SharedSecretSpace;
+  v <$ SharedSecretSpace;
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v = (v, v);
+  var v : SharedSecretSpace;
+  v = v[0];
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<F.out>;
+  v <@ F.evaluate(v, v);
+  return (v, v);
 }
 '''
 game_after = '''
 proc Initialize() : PKeySpace = {
-  var k : [PKeySpace, SKeySpace];
-  k <@ K.KeyGen();
-  pk = k[0];
-  return pk;
+  var v : [PKeySpace, SKeySpace];
+  v <@ K.KeyGen();
+  v = v[0];
+  return v;
 }
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var key : BitString<lambda>;
-  key <$ BitString<lambda>;
-  var rsp : [SharedSecretSpace, CiphertextSpace];
-  rsp <@ K.Encaps(pk);
-  var ct : CiphertextSpace;
-  ct = rsp[1];
-  var _r0 : BitString<F.out>;
-  _r0 <@ F.evaluate(key, ct);
-  return (_r0, ct);
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<F.out>;
+  v <@ F.evaluate(v, v);
+  return (v, v);
 }
 '''
 tactic = '''
@@ -141,41 +141,29 @@ transform = "<oracle>:challenge"
 description = "hop 3 challenge -- post-init transformed body; swap{1} to align sample past encaps, relate encaps via sim, couple the two dbs_lambda samples, then F_evaluate_det finisher. EC-validated to qed (EXIT 0)."
 added = "2026-06-06"
 game_before = '''
-proc Initialize() : PKeySpace = {
-  var k : [PKeySpace, SKeySpace];
-  k <@ K.KeyGen();
-  pk = k[0];
-  return pk;
-}
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var key : BitString<lambda>;
-  key <$ BitString<lambda>;
-  var rsp : [SharedSecretSpace, CiphertextSpace];
-  rsp <@ K.Encaps(pk);
-  var ct : CiphertextSpace;
-  ct = rsp[1];
-  var _r0 : BitString<F.out>;
-  _r0 <@ F.evaluate(key, ct);
-  return (_r0, ct);
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<F.out>;
+  v <@ F.evaluate(v, v);
+  return (v, v);
 }
 '''
 game_after = '''
-proc Initialize() : PKeySpace = {
-  var k : [PKeySpace, SKeySpace];
-  k <@ K.KeyGen();
-  pk = k[0];
-  return pk;
-}
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var rsp : [SharedSecretSpace, CiphertextSpace];
-  rsp <@ K.Encaps(pk);
-  var ct : CiphertextSpace;
-  ct = rsp[1];
-  var challenger_Lookup_k2 : BitString<lambda>;
-  challenger_Lookup_k2 <$ BitString<lambda>;
-  var ss : BitString<out>;
-  ss <@ F.evaluate(challenger_Lookup_k2, ct);
-  return (ss, ct);
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<lambda>;
+  v <$ BitString<lambda>;
+  var v : BitString<out>;
+  v <@ F.evaluate(v, v);
+  return (v, v);
 }
 '''
 tactic = '''
@@ -199,47 +187,47 @@ description = "hop 5 challenge -- post-init transformed body; relate encaps via 
 added = "2026-06-06"
 game_before = '''
 proc Initialize() : PKeySpace = {
-  var k : [PKeySpace, SKeySpace];
-  k <@ K.KeyGen();
-  pk = k[0];
-  return pk;
+  var v : [PKeySpace, SKeySpace];
+  v <@ K.KeyGen();
+  v = v[0];
+  return v;
 }
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var rsp : [SharedSecretSpace, CiphertextSpace];
-  rsp <@ K.Encaps(pk);
-  var ct : CiphertextSpace;
-  ct = rsp[1];
-  var challenger_Lookup_r2 : BitString<out>;
-  challenger_Lookup_r2 <$ BitString<out>;
-  var ss : BitString<out>;
-  ss = challenger_Lookup_r2;
-  return (ss, ct);
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<out>;
+  v <$ BitString<out>;
+  var v : BitString<out>;
+  v = v;
+  return (v, v);
 }
 '''
 game_after = '''
 proc Initialize() : PKeySpace = {
-  var _tup : [PKeySpace, SKeySpace];
-  _tup <@ K.KeyGen();
-  pk = _tup[0];
-  sk = _tup[1];
-  return pk;
+  var v : [PKeySpace, SKeySpace];
+  v <@ K.KeyGen();
+  v = v[0];
+  v = v[1];
+  return v;
 }
 proc Challenge() : [BitString<out>, CiphertextSpace] = {
-  var v_KF_Encaps_x0 : [SharedSecretSpace, CiphertextSpace];
-  v_KF_Encaps_x0 <@ K.Encaps(pk);
-  var v_KF_Encaps_k0 : BitString<lambda>;
-  v_KF_Encaps_k0 = v_KF_Encaps_x0[0];
-  var v_KF_Encaps_c0 : CiphertextSpace;
-  v_KF_Encaps_c0 = v_KF_Encaps_x0[1];
-  var v_KF_Encaps_ss0 : BitString<out>;
-  v_KF_Encaps_ss0 <@ F.evaluate(v_KF_Encaps_k0, v_KF_Encaps_c0);
-  var rsp : [BitString<out>, CiphertextSpace];
-  rsp = (v_KF_Encaps_ss0, v_KF_Encaps_c0);
-  var ss : BitString<out>;
-  ss <$ BitString<out>;
-  var ctxt : CiphertextSpace;
-  ctxt = rsp[1];
-  return (ss, ctxt);
+  var v : [SharedSecretSpace, CiphertextSpace];
+  v <@ K.Encaps(v);
+  var v : BitString<lambda>;
+  v = v[0];
+  var v : CiphertextSpace;
+  v = v[1];
+  var v : BitString<out>;
+  v <@ F.evaluate(v, v);
+  var v : [BitString<out>, CiphertextSpace];
+  v = (v, v);
+  var v : BitString<out>;
+  v <$ BitString<out>;
+  var v : CiphertextSpace;
+  v = v[1];
+  return (v, v);
 }
 '''
 tactic = '''
