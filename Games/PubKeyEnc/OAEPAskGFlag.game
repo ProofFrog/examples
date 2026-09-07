@@ -1,0 +1,100 @@
+// Flag game of the OAEPAskG pair (see Games/PubKeyEnc/OAEPAskG.game):
+// OAEPAskG.Right plus a Reveal oracle. Real reveals whether the adversary
+// ever queried TestG at the hidden rStar; Ideal never does. Its advantage
+// is Pr[bad], which bounds the up-to-bad hop over OAEPAskG. Proven from
+// PDOW + RandomTargetGuessing in Proofs/PubKeyEnc/OAEP_AskG_Flag.proof.
+//
+// Everything except Reveal must be a verbatim copy of OAEPAskG.Right;
+// the engine checks this structurally (proof_frog/upto.py).
+
+import '../../Primitives/TDP.primitive';
+
+Game Real(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    BitString<F.k - n - k1> rStar;
+    BitString<n + k1> u;
+    Int count;
+    Bool bad;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<F.k - n - k1>;
+        u <- BitString<n + k1>;
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<F.k - n - k1> x) {
+        if (x == rStar) {
+            bad = true;
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (m || 0^k1) + u;
+            BitString<F.k - n - k1> t = rStar + H(s);
+            result = F.evaluate(pk, s || t);
+        }
+        return result;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        return H(x);
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+Game Ideal(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    BitString<F.k - n - k1> rStar;
+    BitString<n + k1> u;
+    Int count;
+    Bool bad;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<F.k - n - k1>;
+        u <- BitString<n + k1>;
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<F.k - n - k1> x) {
+        if (x == rStar) {
+            bad = true;
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (m || 0^k1) + u;
+            BitString<F.k - n - k1> t = rStar + H(s);
+            result = F.evaluate(pk, s || t);
+        }
+        return result;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        return H(x);
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}
+
+export as OAEPAskGFlag;

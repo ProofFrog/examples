@@ -1,0 +1,47 @@
+// OAEP (Bellare-Rogaway 1994) over an abstract trapdoor permutation F
+// on k = n + k0 + k1 bits, in the random oracle model.
+//
+//   Enc(pk, m): r <- {0,1}^k0
+//               s = (m || 0^k1) + G(r)          (n + k1 bits)
+//               t = r + H(s)                    (k0 bits)
+//               return F.evaluate(pk, s || t)
+//   Dec(sk, c): s || t = F.invert(sk, c); r = t + H(s); m || z = s + G(r);
+//               return m if z == 0^k1, else None.
+//
+// The random oracles G and H are Function parameters shared with the
+// security game via the proof's let block, as in HashedElGamal.scheme.
+
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Primitives/TDP.primitive';
+
+Scheme OAEP(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H) extends PubKeyEnc {
+    requires F.k == n + k0 + k1;
+
+    Set Message = BitString<n>;
+    Set Ciphertext = BitString<F.k>;
+    Set PublicKey = F.PublicKey;
+    Set SecretKey = F.SecretKey;
+
+    [PublicKey, SecretKey] KeyGen() {
+        return F.KeyGen();
+    }
+
+    Ciphertext Enc(PublicKey pk, Message m) {
+        BitString<k0> r <- BitString<k0>;
+        BitString<n + k1> s = (m || 0^k1) + G(r);
+        BitString<k0> t = r + H(s);
+        return F.evaluate(pk, s || t);
+    }
+
+    deterministic Message? Dec(SecretKey sk, Ciphertext c) {
+        BitString<F.k> x = F.invert(sk, c);
+        BitString<n + k1> s = x[0 : n + k1];
+        BitString<k0> t = x[n + k1 : n + k0 + k1];
+        BitString<k0> r = t + H(s);
+        BitString<n + k1> p = s + G(r);
+        if (p[n : n + k1] == 0^k1) {
+            return p[0 : n];
+        }
+        return None;
+    }
+}

@@ -1,0 +1,68 @@
+// Single-challenge IND-CPA (left-or-right) for public-key encryption in
+// the random oracle model with TWO random oracles. Like INDCPA.game,
+// but the adversary also gets HashG and HashH oracles exposing the
+// random functions G and H used by the scheme. G and H are passed as
+// parameters and shared with the scheme via the proof's let block.
+// Only the first Challenge query is answered.
+
+import '../../Primitives/PubKeyEnc.primitive';
+
+Game Left(PubKeyEnc E, Set DG, Set RG, Set DH, Set RH, Function<DG, RG> G, Function<DH, RH> H) {
+    E.PublicKey pk;
+    Int count;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        count = 0;
+        return pk;
+    }
+
+    RG HashG(DG x) {
+        return G(x);
+    }
+
+    RH HashH(DH x) {
+        return H(x);
+    }
+
+    E.Ciphertext? Challenge(E.Message mL, E.Message mR) {
+        E.Ciphertext? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = E.Enc(pk, mL);
+        }
+        return result;
+    }
+}
+
+Game Right(PubKeyEnc E, Set DG, Set RG, Set DH, Set RH, Function<DG, RG> G, Function<DH, RH> H) {
+    E.PublicKey pk;
+    Int count;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] k = E.KeyGen();
+        pk = k[0];
+        count = 0;
+        return pk;
+    }
+
+    RG HashG(DG x) {
+        return G(x);
+    }
+
+    RH HashH(DH x) {
+        return H(x);
+    }
+
+    E.Ciphertext? Challenge(E.Message mL, E.Message mR) {
+        E.Ciphertext? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = E.Enc(pk, mR);
+        }
+        return result;
+    }
+}
+
+export as INDCPA_ROM2;

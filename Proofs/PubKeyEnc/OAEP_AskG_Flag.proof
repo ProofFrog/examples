@@ -1,0 +1,207 @@
+// The flag game of the OAEPAskG pair has small advantage: an adversary
+// rarely queries G at the hidden rStar. This is the up-to-bad bound
+// behind the OAEP IND-CPA proof (see Games/PubKeyEnc/OAEPAskG.game).
+//
+// Proof idea. In OAEPAskGFlag.Real the programmed value u is used only
+// in s = (m || 0^k1) + u, so s is uniform and independent of m. Program
+// H at s with a fresh v (ROMProgramming, perfect): then t = rStar + v
+// and the challenge is F.evaluate(pk, s || t) with H(s) = v. That is
+// exactly the PDOW challenge in offset form with delta = rStar, and
+// answering H(s) needs v, which PDOW reveals on a Solve hit. After the
+// PDOW hop H is plain and rStar appears only in TestG's comparison, so
+// RandomTargetGuessing collapses the comparison to false and the flag is
+// never raised.
+//
+// Game sequence:
+//   0. OAEPAskGFlag.Real
+//   1. ROMProgramming(BitString<n+k1>, BitString<k0>).Natural    compose R_Prog  -- interchangeable
+//   2. ROMProgramming(...).Programmed                             compose R_Prog  -- by ROMProgramming (0)
+//   3. PDOW(F, n+k1).Left                                        compose R_PDOW  -- interchangeable
+//   4. PDOW(F, n+k1).Right                                       compose R_PDOW  -- by PDOW
+//   5. RandomTargetGuessing(BitString<k0>).Real                  compose R_Guess -- interchangeable
+//   6. RandomTargetGuessing(BitString<k0>).Ideal                 compose R_Guess -- by guessing (count_TestG / 2^k0)
+//   7. OAEPAskGFlag.Ideal                                                        -- interchangeable
+
+import '../../Primitives/TDP.primitive';
+import '../../Games/PubKeyEnc/OAEPAskGFlag.game';
+import '../../Games/TDP/PDOW.game';
+import '../../Games/Helpers/Probability/ROMProgramming.game';
+import '../../Games/Helpers/Probability/RandomTargetGuessing.game';
+
+proof:
+
+let:
+    Set PK;
+    Set SK;
+    Int n;
+    Int k0;
+    Int k1;
+    TDP F = TDP(PK, SK, n + k0 + k1);
+    Function<BitString<n + k1>, BitString<k0>> H <- Function<BitString<n + k1>, BitString<k0>>;
+
+assume:
+    PDOW(F, n + k1);
+    ROMProgramming(BitString<n + k1>, BitString<k0>);
+    RandomTargetGuessing(BitString<k0>);
+
+theorem:
+    OAEPAskGFlag(F, n, k1, H);
+
+games:
+    OAEPAskGFlag(F, n, k1, H).Real against OAEPAskGFlag(F, n, k1, H).Adversary;
+
+    ROMProgramming(BitString<n + k1>, BitString<k0>).Natural    compose R_Prog(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+    ROMProgramming(BitString<n + k1>, BitString<k0>).Programmed compose R_Prog(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+
+    PDOW(F, n + k1).Left  compose R_PDOW(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+    PDOW(F, n + k1).Right compose R_PDOW(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+
+    RandomTargetGuessing(BitString<k0>).Real  compose R_Guess(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+    RandomTargetGuessing(BitString<k0>).Ideal compose R_Guess(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+
+    OAEPAskGFlag(F, n, k1, H).Ideal against OAEPAskGFlag(F, n, k1, H).Adversary;
+
+// R_Prog: samples the (message-independent) challenge s up front and
+// asks the ROMProgramming challenger for H(s); routes H through the
+// challenger.
+Reduction R_Prog(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitString<k0>> H)
+    compose ROMProgramming(BitString<n + k1>, BitString<k0>)
+    against OAEPAskGFlag(F, n, k1, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<n + k1> sStar;
+    BitString<k0> hs;
+    Int count;
+    Bool bad;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<k0>;
+        sStar <- BitString<n + k1>;
+        hs = challenger.Initialize(sStar);
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<k0> x) {
+        if (x == rStar) {
+            bad = true;
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<k0> t = rStar + hs;
+            result = F.evaluate(pk, sStar || t);
+        }
+        return result;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        return challenger.Query(x);
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+// R_PDOW: takes the PDOW challenge with offset rStar, so the challenge
+// is F.evaluate(pk, sStar || (rStar + v)); answers H(sStar) = v via
+// Solve/RevealV and H plainly elsewhere.
+Reduction R_PDOW(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitString<k0>> H)
+    compose PDOW(F, n + k1)
+    against OAEPAskGFlag(F, n, k1, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<F.k> y;
+    Int count;
+    Bool bad;
+
+    F.PublicKey Initialize() {
+        rStar <- BitString<k0>;
+        [F.PublicKey, BitString<F.k>] [pk, y] = challenger.Initialize(rStar);
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<k0> x) {
+        if (x == rStar) {
+            bad = true;
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = y;
+        }
+        return result;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        if (challenger.Solve(x)) {
+            return challenger.RevealV(x);
+        }
+        return H(x);
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+// R_Guess: rStar now lives in the RandomTargetGuessing challenger and
+// is used only to raise the flag.
+Reduction R_Guess(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitString<k0>> H)
+    compose RandomTargetGuessing(BitString<k0>)
+    against OAEPAskGFlag(F, n, k1, H).Adversary {
+    F.PublicKey pk;
+    BitString<n + k1> sStar;
+    BitString<k0> tStar;
+    Int count;
+    Bool bad;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        challenger.Initialize();
+        sStar <- BitString<n + k1>;
+        tStar <- BitString<k0>;
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<k0> x) {
+        if (challenger.Eq(x)) {
+            bad = true;
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            result = F.evaluate(pk, sStar || tStar);
+        }
+        return result;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        return H(x);
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}

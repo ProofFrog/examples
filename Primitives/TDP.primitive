@@ -1,0 +1,16 @@
+// Trapdoor permutation primitive on k-bit strings (e.g. RSA with a
+// fixed-length encoding). Provides KeyGen (public/secret key pair),
+// a deterministic injective forward map evaluate(pk, .) and its
+// deterministic injective inverse invert(sk, .). That the two maps
+// cancel is not part of the primitive; it is stated as the helper
+// game Games/Helpers/Probability/TDPCorrectness.game and used as a
+// zero-loss assumption hop.
+Primitive TDP(Set PKeySpace, Set SKeySpace, Int k) {
+    Set PublicKey = PKeySpace;
+    Set SecretKey = SKeySpace;
+    Int k = k;
+
+    [PublicKey, SecretKey] KeyGen();
+    deterministic injective BitString<k> evaluate(PublicKey pk, BitString<k> x);
+    deterministic injective BitString<k> invert(SecretKey sk, BitString<k> y);
+}

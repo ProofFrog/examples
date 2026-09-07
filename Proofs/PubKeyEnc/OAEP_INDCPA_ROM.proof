@@ -1,0 +1,201 @@
+// OAEP over a trapdoor permutation F is IND-CPA in the random oracle
+// model under partial-domain one-wayness (PDOW) of F.
+//
+// Proof idea: program G at the challenge randomness rStar with a fresh
+// value u (perfect, ROMProgramming). Then the only way the challenge
+// depends on the message is through G(rStar) = u. The OAEPAskG pair
+// (Games/PubKeyEnc/OAEPAskG.game) is identical until the adversary
+// queries G at rStar, so the side flip over it is an UP-TO-BAD hop: its
+// loss is the advantage of the flag game OAEPAskGFlag, which the lemma
+// OAEP_AskG_Flag.proof bounds by Adv^PDOW + count_HashG / 2^k0. After
+// the flip u and rStar are each used once and the challenge ciphertext
+// is uniform noise under F. The Right half mirrors the Left half.
+//
+// Game sequence:
+//   0. INDCPA_ROM2.Left                                     -- encrypts mL
+//   1. ROMProgramming.Natural    compose R_ProgG_L          -- interchangeable
+//   2. ROMProgramming.Programmed compose R_ProgG_L          -- by ROMProgramming
+//   3. OAEPAskG.Left  compose R_AskG_L                      -- interchangeable
+//   4. OAEPAskG.Right compose R_AskG_L                      -- up to bad (OAEPAskGFlag, by lemma)
+//   5. OAEPAskG.Right compose R_AskG_R                      -- interchangeable (message gone)
+//   6. OAEPAskG.Left  compose R_AskG_R                      -- up to bad (OAEPAskGFlag, by lemma)
+//   7. ROMProgramming.Programmed compose R_ProgG_R          -- interchangeable
+//   8. ROMProgramming.Natural    compose R_ProgG_R          -- by ROMProgramming
+//   9. INDCPA_ROM2.Right                                    -- encrypts mR
+
+import '../../Primitives/TDP.primitive';
+import '../../Primitives/PubKeyEnc.primitive';
+import '../../Schemes/PubKeyEnc/OAEP.scheme';
+import '../../Games/PubKeyEnc/INDCPA_ROM2.game';
+import '../../Games/PubKeyEnc/OAEPAskG.game';
+import '../../Games/PubKeyEnc/OAEPAskGFlag.game';
+import '../../Games/Helpers/Probability/ROMProgramming.game';
+
+proof:
+
+let:
+    Set PK;
+    Set SK;
+    Int n;
+    Int k0;
+    Int k1;
+    TDP F = TDP(PK, SK, n + k0 + k1);
+    Function<BitString<k0>, BitString<n + k1>> G <- Function<BitString<k0>, BitString<n + k1>>;
+    Function<BitString<n + k1>, BitString<k0>> H <- Function<BitString<n + k1>, BitString<k0>>;
+    OAEP E = OAEP(F, n, k0, k1, G, H);
+
+assume:
+    ROMProgramming(BitString<k0>, BitString<n + k1>);
+
+lemma:
+    OAEPAskGFlag(F, n, k1, H) by 'OAEP_AskG_Flag.proof';
+
+theorem:
+    INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H);
+
+games:
+    INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Left against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Natural    compose R_ProgG_L(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Programmed compose R_ProgG_L(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+
+    OAEPAskG(F, n, k1, H).Left  compose R_AskG_L(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+    OAEPAskG(F, n, k1, H).Right compose R_AskG_L(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+
+    OAEPAskG(F, n, k1, H).Right compose R_AskG_R(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+    OAEPAskG(F, n, k1, H).Left  compose R_AskG_R(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Programmed compose R_ProgG_R(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Natural    compose R_ProgG_R(F, n, k0, k1, G, H) against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+
+    INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Right against INDCPA_ROM2(E, BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary;
+
+// R_ProgG_L: samples the challenge randomness rStar up front and asks
+// the ROMProgramming challenger for G(rStar); routes every G query
+// through the challenger. Encrypts mL with that value.
+Reduction R_ProgG_L(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose ROMProgramming(BitString<k0>, BitString<n + k1>)
+    against INDCPA_ROM2(OAEP(F, n, k0, k1, G, H), BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<n + k1> u;
+    Int count;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<k0>;
+        u = challenger.Initialize(rStar);
+        count = 0;
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        return challenger.Query(x);
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        return H(x);
+    }
+
+    BitString<F.k>? Challenge(BitString<n> mL, BitString<n> mR) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (mL || 0^k1) + u;
+            BitString<k0> t = rStar + H(s);
+            result = F.evaluate(pk, s || t);
+        }
+        return result;
+    }
+}
+
+// R_ProgG_R: as R_ProgG_L but encrypts mR.
+Reduction R_ProgG_R(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose ROMProgramming(BitString<k0>, BitString<n + k1>)
+    against INDCPA_ROM2(OAEP(F, n, k0, k1, G, H), BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<n + k1> u;
+    Int count;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<k0>;
+        u = challenger.Initialize(rStar);
+        count = 0;
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        return challenger.Query(x);
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        return H(x);
+    }
+
+    BitString<F.k>? Challenge(BitString<n> mL, BitString<n> mR) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (mR || 0^k1) + u;
+            BitString<k0> t = rStar + H(s);
+            result = F.evaluate(pk, s || t);
+        }
+        return result;
+    }
+}
+
+// R_AskG_L: delegates the programmed point of G to the OAEPAskG
+// challenger's TestG and the challenge encryption of mL to its
+// Challenge; G is otherwise the let-bound random function.
+Reduction R_AskG_L(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose OAEPAskG(F, n, k1, H)
+    against INDCPA_ROM2(OAEP(F, n, k0, k1, G, H), BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary {
+    F.PublicKey Initialize() {
+        return challenger.Initialize();
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        [Bool, BitString<n + k1>] [hit, u] = challenger.TestG(x);
+        if (hit) {
+            return u;
+        }
+        return G(x);
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        return challenger.HashH(x);
+    }
+
+    BitString<F.k>? Challenge(BitString<n> mL, BitString<n> mR) {
+        return challenger.Challenge(mL);
+    }
+}
+
+// R_AskG_R: as R_AskG_L but submits mR.
+Reduction R_AskG_R(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose OAEPAskG(F, n, k1, H)
+    against INDCPA_ROM2(OAEP(F, n, k0, k1, G, H), BitString<k0>, BitString<n + k1>, BitString<n + k1>, BitString<k0>, G, H).Adversary {
+    F.PublicKey Initialize() {
+        return challenger.Initialize();
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        [Bool, BitString<n + k1>] [hit, u] = challenger.TestG(x);
+        if (hit) {
+            return u;
+        }
+        return G(x);
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        return challenger.HashH(x);
+    }
+
+    BitString<F.k>? Challenge(BitString<n> mL, BitString<n> mR) {
+        return challenger.Challenge(mR);
+    }
+}

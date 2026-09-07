@@ -1,0 +1,116 @@
+// OAEP "AskG" pair: identical until bad, used through an up-to-bad hop.
+//
+// Parameters: F on F.k bits, message length n, redundancy k1; the
+// randomness length k0 = F.k - n - k1 is derived because games cannot
+// state `requires`.
+//
+// Owns the OAEP challenge encryption with the random oracle G
+// programmed at the hidden point rStar: G(rStar) = u for a fresh u
+// sampled at Initialize. The game does not touch G itself; a reduction
+// composed with it answers HashG(x) by `[hit, u] = challenger.TestG(x);
+// if (hit) return u; return G(x);`, so the composition programs G at
+// rStar. H is a parameter, exposed to the adversary through HashH so
+// that the flag game's adversary has exactly the oracle access the OAEP
+// adversary has. Only the first Challenge query is answered.
+//
+//   Left:  TestG(x) sets bad and returns [true, u] when x == rStar
+//   Right: TestG(x) sets bad and returns [false, 0^(n + k1)] when x == rStar
+//   (both return [false, 0^(n + k1)] otherwise)
+//
+// The two games differ only inside the branch that raises `bad`, so a
+// side flip over this pair is licensed by the fundamental lemma: its
+// loss is the advantage of the flag game OAEPAskGFlag (this pair's
+// Right side plus a Reveal oracle for `bad`), which
+// Proofs/PubKeyEnc/OAEP_AskG_Flag.proof bounds by
+//     Adv^PDOW(F) + count_TestG / 2^k0.
+//
+// Challenge(m): s = (m || 0^k1) + u;  t = rStar + H(s);
+//               return F.evaluate(pk, s || t).
+// On the Right, u and rStar are each used once, so s and t are uniform
+// and the challenge is independent of m: composing with this pair is
+// what removes the message from an OAEP IND-CPA game.
+//
+import '../../Primitives/TDP.primitive';
+
+Game Left(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    BitString<F.k - n - k1> rStar;
+    BitString<n + k1> u;
+    Int count;
+    Bool bad;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<F.k - n - k1>;
+        u <- BitString<n + k1>;
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<F.k - n - k1> x) {
+        if (x == rStar) {
+            bad = true;
+            return [true, u];
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (m || 0^k1) + u;
+            BitString<F.k - n - k1> t = rStar + H(s);
+            result = F.evaluate(pk, s || t);
+        }
+        return result;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        return H(x);
+    }
+}
+
+Game Right(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    BitString<F.k - n - k1> rStar;
+    BitString<n + k1> u;
+    Int count;
+    Bool bad;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<F.k - n - k1>;
+        u <- BitString<n + k1>;
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<F.k - n - k1> x) {
+        if (x == rStar) {
+            bad = true;
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (m || 0^k1) + u;
+            BitString<F.k - n - k1> t = rStar + H(s);
+            result = F.evaluate(pk, s || t);
+        }
+        return result;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        return H(x);
+    }
+}
+
+export as OAEPAskG;

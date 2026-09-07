@@ -1,0 +1,87 @@
+// Single-challenge IND-CCA (left-or-right) for public-key encryption in
+// the random oracle model with TWO random oracles G and H (exposed via
+// HashG and HashH; shared with the scheme via the proof's let block).
+// Only the first Challenge query is answered; Dec refuses the challenge
+// ciphertext (tracked in the set S, as in SymEnc/INDCCA$_MultiChal.game).
+
+import '../../Primitives/PubKeyEnc.primitive';
+
+Game Left(PubKeyEnc E, Set DG, Set RG, Set DH, Set RH, Function<DG, RG> G, Function<DH, RH> H) {
+    E.PublicKey pk;
+    E.SecretKey sk;
+    Int count;
+    Set<E.Ciphertext> S;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] [pk, sk] = E.KeyGen();
+        count = 0;
+        return pk;
+    }
+
+    RG HashG(DG x) {
+        return G(x);
+    }
+
+    RH HashH(DH x) {
+        return H(x);
+    }
+
+    E.Ciphertext? Challenge(E.Message mL, E.Message mR) {
+        E.Ciphertext? result = None;
+        count = count + 1;
+        if (count == 1) {
+            E.Ciphertext c = E.Enc(pk, mL);
+            S = S union c;
+            result = c;
+        }
+        return result;
+    }
+
+    E.Message? Dec(E.Ciphertext c) {
+        if (c in S) {
+            return None;
+        }
+        return E.Dec(sk, c);
+    }
+}
+
+Game Right(PubKeyEnc E, Set DG, Set RG, Set DH, Set RH, Function<DG, RG> G, Function<DH, RH> H) {
+    E.PublicKey pk;
+    E.SecretKey sk;
+    Int count;
+    Set<E.Ciphertext> S;
+
+    E.PublicKey Initialize() {
+        [E.PublicKey, E.SecretKey] [pk, sk] = E.KeyGen();
+        count = 0;
+        return pk;
+    }
+
+    RG HashG(DG x) {
+        return G(x);
+    }
+
+    RH HashH(DH x) {
+        return H(x);
+    }
+
+    E.Ciphertext? Challenge(E.Message mL, E.Message mR) {
+        E.Ciphertext? result = None;
+        count = count + 1;
+        if (count == 1) {
+            E.Ciphertext c = E.Enc(pk, mR);
+            S = S union c;
+            result = c;
+        }
+        return result;
+    }
+
+    E.Message? Dec(E.Ciphertext c) {
+        if (c in S) {
+            return None;
+        }
+        return E.Dec(sk, c);
+    }
+}
+
+export as INDCCA_ROM2;

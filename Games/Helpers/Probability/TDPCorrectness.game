@@ -1,0 +1,67 @@
+// Correctness helper for a trapdoor permutation: evaluate and invert
+// cancel in both directions. This is perfect correctness of a
+// permutation, so the two sides are identically distributed and the
+// hop costs nothing.
+//
+// The key pair lives inside the game and only pk is returned, so a
+// reduction composed with this game must route every use of sk
+// through Invert. The two Roundtrip oracles expose the two sides of
+// the identity:
+//   Roundtrip(y)  = F.evaluate(pk, F.invert(sk, y))  (Left) vs  y  (Right)
+//   Roundtrip2(x) = F.invert(sk, F.evaluate(pk, x))  (Left) vs  x  (Right)
+//
+// Usage pattern: hop Right -> Left. On the Right a guard such as
+// `challenger.Roundtrip(y) == y` inlines to `y == y`, which the engine
+// simplifies away, so the composition matches an unguarded game; on the
+// Left the same guard becomes the explicit cancellation identity.
+
+import '../../../Primitives/TDP.primitive';
+
+Game Left(TDP F) {
+    F.PublicKey pk;
+    F.SecretKey sk;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] [pk, sk] = F.KeyGen();
+        return pk;
+    }
+
+    BitString<F.k> Invert(BitString<F.k> y) {
+        return F.invert(sk, y);
+    }
+
+    BitString<F.k> Roundtrip(BitString<F.k> y) {
+        return F.evaluate(pk, F.invert(sk, y));
+    }
+
+    BitString<F.k> Roundtrip2(BitString<F.k> x) {
+        return F.invert(sk, F.evaluate(pk, x));
+    }
+}
+
+Game Right(TDP F) {
+    F.PublicKey pk;
+    F.SecretKey sk;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] [pk, sk] = F.KeyGen();
+        return pk;
+    }
+
+    BitString<F.k> Invert(BitString<F.k> y) {
+        return F.invert(sk, y);
+    }
+
+    BitString<F.k> Roundtrip(BitString<F.k> y) {
+        return y;
+    }
+
+    BitString<F.k> Roundtrip2(BitString<F.k> x) {
+        return x;
+    }
+}
+
+// Perfect correctness of a permutation: no loss.
+advantage <= 0;
+
+export as TDPCorrectness;
