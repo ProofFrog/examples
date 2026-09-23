@@ -1,50 +1,61 @@
 // Partial-domain one-wayness (PD-OW) of a trapdoor permutation F on
-// F.k-bit strings, split as n1 bits of s and k0 = F.k - n1 bits of t
-// (games cannot state `requires`, so k0 is derived rather than passed),
-// in the multi-query "Solve" form used throughout these examples for
-// search assumptions (compare Group/CDH.game): the challenge is
-// y = F.evaluate(pk, sStar || tStar) for uniform sStar (n1 bits) and
-// uniform tStar (k0 bits); the adversary wins by submitting sStar to Solve.
+// F.k-bit strings, split as n1 bits of s and F.k - n1 bits of t (games
+// cannot state `requires`, so the second width is derived rather than
+// passed).
 //
-//   Left:  Solve(s) returns [true, v] if s == sStar, else [false, 0^k0]
-//   Right: Solve(s) always returns [false, 0^k0]
+// The notion is due to Fujisaki, Okamoto, Pointcheval and Stern (Crypto
+// 2001 / J. Cryptology 2004), who introduced it to repair the OAEP proof
+// after Shoup showed that one-wayness alone cannot suffice: given
+// y = f(s || t) for uniform s and t, recover s. FOPS also define its SET
+// version, where the adversary outputs a list of q candidates and succeeds
+// if s is among them, with Succ^pd-ow(tau) >= Succ^s-pd-ow(q, tau) / q.
+// Their OAEP reduction naturally produces a list (the adversary's
+// H-queries), so it is proven against the set version and the 1/q_H
+// factor is paid once at the end; the CertiCrypt proof of Barthe,
+// Gregoire, Lakhnech and Zanella Beguelin (CT-RSA 2011) stops at the set
+// version, as does this file.
 //
-// Two presentational choices make the game convenient to reduce to; both
-// are equivalent to textbook PD-OW with no loss.
+// Stated as a Left/Right pair in the multi-query "Solve" form used
+// throughout these examples for search assumptions (compare
+// Group/CDH.game): the challenge is y = f(pk, sStar || tStar) for uniform
+// sStar (n1 bits) and tStar; the adversary submits candidates to Solve.
 //
-// 1. Offset form. The adversary passes an offset delta to Initialize and
-//    the game sets tStar = delta + v for a fresh uniform v. Since v is
-//    fresh, tStar is uniform whatever delta is, so the challenge is the
-//    textbook one. (A textbook PD-OW adversary simulates this game by
-//    forwarding y and returning tStar + delta in place of v.) The point
-//    is that an OAEP reduction that has programmed H(sStar) = v and set
-//    t = rStar + v can pass delta = rStar and receive exactly its own
-//    challenge shape back, without the engine having to re-parameterize a
-//    uniform sample.
-// 2. Reveal form. The Left also hands back v through RevealV, but only on
-//    a hit (an input equal to sStar). The Left/Right distinguishing
-//    advantage is at most the probability that some Solve or RevealV query
-//    hits sStar, and that probability is determined by what the adversary
-//    sees BEFORE the first hit, which is identical on both sides. Revealing
-//    v after the hit changes nothing about the assumption. Two Bool/value
-//    oracles rather than one tuple-returning oracle keep the composed games
-//    in the `if (challenger.Solve(x))` shape the engine canonicalizes best.
+//   Left:  Solve(s) returns s == sStar;  RevealT(s) returns tStar on a hit
+//   Right: Solve(s) always returns false; RevealT(s) always returns 0
 //
-// Fujisaki, Okamoto, Pointcheval and Stern (Crypto 2001 / J. Cryptology
-// 2004) show that for RSA, PD-OW follows from plain one-wayness; that
+// Lemma (set PD-OW implies this pair). For any adversary B making q
+// Solve/RevealT queries, |Pr[B^Left = 1] - Pr[B^Right = 1]| is at most
+// Succ^s-pd-ow(q). Proof: the two sides answer identically until the first
+// query equal to sStar, so their distance is at most Pr[first hit]; that
+// probability is determined by the view before the hit, which on either
+// side is (pk, y) plus constant oracle answers; an adversary in that view
+// that outputs its query set is a set PD-OW adversary with success
+// Pr[first hit]. In the OAEP lemmas Solve is called on every HashH query,
+// so q is the adversary's number of H-queries, as in FOPS.
+//
+// The reveal oracle exists because a ProofFrog reduction cannot halt when
+// it has won: the Left side of a hop must remain the same program as its
+// neighbour after the hit, including answering H(sStar) consistently with
+// the challenge, i.e. with rStar + tStar, which the reduction can only
+// compute if it is told tStar. By the lemma, what is revealed after the
+// first hit does not affect the assumption. Two Bool/value oracles rather
+// than one tuple-returning oracle keep the composed games in the
+// `if (challenger.Solve(x))` shape the engine canonicalizes best.
+//
+// FOPS further show (Theorem 8) that for RSA with k > 2 k0, partial-domain
+// one-wayness follows from plain one-wayness by a lattice argument; that
 // number-theoretic step is out of scope here and PD-OW is assumed directly.
 
 import '../../Primitives/TDP.primitive';
 
 Game Left(TDP F, Int n1) {
     BitString<n1> sStar;
-    BitString<F.k - n1> v;
+    BitString<F.k - n1> tStar;
 
-    [F.PublicKey, BitString<F.k>] Initialize(BitString<F.k - n1> delta) {
+    [F.PublicKey, BitString<F.k>] Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
         sStar <- BitString<n1>;
-        v <- BitString<F.k - n1>;
-        BitString<F.k - n1> tStar = delta + v;
+        tStar <- BitString<F.k - n1>;
         return [kp[0], F.evaluate(kp[0], sStar || tStar)];
     }
 
@@ -52,9 +63,9 @@ Game Left(TDP F, Int n1) {
         return s == sStar;
     }
 
-    BitString<F.k - n1> RevealV(BitString<n1> s) {
+    BitString<F.k - n1> RevealT(BitString<n1> s) {
         if (s == sStar) {
-            return v;
+            return tStar;
         }
         return 0^(F.k - n1);
     }
@@ -62,13 +73,12 @@ Game Left(TDP F, Int n1) {
 
 Game Right(TDP F, Int n1) {
     BitString<n1> sStar;
-    BitString<F.k - n1> v;
+    BitString<F.k - n1> tStar;
 
-    [F.PublicKey, BitString<F.k>] Initialize(BitString<F.k - n1> delta) {
+    [F.PublicKey, BitString<F.k>] Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
         sStar <- BitString<n1>;
-        v <- BitString<F.k - n1>;
-        BitString<F.k - n1> tStar = delta + v;
+        tStar <- BitString<F.k - n1>;
         return [kp[0], F.evaluate(kp[0], sStar || tStar)];
     }
 
@@ -76,7 +86,7 @@ Game Right(TDP F, Int n1) {
         return false;
     }
 
-    BitString<F.k - n1> RevealV(BitString<n1> s) {
+    BitString<F.k - n1> RevealT(BitString<n1> s) {
         return 0^(F.k - n1);
     }
 }

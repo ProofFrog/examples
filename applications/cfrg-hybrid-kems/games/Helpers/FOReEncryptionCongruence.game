@@ -1,0 +1,67 @@
+// A zero-advantage identity: in the Fujisaki-Okamoto transform, two
+// DISTINCT ciphertexts that both pass the re-encryption check under the
+// same encapsulation key must have come from distinct messages.
+//
+// Both games expose one oracle answering "do ct0 and ct1 differ, and does
+// each equal the derandomized re-encryption of its message?":
+//
+//   Left:  BothReEncrypt(ek, h, m0, m1, ct0, ct1) returns
+//              ct0 != ct1
+//              && ct0 == P.Encrypt(ek, m0, G(m0 || h)[ntrunc : ntrunc + P.Nrand])
+//              && ct1 == P.Encrypt(ek, m1, G(m1 || h)[ntrunc : ntrunc + P.Nrand])
+//   Right: the same, and additionally m0 != m1.
+//
+// The two oracles are the SAME function, so the games are identical and
+// the hop costs nothing (`advantage <= 0;`). Proof: suppose the Left
+// conjunction holds and m0 == m1. Then G(m0 || h) == G(m1 || h) because
+// G is a function, so the two re-encryption calls
+// P.Encrypt(ek, m_i, G(m_i || h)[ntrunc : ntrunc + P.Nrand]) have equal
+// arguments and, P.Encrypt being deterministic, equal results; the second
+// and third conjuncts then give ct0 == ct1, contradicting the first.
+// Hence m0 != m1 and the added conjunct is redundant.
+//
+// This is congruence of two deterministic maps -- Leibniz, not
+// probability -- but the ProofFrog engine does not derive it: its
+// simplifier will not conclude `m0 != m1` from
+// `ct0 != ct1 && ct0 == f(m0) && ct1 == f(m1)`. Following the pattern of
+// Games/Helpers/Probability/TDPCorrectness.game, the identity is exposed
+// as an oracle pair with a declared zero bound and consumed as an
+// assumption hop, rather than by teaching the engine a new transform. It
+// is used at exactly one place, the both-accept case of
+// proofs/MLKEM/MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof, where "the two
+// ciphertexts are distinct" has to become "the two G inputs are
+// distinct" so that a G collision can be extracted.
+//
+// ntrunc is where G's output splits: its first ntrunc bytes are the
+// shared secret and the next P.Nrand bytes the encryption randomness.
+// The cached public-key hash h is typed by G's domain, since games
+// cannot state `requires`.
+
+import '../../primitives/DetPKE.primitive';
+import '../../primitives/Hash.primitive';
+
+Game Left(DetPKE P, Hash G, Int ntrunc) {
+    Bool BothReEncrypt(BitString<P.Nek> ek, BitString<G.Nin - P.Nmsg> h,
+                       BitString<P.Nmsg> m0, BitString<P.Nmsg> m1,
+                       BitString<P.Nct> ct0, BitString<P.Nct> ct1) {
+        return ct0 != ct1
+            && ct0 == P.Encrypt(ek, m0, G.evaluate(m0 || h)[ntrunc : ntrunc + P.Nrand])
+            && ct1 == P.Encrypt(ek, m1, G.evaluate(m1 || h)[ntrunc : ntrunc + P.Nrand]);
+    }
+}
+
+Game Right(DetPKE P, Hash G, Int ntrunc) {
+    Bool BothReEncrypt(BitString<P.Nek> ek, BitString<G.Nin - P.Nmsg> h,
+                       BitString<P.Nmsg> m0, BitString<P.Nmsg> m1,
+                       BitString<P.Nct> ct0, BitString<P.Nct> ct1) {
+        return ct0 != ct1
+            && ct0 == P.Encrypt(ek, m0, G.evaluate(m0 || h)[ntrunc : ntrunc + P.Nrand])
+            && ct1 == P.Encrypt(ek, m1, G.evaluate(m1 || h)[ntrunc : ntrunc + P.Nrand])
+            && m0 != m1;
+    }
+}
+
+// The two oracles compute the same function; the hop is free.
+advantage <= 0;
+
+export as FOReEncryptionCongruence;

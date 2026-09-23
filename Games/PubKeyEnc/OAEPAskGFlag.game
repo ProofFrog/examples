@@ -15,6 +15,7 @@ Game Real(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - 
     BitString<n + k1> u;
     Int count;
     Bool bad;
+    Set<BitString<F.k>> S;
 
     F.PublicKey Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
@@ -39,9 +40,15 @@ Game Real(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - 
         if (count == 1) {
             BitString<n + k1> s = (m || 0^k1) + u;
             BitString<F.k - n - k1> t = rStar + H(s);
-            result = F.evaluate(pk, s || t);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            result = c;
         }
         return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
     }
 
     BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
@@ -59,6 +66,7 @@ Game Ideal(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n -
     BitString<n + k1> u;
     Int count;
     Bool bad;
+    Set<BitString<F.k>> S;
 
     F.PublicKey Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
@@ -83,9 +91,15 @@ Game Ideal(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n -
         if (count == 1) {
             BitString<n + k1> s = (m || 0^k1) + u;
             BitString<F.k - n - k1> t = rStar + H(s);
-            result = F.evaluate(pk, s || t);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            result = c;
         }
         return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
     }
 
     BitString<F.k - n - k1> HashH(BitString<n + k1> x) {

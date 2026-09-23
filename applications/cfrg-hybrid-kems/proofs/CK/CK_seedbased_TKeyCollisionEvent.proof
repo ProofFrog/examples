@@ -1,0 +1,147 @@
+// Bound on the event that two CK_seedbased key generations produce the
+// same traditional (KEM_T) encapsulation key, in the standard model.
+//
+// CKSeededTKeyCollisionEvent samples two hybrid seeds, expands each
+// with the PRG G, derives (ek_T_i, dk_T_i) = KEM_T.DeriveKeyPair(seed_T_i)
+// from the KEM_T halves, and lets the adversary ask whether
+// ek_T_0 == ek_T_1 (Real) or always hears "no" (Ideal). Its advantage
+// is Pr[ek_T_0 == ek_T_1]. Since nothing else is revealed, the seeds
+// are hidden and PRG security applies: the two expansions become
+// uniform strings, whose KEM_T halves are two independent uniform
+// KEM_T seeds. KeyGenEquiv(KEM_T) turns DeriveKeyPair on a uniform seed
+// into KEM_T.KeyGen(), and the remaining collision probability is the
+// KEMKeyCollision assumption on KEM_T.
+//
+// Both sides end with Collided answering false, so the last hop is an
+// equivalence: all of key generation is dead code once the bit is
+// constant.
+//
+// Game sequence (8 entries, 7 hops):
+//   0. CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Real
+//   1. PRGSec(G).Real                      compose R_PRG  (equiv)
+//   2. PRGSec(G).Random                    compose R_PRG  (assumption; 2 queries)
+//   3. KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG  (equiv)
+//   4. KeyGenEquiv(KEM_T).FromKeyGen        compose R_KG  (assumption)
+//   5. KEMKeyCollision(KEM_T).Real          compose R_KC  (equiv)
+//   6. KEMKeyCollision(KEM_T).Ideal         compose R_KC  (assumption)
+//   7. CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Ideal          (equiv)
+//
+// Assumptions: PRGSec(G), KeyGenEquiv(KEM_T), KEMKeyCollision(KEM_T).
+//
+// This bounds the seed-exposed helper CKSeededTKeyCollision too: both
+// advantages equal the same Pr[ek_T_0 == ek_T_1], an event fixed at
+// Initialize by the challenger's own coins.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/PRG.primitive';
+import '../../games/PRG/PRGSec.game';
+import '../../games/KEM/KeyGenEquiv.game';
+import '../../games/KEM/KEMKeyCollision.game';
+import '../../games/Seeded/CKSeededTKeyCollisionEvent.game';
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int kem_t_nseed;
+    Int kem_t_nss;
+    Int kem_t_nct;
+    Int kem_t_nek;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set KEMTCiphertextSpace;
+    Set KEMTEncapsKeySpace;
+    Set KEMTDecapsKeySpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    KEM KEM_T = KEM(kem_t_nseed, kem_t_nss, kem_t_nct, kem_t_nek,
+                    BitString<kem_t_nss>, KEMTCiphertextSpace, KEMTEncapsKeySpace, KEMTDecapsKeySpace);
+    PRG G = PRG(kem_pq_nseed, kem_t_nseed);
+
+assume:
+    PRGSec(G);
+    KeyGenEquiv(KEM_T);
+    KEMKeyCollision(KEM_T);
+
+theorem:
+    CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G);
+
+bound:
+      advantage(PRGSec(G) compose R_PRG)
+    + advantage(KeyGenEquiv(KEM_T) compose R_KG)
+    + advantage(KEMKeyCollision(KEM_T) compose R_KC);
+
+games:
+    CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Real against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+
+    PRGSec(G).Real   compose R_PRG(KEM_PQ, KEM_T, G) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+    PRGSec(G).Random compose R_PRG(KEM_PQ, KEM_T, G) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+
+    KeyGenEquiv(KEM_T).FromDeriveKeyPair compose R_KG(KEM_PQ, KEM_T, G) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+    KeyGenEquiv(KEM_T).FromKeyGen        compose R_KG(KEM_PQ, KEM_T, G) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+
+    KEMKeyCollision(KEM_T).Real  compose R_KC(KEM_PQ, KEM_T, G) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+    KEMKeyCollision(KEM_T).Ideal compose R_KC(KEM_PQ, KEM_T, G) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+
+    CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Ideal against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary;
+
+// R_PRG: obtains the two seed expansions from the PRG challenger
+// (under a hidden uniform seed each) and derives the KEM_T
+// encapsulation keys from their KEM_T halves.
+Reduction R_PRG(KEM KEM_PQ, KEM KEM_T, PRG G)
+    compose PRGSec(G) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary {
+
+    Bool collided;
+
+    Void Initialize() {
+        BitString<G.lambda + G.stretch> seed_full_0 = challenger.Query();
+        BitString<G.lambda + G.stretch> seed_full_1 = challenger.Query();
+        BitString<KEM_T.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        BitString<KEM_T.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(seed_T_0);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_1, dk_T_1] = KEM_T.DeriveKeyPair(seed_T_1);
+        collided = ek_T_0 == ek_T_1;
+    }
+
+    Bool Collided() {
+        return collided;
+    }
+}
+
+// R_KG: after the PRG hop the KEM_T seeds are fresh uniform strings;
+// obtain the two KEM_T key pairs from the KeyGenEquiv challenger, which
+// derives them from a uniform seed (FromDeriveKeyPair) or calls
+// KEM_T.KeyGen() (FromKeyGen).
+Reduction R_KG(KEM KEM_PQ, KEM KEM_T, PRG G)
+    compose KeyGenEquiv(KEM_T) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary {
+
+    Bool collided;
+
+    Void Initialize() {
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = challenger.Generate();
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_1, dk_T_1] = challenger.Generate();
+        collided = ek_T_0 == ek_T_1;
+    }
+
+    Bool Collided() {
+        return collided;
+    }
+}
+
+// R_KC: two KEM_T.KeyGen() runs are exactly what the KEMKeyCollision
+// challenger performs; forward the collision question.
+Reduction R_KC(KEM KEM_PQ, KEM KEM_T, PRG G)
+    compose KEMKeyCollision(KEM_T) against CKSeededTKeyCollisionEvent(KEM_PQ, KEM_T, G).Adversary {
+
+    Void Initialize() {
+        challenger.Initialize();
+    }
+
+    Bool Collided() {
+        return challenger.Collided();
+    }
+}

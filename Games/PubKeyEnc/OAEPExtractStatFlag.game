@@ -1,0 +1,270 @@
+// Flag game of OAEPExtractStat (its Right side plus Reveal): Pr[bad] is the
+// probability that, while H has not been queried at the challenge's s
+// after the challenge (askH is false), the adversary submits a ciphertext
+// on which real OAEP decryption and the plaintext extractor disagree.
+//
+// STATISTICAL LEMMA (declared below, PROVEN in EasyCrypt: the co-located
+// OAEPExtractStatFlag.ec, which compiles with no admits). The ProofFrog
+// engine cannot mechanize it: it needs the nested-scan extractor to be
+// related to F.invert (injectivity + TDPCorrectness), and random-oracle
+// values at points the adversary never queried to be treated as hidden
+// uniform samples. The argument (FOPS 2001, decryption lemma):
+//
+// 0. The pre-challenge corner. askH only records H-queries at sStar made
+//    AFTER the challenge. If the adversary happened to query H at sStar
+//    BEFORE the challenge it knows H(sStar), hence rStar = tStar + H(sStar)
+//    and G(rStar) = sStar + (m || 0), and it can forge a valid ciphertext
+//    f((G(rStar) + (m' || 0)) || (rStar + H(s'))) for any s' in HT without
+//    ever querying G at rStar: real decryption accepts, the extractor fails,
+//    askH stays false, and bad is raised. (An earlier revision of this clause
+//    missed this case; it was found while writing the EasyCrypt proof.)
+//    That event costs at most (count_HashG + count_Dec) / 2^k0 (rStar was
+//    already in G's map at challenge time, from the adversary's G-queries or
+//    from earlier decryptions, so sStar is not fresh) plus
+//    count_HashH / 2^(n + k1) (otherwise G(rStar) is fresh, sStar is uniform,
+//    and it must collide with an earlier H-query). Below, sStar is assumed
+//    not to have been queried before the challenge.
+// 1. Extractor soundness. If the extractor accepts, it found s' in HT and
+//    r' in GT with F.evaluate(pk, s' || r' + HT[s']) == c. F.evaluate is
+//    injective and inverts F.invert, so s' || (r' + H(s')) == F.invert(sk, c),
+//    i.e. s' == s and r' == r for the real decryption's (s, t, r), and the
+//    tables memoize G and H, so the extractor's padding check and message
+//    are the real ones. Hence the two disagree exactly when real decryption
+//    accepts and (s not in HT or r not in GT).
+// 2. s not in HT (H never queried at s by the adversary). Then H(s) is
+//    hidden and uniform from the adversary's view (for s == sStar this uses
+//    askH == false and case 0: H(sStar) is masked by the hidden rStar in
+//    tStar), so r = t + H(s) is uniform: r lands in GT with probability at
+//    most count_HashG / 2^k0, and otherwise G(r) is hidden and uniform, so
+//    the k1-bit padding check passes with probability 1 / 2^k1.
+// 3. s in HT but r not in GT. Then G(r) is hidden and uniform and the
+//    padding check passes with probability 1 / 2^k1.
+// 4. The rStar corner: the adversary's r equals the hidden rStar (rStar =
+//    tStar + H(sStar) with H(sStar) fresh while askH is false and case 0
+//    excluded), either because rStar is in GT or because this query's r is
+//    rStar: at most (count_HashG + 1) / 2^k0, plus count_HashG / 2^k0 for
+//    rStar landing in GT at challenge time.
+//
+// The EasyCrypt proof guesses the index of the first Dec query that raises
+// bad (a factor count_Dec, the plug-and-pray step), stops the game there,
+// and bounds all of the events above for that one query, so it charges the
+// run-level terms of cases 0 and 4 per Dec query as well: per query
+//     (5 count_HashG + count_Dec + 1) / 2^k0 + count_HashH / 2^(n + k1)
+//     + 1 / 2^k1
+// (cases 0, 2, 3, 4 summed), times count_Dec. This is the clause below. A
+// tighter bound with the case 0 and 4 terms outside the count_Dec factor
+// holds but is not what the mechanized proof establishes. (Reveal may be
+// called at any time, which only lets the adversary learn that earlier
+// checks failed; the bounds hold for the adversary's best choice.)
+//
+// Everything except Reveal must be a verbatim copy of OAEPExtractStat.Right;
+// the engine checks this structurally (proof_frog/upto.py).
+
+import '../../Primitives/TDP.primitive';
+
+Game Real(TDP F, Int n, Int k1, Function<BitString<F.k - n - k1>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    F.SecretKey sk;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<F.k - n - k1>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<F.k - n - k1>> HT;
+    Bool bad;
+    Bool askH;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] [pk, sk] = F.KeyGen();
+        count = 0;
+        bad = false;
+        askH = false;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<F.k - n - k1> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            askH = true;
+        }
+        BitString<F.k - n - k1> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<F.k - n - k1> r <- BitString<F.k - n - k1>;
+            BitString<n + k1> s = (m || 0^k1) + G(r);
+            BitString<F.k - n - k1> t = r + H(s);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            sStar = s;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<F.k> x = F.invert(sk, c);
+        BitString<n + k1> s = x[0 : n + k1];
+        BitString<F.k - n - k1> t = x[n + k1 : F.k];
+        BitString<F.k - n - k1> r = t + H(s);
+        BitString<n + k1> p = s + G(r);
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<F.k - n - k1>] eh in HT.entries) {
+            for ([BitString<F.k - n - k1>, BitString<n + k1>] eg in GT.entries) {
+                BitString<F.k - n - k1> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        if (p[n : n + k1] == 0^k1) {
+            BitString<n> m = p[0 : n];
+            if (askH) {
+                return m;
+            }
+            if (mExt != m) {
+                bad = true;
+            }
+            return mExt;
+        }
+        if (askH) {
+            return None;
+        }
+        if (mExt != None) {
+            bad = true;
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+Game Ideal(TDP F, Int n, Int k1, Function<BitString<F.k - n - k1>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    F.SecretKey sk;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<F.k - n - k1>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<F.k - n - k1>> HT;
+    Bool bad;
+    Bool askH;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] [pk, sk] = F.KeyGen();
+        count = 0;
+        bad = false;
+        askH = false;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<F.k - n - k1> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            askH = true;
+        }
+        BitString<F.k - n - k1> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<F.k - n - k1> r <- BitString<F.k - n - k1>;
+            BitString<n + k1> s = (m || 0^k1) + G(r);
+            BitString<F.k - n - k1> t = r + H(s);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            sStar = s;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<F.k> x = F.invert(sk, c);
+        BitString<n + k1> s = x[0 : n + k1];
+        BitString<F.k - n - k1> t = x[n + k1 : F.k];
+        BitString<F.k - n - k1> r = t + H(s);
+        BitString<n + k1> p = s + G(r);
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<F.k - n - k1>] eh in HT.entries) {
+            for ([BitString<F.k - n - k1>, BitString<n + k1>] eg in GT.entries) {
+                BitString<F.k - n - k1> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        if (p[n : n + k1] == 0^k1) {
+            BitString<n> m = p[0 : n];
+            if (askH) {
+                return m;
+            }
+            if (mExt != m) {
+                bad = true;
+            }
+            return mExt;
+        }
+        if (askH) {
+            return None;
+        }
+        if (mExt != None) {
+            bad = true;
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}
+
+// Trusted statistical bound; see the header.
+advantage <= count_Dec * ((5 * count_HashG + count_Dec + 1) / |BitString<F.k - n - k1>|
+                          + count_HashH / |BitString<n + k1>|
+                          + 1 / |BitString<k1>|);
+
+export as OAEPExtractStatFlag;

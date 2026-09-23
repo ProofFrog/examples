@@ -1,0 +1,70 @@
+// Helper: XOR-shifting a uniform sample by an offset is a uniform sample.
+//
+// Both games hold a pair (h, t) with t == delta + h (XOR) for an offset
+// delta chosen by the adversary at Initialize, and expose both through
+// Value (h) and Shifted (t). Left samples h and derives t; Right samples
+// t and derives h. Since v -> delta + v is a bijection on BitString<k>,
+// the two pairs are identically distributed for every delta, so the games
+// are perfectly indistinguishable and the hop costs nothing.
+//
+//   Left:  h <- BitString<k>;  Value() = h;          Shifted() = delta + h
+//   Right: t <- BitString<k>;  Value() = delta + t;  Shifted() = t
+//
+// This is the one-line "change of variables" of pen-and-paper proofs: a
+// game that computes t = delta + h for a fresh h may be read as sampling t
+// and defining h = delta + t. The engine's UniformXorSimplification does
+// this only when the sample is used once; when h is also used elsewhere
+// (in OAEP: t goes into the challenge ciphertext while h is the programmed
+// value of H at the challenge's s), the substitution is taken as a hop
+// over this pair instead (MAP principle 1: a zero-advantage helper before
+// an engine rewrite rule). Used by the OAEP flag lemmas to turn "t = rStar
+// + H(sStar) with H(sStar) fresh" into "t fresh, H(sStar) = rStar + t", the
+// shape in which the partial-domain one-wayness challenge f(sStar || t) is
+// stated textbook-style in Games/TDP/PDOW.game. The pair is exposed
+// through oracles rather than returned from Initialize so that, once
+// inlined into a reduction, both values stay fields of the composed game.
+// (The offset field is named xorOffset rather than delta so that, in the
+// engine's canonical field numbering, which breaks ties between same-typed
+// fields by name, the sampled value t sorts first, as the PDOW challenger's
+// tStar does against a reduction's rStar.)
+
+Game Left(Int k) {
+    BitString<k> xorOffset;
+    BitString<k> h;
+
+    Void Initialize(BitString<k> offset) {
+        xorOffset = offset;
+        h <- BitString<k>;
+    }
+
+    BitString<k> Value() {
+        return h;
+    }
+
+    BitString<k> Shifted() {
+        return xorOffset + h;
+    }
+}
+
+Game Right(Int k) {
+    BitString<k> xorOffset;
+    BitString<k> t;
+
+    Void Initialize(BitString<k> offset) {
+        xorOffset = offset;
+        t <- BitString<k>;
+    }
+
+    BitString<k> Value() {
+        return xorOffset + t;
+    }
+
+    BitString<k> Shifted() {
+        return t;
+    }
+}
+
+// Identical distributions: no loss.
+advantage <= 0;
+
+export as UniformXorShift;

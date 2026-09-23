@@ -5,27 +5,31 @@
 // Proof idea. In OAEPAskGFlag.Real the programmed value u is used only
 // in s = (m || 0^k1) + u, so s is uniform and independent of m. Program
 // H at s with a fresh v (ROMProgramming, perfect): then t = rStar + v
-// and the challenge is F.evaluate(pk, s || t) with H(s) = v. That is
-// exactly the PDOW challenge in offset form with delta = rStar, and
-// answering H(s) needs v, which PDOW reveals on a Solve hit. After the
-// PDOW hop H is plain and rStar appears only in TestG's comparison, so
-// RandomTargetGuessing collapses the comparison to false and the flag is
-// never raised.
+// and the challenge is F.evaluate(pk, sStar || t) with H(sStar) = v.
+// Change variables (UniformXorShift, perfect): t is the fresh value and
+// H(sStar) = rStar + t. That is exactly the PDOW challenge
+// F.evaluate(pk, sStar || tStar), and answering H(sStar) needs tStar,
+// which PDOW reveals on a Solve hit. After the PDOW hop H is plain and
+// rStar appears only in TestG's comparison, so RandomTargetGuessing
+// collapses the comparison to false and the flag is never raised.
 //
 // Game sequence:
 //   0. OAEPAskGFlag.Real
 //   1. ROMProgramming(BitString<n+k1>, BitString<k0>).Natural    compose R_Prog  -- interchangeable
 //   2. ROMProgramming(...).Programmed                             compose R_Prog  -- by ROMProgramming (0)
-//   3. PDOW(F, n+k1).Left                                        compose R_PDOW  -- interchangeable
-//   4. PDOW(F, n+k1).Right                                       compose R_PDOW  -- by PDOW
-//   5. RandomTargetGuessing(BitString<k0>).Real                  compose R_Guess -- interchangeable
-//   6. RandomTargetGuessing(BitString<k0>).Ideal                 compose R_Guess -- by guessing (count_TestG / 2^k0)
-//   7. OAEPAskGFlag.Ideal                                                        -- interchangeable
+//   3. UniformXorShift(k0).Left                                   compose R_Shift -- interchangeable
+//   4. UniformXorShift(k0).Right                                  compose R_Shift -- by UniformXorShift (0)
+//   5. PDOW(F, n+k1).Left                                        compose R_PDOW  -- interchangeable
+//   6. PDOW(F, n+k1).Right                                       compose R_PDOW  -- by PDOW
+//   7. RandomTargetGuessing(BitString<k0>).Real                  compose R_Guess -- interchangeable
+//   8. RandomTargetGuessing(BitString<k0>).Ideal                 compose R_Guess -- by guessing (count_TestG / 2^k0)
+//   9. OAEPAskGFlag.Ideal                                                        -- interchangeable
 
 import '../../Primitives/TDP.primitive';
 import '../../Games/PubKeyEnc/OAEPAskGFlag.game';
 import '../../Games/TDP/PDOW.game';
 import '../../Games/Helpers/Probability/ROMProgramming.game';
+import '../../Games/Helpers/Probability/UniformXorShift.game';
 import '../../Games/Helpers/Probability/RandomTargetGuessing.game';
 
 proof:
@@ -42,6 +46,7 @@ let:
 assume:
     PDOW(F, n + k1);
     ROMProgramming(BitString<n + k1>, BitString<k0>);
+    UniformXorShift(k0);
     RandomTargetGuessing(BitString<k0>);
 
 theorem:
@@ -52,6 +57,9 @@ games:
 
     ROMProgramming(BitString<n + k1>, BitString<k0>).Natural    compose R_Prog(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
     ROMProgramming(BitString<n + k1>, BitString<k0>).Programmed compose R_Prog(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+
+    UniformXorShift(k0).Left  compose R_Shift(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
+    UniformXorShift(k0).Right compose R_Shift(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
 
     PDOW(F, n + k1).Left  compose R_PDOW(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
     PDOW(F, n + k1).Right compose R_PDOW(F, n, k0, k1, H) against OAEPAskGFlag(F, n, k1, H).Adversary;
@@ -73,6 +81,7 @@ Reduction R_Prog(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitSt
     BitString<k0> hs;
     Int count;
     Bool bad;
+    Set<BitString<F.k>> S;
 
     F.PublicKey Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
@@ -97,9 +106,15 @@ Reduction R_Prog(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitSt
         count = count + 1;
         if (count == 1) {
             BitString<k0> t = rStar + hs;
-            result = F.evaluate(pk, sStar || t);
+            BitString<F.k> c = F.evaluate(pk, sStar || t);
+            S = S union c;
+            result = c;
         }
         return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
     }
 
     BitString<k0> HashH(BitString<n + k1> x) {
@@ -111,21 +126,27 @@ Reduction R_Prog(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitSt
     }
 }
 
-// R_PDOW: takes the PDOW challenge with offset rStar, so the challenge
-// is F.evaluate(pk, sStar || (rStar + v)); answers H(sStar) = v via
-// Solve/RevealV and H plainly elsewhere.
-Reduction R_PDOW(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitString<k0>> H)
-    compose PDOW(F, n + k1)
+// R_Shift: as R_Prog, with the change of variables delegated to the
+// UniformXorShift challenger, which holds (h, t) with t = rStar + h and
+// exposes them through Value and Shifted: h is fresh on the Left (the
+// programmed H(s)) and t is fresh on the Right (the PDOW challenge shape).
+// H is programmed at sStar by the reduction itself.
+Reduction R_Shift(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitString<k0>> H)
+    compose UniformXorShift(k0)
     against OAEPAskGFlag(F, n, k1, H).Adversary {
     F.PublicKey pk;
     BitString<k0> rStar;
-    BitString<F.k> y;
+    BitString<n + k1> sStar;
     Int count;
     Bool bad;
+    Set<BitString<F.k>> S;
 
     F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
         rStar <- BitString<k0>;
-        [F.PublicKey, BitString<F.k>] [pk, y] = challenger.Initialize(rStar);
+        sStar <- BitString<n + k1>;
+        challenger.Initialize(rStar);
         count = 0;
         bad = false;
         return pk;
@@ -142,14 +163,76 @@ Reduction R_PDOW(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitSt
         BitString<F.k>? result = None;
         count = count + 1;
         if (count == 1) {
+            BitString<k0> t = challenger.Shifted();
+            BitString<F.k> c = F.evaluate(pk, sStar || t);
+            S = S union c;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        if (x == sStar) {
+            return challenger.Value();
+        }
+        return H(x);
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+
+// R_PDOW: takes the textbook PDOW challenge y = F.evaluate(pk, sStar ||
+// tStar); answers H(sStar) = rStar + tStar via Solve/RevealT and H
+// plainly elsewhere.
+Reduction R_PDOW(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitString<k0>> H)
+    compose PDOW(F, n + k1)
+    against OAEPAskGFlag(F, n, k1, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<F.k> y;
+    Int count;
+    Bool bad;
+    Set<BitString<F.k>> S;
+
+    F.PublicKey Initialize() {
+        rStar <- BitString<k0>;
+        [F.PublicKey, BitString<F.k>] [pk, y] = challenger.Initialize();
+        count = 0;
+        bad = false;
+        return pk;
+    }
+
+    [Bool, BitString<n + k1>] TestG(BitString<k0> x) {
+        if (x == rStar) {
+            bad = true;
+        }
+        return [false, 0^(n + k1)];
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            S = S union y;
             result = y;
         }
         return result;
     }
 
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
     BitString<k0> HashH(BitString<n + k1> x) {
         if (challenger.Solve(x)) {
-            return challenger.RevealV(x);
+            return rStar + challenger.RevealT(x);
         }
         return H(x);
     }
@@ -169,6 +252,7 @@ Reduction R_Guess(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitS
     BitString<k0> tStar;
     Int count;
     Bool bad;
+    Set<BitString<F.k>> S;
 
     F.PublicKey Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
@@ -192,9 +276,15 @@ Reduction R_Guess(TDP F, Int n, Int k0, Int k1, Function<BitString<n + k1>, BitS
         BitString<F.k>? result = None;
         count = count + 1;
         if (count == 1) {
-            result = F.evaluate(pk, sStar || tStar);
+            BitString<F.k> c = F.evaluate(pk, sStar || tStar);
+            S = S union c;
+            result = c;
         }
         return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
     }
 
     BitString<k0> HashH(BitString<n + k1> x) {

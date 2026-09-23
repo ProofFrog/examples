@@ -1,0 +1,86 @@
+// A zero-advantage identity: ML-KEM's single-key ciphertext-binding
+// predicate, written once the way FIPS 203 Algorithm 18 states it and
+// once as the explicit case analysis the proof works with.
+//
+// The oracle is handed the four components of a decapsulation key
+// (dk_PKE, ek, h, z) and two ciphertexts, and answers "do the two
+// ciphertexts decapsulate to the same shared secret, and do they
+// differ?".
+//
+//   Left:  decapsulate each ciphertext by Algorithm 18 -- implicitly
+//          reject to J(z || ct) unless the derandomized re-encryption
+//          reproduces ct -- and compare.
+//   Right: the same value, written as the disjunction over the four
+//          combinations of the two acceptance flags acc0, acc1.
+//
+// The two oracles are the SAME function, so the games are identical and
+// the hop costs nothing (`advantage <= 0;`). Right follows from Left by
+// substituting
+//     ss_i = if acc_i then G(m_i || h)[0 : J.Nout] else J(z || ct_i)
+// into ss0 == ss1 and enumerating the four (acc0, acc1) combinations,
+// which are exhaustive and mutually exclusive.
+//
+// Why this exists. The ProofFrog engine will not turn the branch tree
+// that inlining a decapsulation twice produces into an equivalent
+// branch-free boolean, nor the other way round: the two canonical forms
+// differ in where common subexpressions are hoisted, and no way of
+// writing the flat game reproduces the duplication that double method
+// inlining leaves behind. Every later hop of
+// proofs/MLKEM/MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof only deletes one
+// disjunct, which is exact and syntactic on the flat form, so the proof
+// converts once, here, and pays nothing for it. This follows the pattern
+// of Games/Helpers/Probability/TDPCorrectness.game: expose an identity
+// the engine cannot derive as an oracle pair with a declared zero bound.
+//
+// Lengths are derived rather than passed, since games cannot state
+// `requires`: the cached public-key hash h is typed by G's domain
+// (BitString<G.Nin - P.Nmsg>) and the rejection secret z by J's
+// (BitString<J.Nin - P.Nct>), so every hash call type-checks without a
+// side condition. The hash H does not appear at all -- the oracle is
+// given the cached h, which is what Algorithm 18 reads out of dk.
+
+import '../../primitives/DetPKE.primitive';
+import '../../primitives/Hash.primitive';
+
+Game Left(DetPKE P, Hash G, Hash J) {
+    Bool Decide(P.DecKey dk_PKE, BitString<P.Nek> ek,
+                BitString<G.Nin - P.Nmsg> h, BitString<J.Nin - P.Nct> z,
+                BitString<P.Nct> ct0, BitString<P.Nct> ct1) {
+        BitString<P.Nmsg> m0 = P.Decrypt(dk_PKE, ct0);
+        BitString<G.Nout> Kr0 = G.evaluate(m0 || h);
+        BitString<J.Nout> ss0 = Kr0[0 : J.Nout];
+        if (ct0 != P.Encrypt(ek, m0, Kr0[J.Nout : J.Nout + P.Nrand])) {
+            ss0 = J.evaluate(z || ct0);
+        }
+        BitString<P.Nmsg> m1 = P.Decrypt(dk_PKE, ct1);
+        BitString<G.Nout> Kr1 = G.evaluate(m1 || h);
+        BitString<J.Nout> ss1 = Kr1[0 : J.Nout];
+        if (ct1 != P.Encrypt(ek, m1, Kr1[J.Nout : J.Nout + P.Nrand])) {
+            ss1 = J.evaluate(z || ct1);
+        }
+        return ss0 == ss1 && ct0 != ct1;
+    }
+}
+
+Game Right(DetPKE P, Hash G, Hash J) {
+    Bool Decide(P.DecKey dk_PKE, BitString<P.Nek> ek,
+                BitString<G.Nin - P.Nmsg> h, BitString<J.Nin - P.Nct> z,
+                BitString<P.Nct> ct0, BitString<P.Nct> ct1) {
+        BitString<P.Nmsg> m0 = P.Decrypt(dk_PKE, ct0);
+        BitString<P.Nmsg> m1 = P.Decrypt(dk_PKE, ct1);
+        BitString<G.Nout> Kr0 = G.evaluate(m0 || h);
+        BitString<G.Nout> Kr1 = G.evaluate(m1 || h);
+        Bool acc0 = ct0 == P.Encrypt(ek, m0, Kr0[J.Nout : J.Nout + P.Nrand]);
+        Bool acc1 = ct1 == P.Encrypt(ek, m1, Kr1[J.Nout : J.Nout + P.Nrand]);
+        Bool caseA = !acc0 && !acc1 && J.evaluate(z || ct0) == J.evaluate(z || ct1);
+        Bool caseB0 = !acc0 && acc1 && Kr1[0 : J.Nout] == J.evaluate(z || ct0);
+        Bool caseB1 = acc0 && !acc1 && Kr0[0 : J.Nout] == J.evaluate(z || ct1);
+        Bool caseC = acc0 && acc1 && Kr0[0 : J.Nout] == Kr1[0 : J.Nout];
+        return (caseA || caseB0 || caseB1 || caseC) && ct0 != ct1;
+    }
+}
+
+// The two oracles compute the same function; the hop is free.
+advantage <= 0;
+
+export as MLKEMDecapsCaseSplit;

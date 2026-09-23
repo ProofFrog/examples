@@ -1,0 +1,886 @@
+// The flag game of the computational extractor pair has small advantage:
+// in the sk-free extractor world, the adversary rarely queries H at the
+// challenge's s. Bound: 2 * Adv^OAEPAskGExtFlag + 2 * Adv^PDOW.
+//
+// Proof idea: program G at the challenge randomness (ROMProgramming), remove
+// the programmed point through the OAEPAskGExt up-to-bad hop (after which
+// the challenge's s is a fresh uniform value), program H at it, change
+// variables so that t is the fresh value and H(s) = rStar + t
+// (UniformXorShift, perfect), embed the PDOW challenge (Solve detects
+// H-queries at s and raises the flag). On the Right side of PDOW the flag
+// is never raised. The chain then returns the same way with flag-free
+// reductions (suffix b) so that the Ideal, which never reveals the flag but
+// otherwise is the real game, is reached.
+//
+// Game sequence:
+//   0. OAEPExtractCompFlag.Real
+//   1-2.   ROMProgramming(G) compose R_ProgG       -- interchangeable / by ROMProgramming
+//   3-4.   OAEPAskGExt compose R_AskG              -- interchangeable / up to bad (OAEPAskGExtFlag)
+//   5-6.   ROMProgramming(H) compose R_ProgH       -- interchangeable / by ROMProgramming
+//   7-8.   UniformXorShift compose R_Shift         -- interchangeable / by UniformXorShift (0)
+//   9-10.  PDOW compose R_PDOW                     -- interchangeable / by PDOW
+//   11-12. PDOW compose R_PDOWb                    -- interchangeable / by PDOW
+//   13-14. UniformXorShift compose R_Shiftb        -- interchangeable / by UniformXorShift (0)
+//   15-16. ROMProgramming(H) compose R_ProgHb      -- interchangeable / by ROMProgramming
+//   17-18. OAEPAskGExt compose R_AskGb             -- interchangeable / up to bad (OAEPAskGExtFlag)
+//   19-20. ROMProgramming(G) compose R_ProgGb      -- interchangeable / by ROMProgramming
+//   21. OAEPExtractCompFlag.Ideal
+
+import '../../Primitives/TDP.primitive';
+import '../../Games/PubKeyEnc/OAEPExtractCompFlag.game';
+import '../../Games/PubKeyEnc/OAEPAskGExt.game';
+import '../../Games/PubKeyEnc/OAEPAskGExtFlag.game';
+import '../../Games/TDP/PDOW.game';
+import '../../Games/Helpers/Probability/ROMProgramming.game';
+import '../../Games/Helpers/Probability/UniformXorShift.game';
+
+proof:
+
+let:
+    Set PK;
+    Set SK;
+    Int n;
+    Int k0;
+    Int k1;
+    TDP F = TDP(PK, SK, n + k0 + k1);
+    Function<BitString<k0>, BitString<n + k1>> G <- Function<BitString<k0>, BitString<n + k1>>;
+    Function<BitString<n + k1>, BitString<k0>> H <- Function<BitString<n + k1>, BitString<k0>>;
+
+assume:
+    PDOW(F, n + k1);
+    ROMProgramming(BitString<k0>, BitString<n + k1>);
+    ROMProgramming(BitString<n + k1>, BitString<k0>);
+    UniformXorShift(k0);
+
+lemma:
+    OAEPAskGExtFlag(F, n, k1, H) by 'OAEP_AskGExt_Flag.proof';
+
+theorem:
+    OAEPExtractCompFlag(F, n, k1, G, H);
+
+games:
+    OAEPExtractCompFlag(F, n, k1, G, H).Real against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Natural    compose R_ProgG(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Programmed compose R_ProgG(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    OAEPAskGExt(F, n, k1, H).Left  compose R_AskG(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    OAEPAskGExt(F, n, k1, H).Right compose R_AskG(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    ROMProgramming(BitString<n + k1>, BitString<k0>).Natural    compose R_ProgH(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    ROMProgramming(BitString<n + k1>, BitString<k0>).Programmed compose R_ProgH(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    UniformXorShift(k0).Left  compose R_Shift(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    UniformXorShift(k0).Right compose R_Shift(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    PDOW(F, n + k1).Left  compose R_PDOW(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    PDOW(F, n + k1).Right compose R_PDOW(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    PDOW(F, n + k1).Right compose R_PDOWb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    PDOW(F, n + k1).Left  compose R_PDOWb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    UniformXorShift(k0).Right compose R_Shiftb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    UniformXorShift(k0).Left  compose R_Shiftb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    ROMProgramming(BitString<n + k1>, BitString<k0>).Programmed compose R_ProgHb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    ROMProgramming(BitString<n + k1>, BitString<k0>).Natural    compose R_ProgHb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    OAEPAskGExt(F, n, k1, H).Right compose R_AskGb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    OAEPAskGExt(F, n, k1, H).Left  compose R_AskGb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Programmed compose R_ProgGb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+    ROMProgramming(BitString<k0>, BitString<n + k1>).Natural    compose R_ProgGb(F, n, k0, k1, G, H) against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+    OAEPExtractCompFlag(F, n, k1, G, H).Ideal against OAEPExtractCompFlag(F, n, k1, G, H).Adversary;
+
+// R_ProgG: programs G at rStar through the ROMProgramming challenger (as in
+// the IND-CPA proof), with the query tables, the extractor Dec and the
+// challenge bookkeeping (sStar, challenged) the flag game keeps.
+Reduction R_ProgG(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose ROMProgramming(BitString<k0>, BitString<n + k1>)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<n + k1> u;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool bad;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<k0>;
+        u = challenger.Initialize(rStar);
+        count = 0;
+        bad = false;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y = challenger.Query(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            bad = true;
+        }
+        BitString<k0> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (m || 0^k1) + u;
+            BitString<k0> t = rStar + H(s);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            sStar = s;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+// R_AskG: delegates the programmed point of G (TestG), the challenge, InS
+// and the askH bookkeeping to the OAEPAskGExt challenger; keeps the query
+// tables and answers Dec with the extractor.
+Reduction R_AskG(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose OAEPAskGExt(F, n, k1, H)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+
+    F.PublicKey Initialize() {
+        pk = challenger.Initialize();
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        [Bool, BitString<n + k1>] [hit, u] = challenger.TestG(x);
+        if (hit) {
+            GT[x] = u;
+            return u;
+        }
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        BitString<k0> y = challenger.HashH(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        return challenger.Challenge(m);
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return challenger.InS(c);
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (challenger.InS(c)) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return challenger.AskH();
+    }
+}
+
+// R_ProgH: samples the (now message-independent) challenge s up front and
+// asks the ROMProgramming challenger for H(s); routes H through the
+// challenger; publishes s as sStar at challenge time like the flag game.
+Reduction R_ProgH(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose ROMProgramming(BitString<n + k1>, BitString<k0>)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<n + k1> sHid;
+    BitString<k0> hs;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool bad;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<k0>;
+        sHid <- BitString<n + k1>;
+        hs = challenger.Initialize(sHid);
+        count = 0;
+        bad = false;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            bad = true;
+        }
+        BitString<k0> y = challenger.Query(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<k0> t = rStar + hs;
+            BitString<F.k> c = F.evaluate(pk, sHid || t);
+            S = S union c;
+            sStar = sHid;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+// R_Shift: as R_ProgH, with the change of variables delegated to the
+// UniformXorShift challenger, which holds (h, t) with t = rStar + h and
+// exposes them through Value and Shifted: h is fresh on the Left (the
+// programmed H(s)) and t is fresh on the Right (the PDOW challenge shape).
+// H is programmed at sHid by the reduction itself.
+Reduction R_Shift(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose UniformXorShift(k0)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<n + k1> sHid;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool bad;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        BitString<k0> rStar <- BitString<k0>;
+        sHid <- BitString<n + k1>;
+        challenger.Initialize(rStar);
+        count = 0;
+        bad = false;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            bad = true;
+        }
+        if (x == sHid) {
+            BitString<k0> hs = challenger.Value();
+            HT[x] = hs;
+            return hs;
+        }
+        BitString<k0> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<k0> t = challenger.Shifted();
+            BitString<F.k> c = F.evaluate(pk, sHid || t);
+            S = S union c;
+            sStar = sHid;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+
+// R_PDOW: takes the textbook PDOW challenge; detects H-queries at the
+// hidden s through Solve (which drives the flag) and answers
+// H(s) = rStar + tStar via RevealT.
+Reduction R_PDOW(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose PDOW(F, n + k1)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<F.k> y;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool bad;
+    Bool challenged;
+
+    F.PublicKey Initialize() {
+        rStar <- BitString<k0>;
+        [F.PublicKey, BitString<F.k>] [pk, y] = challenger.Initialize();
+        count = 0;
+        bad = false;
+        challenged = false;
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y2 = G(x);
+        GT[x] = y2;
+        return y2;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        if (challenged && challenger.Solve(x)) {
+            bad = true;
+        }
+        BitString<k0> v;
+        if (challenger.Solve(x)) {
+            v = rStar + challenger.RevealT(x);
+        } else {
+            v = H(x);
+        }
+        HT[x] = v;
+        return v;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            S = S union y;
+            challenged = true;
+            result = y;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+// R_PDOWb: as R_PDOW without the flag.
+Reduction R_PDOWb(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose PDOW(F, n + k1)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<F.k> y;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool challenged;
+
+    F.PublicKey Initialize() {
+        rStar <- BitString<k0>;
+        [F.PublicKey, BitString<F.k>] [pk, y] = challenger.Initialize();
+        count = 0;
+        challenged = false;
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y2 = G(x);
+        GT[x] = y2;
+        return y2;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        BitString<k0> v;
+        if (challenger.Solve(x)) {
+            v = rStar + challenger.RevealT(x);
+        } else {
+            v = H(x);
+        }
+        HT[x] = v;
+        return v;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            S = S union y;
+            challenged = true;
+            result = y;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}
+
+// R_ProgHb: samples the (now message-independent) challenge s up front and
+// asks the ROMProgramming challenger for H(s); routes H through the
+// challenger; publishes s as sStar at challenge time like the flag game.
+Reduction R_ProgHb(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose ROMProgramming(BitString<n + k1>, BitString<k0>)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<n + k1> sHid;
+    BitString<k0> hs;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<k0>;
+        sHid <- BitString<n + k1>;
+        hs = challenger.Initialize(sHid);
+        count = 0;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        BitString<k0> y = challenger.Query(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<k0> t = rStar + hs;
+            BitString<F.k> c = F.evaluate(pk, sHid || t);
+            S = S union c;
+            sStar = sHid;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}
+
+// R_Shiftb: as R_ProgHb, with the change of variables delegated to the
+// UniformXorShift challenger, which holds (h, t) with t = rStar + h and
+// exposes them through Value and Shifted: h is fresh on the Left (the
+// programmed H(s)) and t is fresh on the Right (the PDOW challenge shape).
+// H is programmed at sHid by the reduction itself.
+Reduction R_Shiftb(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose UniformXorShift(k0)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<n + k1> sHid;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        BitString<k0> rStar <- BitString<k0>;
+        sHid <- BitString<n + k1>;
+        challenger.Initialize(rStar);
+        count = 0;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        if (x == sHid) {
+            BitString<k0> hs = challenger.Value();
+            HT[x] = hs;
+            return hs;
+        }
+        BitString<k0> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<k0> t = challenger.Shifted();
+            BitString<F.k> c = F.evaluate(pk, sHid || t);
+            S = S union c;
+            sStar = sHid;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}
+
+
+// R_AskGb: delegates the programmed point of G (TestG), the challenge, InS
+// and the askH bookkeeping to the OAEPAskGExt challenger; keeps the query
+// tables and answers Dec with the extractor.
+Reduction R_AskGb(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose OAEPAskGExt(F, n, k1, H)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+
+    F.PublicKey Initialize() {
+        pk = challenger.Initialize();
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        [Bool, BitString<n + k1>] [hit, u] = challenger.TestG(x);
+        if (hit) {
+            GT[x] = u;
+            return u;
+        }
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        BitString<k0> y = challenger.HashH(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        return challenger.Challenge(m);
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return challenger.InS(c);
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (challenger.InS(c)) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}
+
+// R_ProgGb: programs G at rStar through the ROMProgramming challenger (as in
+// the IND-CPA proof), with the query tables, the extractor Dec and the
+// challenge bookkeeping (sStar, challenged) the flag game keeps.
+Reduction R_ProgGb(TDP F, Int n, Int k0, Int k1, Function<BitString<k0>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<k0>> H)
+    compose ROMProgramming(BitString<k0>, BitString<n + k1>)
+    against OAEPExtractCompFlag(F, n, k1, G, H).Adversary {
+    F.PublicKey pk;
+    BitString<k0> rStar;
+    BitString<n + k1> u;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<k0>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<k0>> HT;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] kp = F.KeyGen();
+        pk = kp[0];
+        rStar <- BitString<k0>;
+        u = challenger.Initialize(rStar);
+        count = 0;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<k0> x) {
+        BitString<n + k1> y = challenger.Query(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<k0> HashH(BitString<n + k1> x) {
+        BitString<k0> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<n + k1> s = (m || 0^k1) + u;
+            BitString<k0> t = rStar + H(s);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            sStar = s;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<k0>] eh in HT.entries) {
+            for ([BitString<k0>, BitString<n + k1>] eg in GT.entries) {
+                BitString<k0> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}

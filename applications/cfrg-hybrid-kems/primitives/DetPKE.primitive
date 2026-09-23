@@ -1,0 +1,44 @@
+// Deterministic-encryption public-key encryption primitive: the
+// randomness of Encrypt is an explicit argument, and KeyGen derives the
+// key pair deterministically from a seed.
+//
+// This is the K-PKE layer of FIPS 203 (ML-KEM), Algorithms 13 to 15,
+// abstracted away from any lattice structure:
+//
+//   K-PKE.KeyGen(d)          -> (ek_PKE, dk_PKE)   deterministic in d
+//   K-PKE.Encrypt(ek, m, r)  -> c                  deterministic in (ek, m, r)
+//   K-PKE.Decrypt(dk, c)     -> m                  deterministic
+//
+// The Fujisaki-Okamoto transform of FIPS 203 Algorithms 16 to 18 uses
+// exactly this interface and nothing else about K-PKE: it re-encrypts
+// with derandomized coins and compares ciphertexts. Modelling K-PKE as an
+// abstract deterministic PKE therefore loses nothing for binding
+// properties, which is why MLKEM.scheme is generic over this primitive.
+//
+// Ciphertexts, encapsulation keys, messages and randomness are byte
+// strings of fixed length (BitString<N>, following this directory's
+// convention that a BitString<N> models an N-byte value); only the
+// decryption key is an opaque set, since nothing in the FO transform
+// inspects it. Keeping ciphertexts and encapsulation keys as byte
+// strings is what lets MLKEM implement the KEM primitive's injective
+// Encode* methods as identities.
+//
+// The method signatures spell out BitString<...> rather than going
+// through Set aliases so that every value's length is statically
+// derivable; the engine's concatenation-equality decomposition needs
+// that (see Hash.primitive's header).
+//
+// No correctness property is declared: the binding proof in
+// proofs/MLKEM/ never needs Decrypt(dk, Encrypt(ek, m, r)) == m.
+Primitive DetPKE(Int Nkseed, Int Nmsg, Int Nrand, Int Nct, Int Nek, Set DecKeySpace) {
+    Int Nkseed = Nkseed;
+    Int Nmsg = Nmsg;
+    Int Nrand = Nrand;
+    Int Nct = Nct;
+    Int Nek = Nek;
+    Set DecKey = DecKeySpace;
+
+    deterministic [BitString<Nek>, DecKey] KeyGen(BitString<Nkseed> d);
+    deterministic BitString<Nct> Encrypt(BitString<Nek> ek, BitString<Nmsg> m, BitString<Nrand> r);
+    deterministic BitString<Nmsg> Decrypt(DecKey dk, BitString<Nct> ct);
+}

@@ -1,0 +1,180 @@
+// Flag game of OAEPExtractComp (its Right side plus Reveal): Pr[bad] is the
+// probability that the adversary queries H at the challenge's s while
+// interacting with the sk-free extractor game. ASSUMED for now; to be proven
+// from PDOW (plus G-programming) as in OAEP_AskG_Flag.proof.
+
+import '../../Primitives/TDP.primitive';
+
+Game Real(TDP F, Int n, Int k1, Function<BitString<F.k - n - k1>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    F.SecretKey sk;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<F.k - n - k1>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<F.k - n - k1>> HT;
+    Bool bad;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] [pk, sk] = F.KeyGen();
+        count = 0;
+        bad = false;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<F.k - n - k1> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            bad = true;
+        }
+        BitString<F.k - n - k1> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<F.k - n - k1> r <- BitString<F.k - n - k1>;
+            BitString<n + k1> s = (m || 0^k1) + G(r);
+            BitString<F.k - n - k1> t = r + H(s);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            sStar = s;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<F.k> x = F.invert(sk, c);
+        BitString<n + k1> s = x[0 : n + k1];
+        BitString<F.k - n - k1> t = x[n + k1 : F.k];
+        BitString<F.k - n - k1> r = t + H(s);
+        BitString<n + k1> p = s + G(r);
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<F.k - n - k1>] eh in HT.entries) {
+            for ([BitString<F.k - n - k1>, BitString<n + k1>] eg in GT.entries) {
+                BitString<F.k - n - k1> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        if (p[n : n + k1] == 0^k1) {
+            BitString<n> m = p[0 : n];
+            return mExt;
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return bad;
+    }
+}
+
+Game Ideal(TDP F, Int n, Int k1, Function<BitString<F.k - n - k1>, BitString<n + k1>> G, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
+    F.PublicKey pk;
+    F.SecretKey sk;
+    Int count;
+    Set<BitString<F.k>> S;
+    Map<BitString<F.k - n - k1>, BitString<n + k1>> GT;
+    Map<BitString<n + k1>, BitString<F.k - n - k1>> HT;
+    Bool bad;
+    Bool challenged;
+    BitString<n + k1> sStar;
+
+    F.PublicKey Initialize() {
+        [F.PublicKey, F.SecretKey] [pk, sk] = F.KeyGen();
+        count = 0;
+        bad = false;
+        challenged = false;
+        sStar = 0^(n + k1);
+        return pk;
+    }
+
+    BitString<n + k1> HashG(BitString<F.k - n - k1> x) {
+        BitString<n + k1> y = G(x);
+        GT[x] = y;
+        return y;
+    }
+
+    BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            bad = true;
+        }
+        BitString<F.k - n - k1> y = H(x);
+        HT[x] = y;
+        return y;
+    }
+
+    BitString<F.k>? Challenge(BitString<n> m) {
+        BitString<F.k>? result = None;
+        count = count + 1;
+        if (count == 1) {
+            BitString<F.k - n - k1> r <- BitString<F.k - n - k1>;
+            BitString<n + k1> s = (m || 0^k1) + G(r);
+            BitString<F.k - n - k1> t = r + H(s);
+            BitString<F.k> c = F.evaluate(pk, s || t);
+            S = S union c;
+            sStar = s;
+            challenged = true;
+            result = c;
+        }
+        return result;
+    }
+
+    Bool InS(BitString<F.k> c) {
+        return c in S;
+    }
+
+    BitString<n>? Dec(BitString<F.k> c) {
+        if (c in S) {
+            return None;
+        }
+        BitString<F.k> x = F.invert(sk, c);
+        BitString<n + k1> s = x[0 : n + k1];
+        BitString<F.k - n - k1> t = x[n + k1 : F.k];
+        BitString<F.k - n - k1> r = t + H(s);
+        BitString<n + k1> p = s + G(r);
+        BitString<n>? mExt = None;
+        for ([BitString<n + k1>, BitString<F.k - n - k1>] eh in HT.entries) {
+            for ([BitString<F.k - n - k1>, BitString<n + k1>] eg in GT.entries) {
+                BitString<F.k - n - k1> te = eg[0] + eh[1];
+                BitString<n + k1> pe = eh[0] + eg[1];
+                if (F.evaluate(pk, eh[0] || te) == c && pe[n : n + k1] == 0^k1) {
+                    mExt = pe[0 : n];
+                }
+            }
+        }
+        if (p[n : n + k1] == 0^k1) {
+            BitString<n> m = p[0 : n];
+            return mExt;
+        }
+        return mExt;
+    }
+
+    Bool Reveal() {
+        return false;
+    }
+}
+
+export as OAEPExtractCompFlag;

@@ -1,0 +1,44 @@
+// Cross-collision resistance of two hash functions: no adversary can
+// find an input to F1 whose truncation to F2's output length equals an
+// image of F2.
+//
+//   Breakable:   Challenge(x, y) returns F1(x)[0 : F2.Nout] == F2(y)
+//   Unbreakable: Challenge always returns false
+//
+// There is no distinctness side condition: F1 and F2 are different
+// functions, so any pair of inputs making the two images agree is a
+// break.
+//
+// This is a plain cryptographic assumption, not a statistical helper,
+// and so carries no declared `advantage <=` clause. It cannot carry one:
+// F1 and F2 are standard-model functions the adversary evaluates
+// offline, so no unconditional bound on the number of evaluations
+// exists. What justifies it is the random-oracle heuristic -- if F1 and
+// F2 were independent random oracles, an adversary making q1 queries to
+// F1 and q2 to F2 would find a cross collision with probability at most
+// q1 * q2 / 2^(8 * F2.Nout), each pair of answers agreeing on F2.Nout
+// bytes with probability 2^(-8 * F2.Nout).
+//
+// For ML-KEM, F1 = G = SHA3-512 truncated to its first 32 bytes and
+// F2 = J = SHAKE256 with 32-byte output; the two use different SHA-3
+// domain-separation padding, so an actual cross collision would be a
+// structural break of Keccak. This is the "one ciphertext rejects, the
+// other does not" case of Schmieg's Proposition 1 (ePrint 2024/523) and
+// of Fiedler-Guenther Theorem 3.10 (ePrint 2024/702), where the same
+// term appears as a ROM bound.
+
+import '../../primitives/Hash.primitive';
+
+Game Breakable(Hash F1, Hash F2) {
+    Bool Challenge(BitString<F1.Nin> x, BitString<F2.Nin> y) {
+        return F1.evaluate(x)[0 : F2.Nout] == F2.evaluate(y);
+    }
+}
+
+Game Unbreakable(Hash F1, Hash F2) {
+    Bool Challenge(BitString<F1.Nin> x, BitString<F2.Nin> y) {
+        return false;
+    }
+}
+
+export as CrossCollisionResistance;

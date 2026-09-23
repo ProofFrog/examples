@@ -1,37 +1,19 @@
-// OAEP "AskG" pair: identical until bad, used through an up-to-bad hop.
+// OAEP "AskG" pair for the extractor world: OAEPAskG plus the sk-free
+// bookkeeping the IND-CCA flag lemmas need. Identical until bad (the
+// adversary queries G at the hidden rStar); used through an up-to-bad hop
+// in Proofs/PubKeyEnc/OAEP_ExtractComp_Flag.proof.
 //
-// Parameters: F on F.k bits, message length n, redundancy k1; the
-// randomness length k0 = F.k - n - k1 is derived because games cannot
-// state `requires`.
+// As in OAEPAskG: the pair owns the programmed value u = G(rStar) and the
+// challenge encryption (H is a parameter exposed through HashH, InS tells
+// whether a ciphertext is the challenge). In addition it records in askH
+// whether H was ever queried at the challenge's s (an sk-free event the
+// enclosing flag game reveals through AskH), exactly as the OAEPExtract*
+// games do. G itself is never touched: a reduction answers HashG through
+// TestG / its own G.
 //
-// Owns the OAEP challenge encryption with the random oracle G
-// programmed at the hidden point rStar: G(rStar) = u for a fresh u
-// sampled at Initialize. The game does not touch G itself; a reduction
-// composed with it answers HashG(x) by `[hit, u] = challenger.TestG(x);
-// if (hit) return u; return G(x);`, so the composition programs G at
-// rStar. H is a parameter, exposed to the adversary through HashH so
-// that the flag game's adversary has exactly the oracle access the OAEP
-// adversary has. Only the first Challenge query is answered; InS tells
-// whether a ciphertext is the challenge (so an IND-CCA reduction can
-// refuse to decrypt it without holding the ciphertext itself).
-//
-//   Left:  TestG(x) sets bad and returns [true, u] when x == rStar
-//   Right: TestG(x) sets bad and returns [false, 0^(n + k1)] when x == rStar
-//   (both return [false, 0^(n + k1)] otherwise)
-//
-// The two games differ only inside the branch that raises `bad`, so a
-// side flip over this pair is licensed by the fundamental lemma: its
-// loss is the advantage of the flag game OAEPAskGFlag (this pair's
-// Right side plus a Reveal oracle for `bad`), which
-// Proofs/PubKeyEnc/OAEP_AskG_Flag.proof bounds by
-//     Adv^PDOW(F) + count_TestG / 2^k0.
-//
-// Challenge(m): s = (m || 0^k1) + u;  t = rStar + H(s);
-//               return F.evaluate(pk, s || t).
-// On the Right, u and rStar are each used once, so s and t are uniform
-// and the challenge is independent of m: composing with this pair is
-// what removes the message from an OAEP IND-CPA game.
-//
+// k0 = F.k - n - k1 is derived because games cannot state `requires`.
+// The flag game OAEPAskGExtFlag carries the bound; see that file.
+
 import '../../Primitives/TDP.primitive';
 
 Game Left(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - k1>> H) {
@@ -41,6 +23,9 @@ Game Left(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - 
     Int count;
     Bool bad;
     Set<BitString<F.k>> S;
+    Bool askH;
+    Bool challenged;
+    BitString<n + k1> sStar;
 
     F.PublicKey Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
@@ -49,6 +34,9 @@ Game Left(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - 
         u <- BitString<n + k1>;
         count = 0;
         bad = false;
+        askH = false;
+        challenged = false;
+        sStar = 0^(n + k1);
         return pk;
     }
 
@@ -68,6 +56,8 @@ Game Left(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - 
             BitString<F.k - n - k1> t = rStar + H(s);
             BitString<F.k> c = F.evaluate(pk, s || t);
             S = S union c;
+            sStar = s;
+            challenged = true;
             result = c;
         }
         return result;
@@ -78,7 +68,14 @@ Game Left(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n - 
     }
 
     BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            askH = true;
+        }
         return H(x);
+    }
+
+    Bool AskH() {
+        return askH;
     }
 }
 
@@ -89,6 +86,9 @@ Game Right(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n -
     Int count;
     Bool bad;
     Set<BitString<F.k>> S;
+    Bool askH;
+    Bool challenged;
+    BitString<n + k1> sStar;
 
     F.PublicKey Initialize() {
         [F.PublicKey, F.SecretKey] kp = F.KeyGen();
@@ -97,6 +97,9 @@ Game Right(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n -
         u <- BitString<n + k1>;
         count = 0;
         bad = false;
+        askH = false;
+        challenged = false;
+        sStar = 0^(n + k1);
         return pk;
     }
 
@@ -115,6 +118,8 @@ Game Right(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n -
             BitString<F.k - n - k1> t = rStar + H(s);
             BitString<F.k> c = F.evaluate(pk, s || t);
             S = S union c;
+            sStar = s;
+            challenged = true;
             result = c;
         }
         return result;
@@ -125,8 +130,15 @@ Game Right(TDP F, Int n, Int k1, Function<BitString<n + k1>, BitString<F.k - n -
     }
 
     BitString<F.k - n - k1> HashH(BitString<n + k1> x) {
+        if (challenged && x == sStar) {
+            askH = true;
+        }
         return H(x);
+    }
+
+    Bool AskH() {
+        return askH;
     }
 }
 
-export as OAEPAskG;
+export as OAEPAskGExt;
