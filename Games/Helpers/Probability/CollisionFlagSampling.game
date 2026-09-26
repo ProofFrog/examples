@@ -1,0 +1,46 @@
+// Assumption: uniform sampling with replacement, where each draw also
+// reports whether it collided with an earlier draw, is statistically close
+// to the same sampling that never reports a collision.
+//
+// Real:  Samp() draws val uniformly from S and returns [val, hit], where
+//        hit is true exactly when val was returned by an earlier call.
+// Ideal: Samp() draws val uniformly from S and returns [val, false].
+//
+// The values are identically distributed on both sides; only the hit bit
+// differs, and it is true in Real exactly when a birthday collision has
+// happened, so the distinguishing advantage is at most
+// count_Samp(count_Samp - 1)/(2|S|).
+//
+// This is DistinctSampling's fact in flag form: DistinctSampling's
+// NoReplacement side changes the distribution of the values (they become
+// distinct), while this Ideal side keeps them uniform and only silences the
+// report. Use it to bound a collision EVENT without leaving the world of
+// independent uniform draws, e.g. in Proofs/PRP/RFRP_Switching_Event.proof.
+
+Game Real(Set S) {
+    Set<S> seen;
+
+    [S, Bool] Samp() {
+        S val <- S;
+        Bool hit = val in seen;
+        seen = seen union val;
+        return [val, hit];
+    }
+}
+
+Game Ideal(Set S) {
+    Set<S> seen;
+
+    [S, Bool] Samp() {
+        S val <- S;
+        seen = seen union val;
+        return [val, false];
+    }
+}
+
+// Birthday bound: the i-th draw collides with one of the i - 1 earlier
+// draws with probability at most (i - 1)/|S|; summing over count_Samp draws
+// gives count_Samp(count_Samp - 1)/(2|S|).
+advantage <= count_Samp * (count_Samp - 1) / (2 * |S|);
+
+export as CollisionFlagSampling;
