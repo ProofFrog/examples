@@ -1,0 +1,64 @@
+// Event game: collision of the traditional public keys of two
+// CG_seedbased key pairs, with the seeds hidden.
+//
+// Same key generation as CGSeededTKeyCollision.game (two hybrid seeds,
+// each expanded with the PRG G and mapped to ek_T_i =
+// Exp(g, RandomScalar(seed_T_i))), but nothing is returned to the
+// adversary; the only oracle reports the collision bit.
+//
+// Real:  Collided answers whether ek_T_0 == ek_T_1.
+// Ideal: Collided always answers false.
+//
+// The distinguishing advantage is Pr[ek_T_0 == ek_T_1] (the adversary
+// just outputs the bit), the same quantity as for the seed-exposed
+// form. Because the seeds are hidden here, the probability can be
+// bounded by a game-hopping argument in ProofFrog:
+// proofs/CG/CG_seedbased_TKeyCollisionEvent.proof shows
+//
+//     Adv <= Adv^{PRGSec}_G (two queries) + Adv^{NGKeyCollision}_NG.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/PRG.primitive';
+
+Game Real(KEM KEM_PQ, NominalGroup NG, PRG G) {
+    Bool collided;
+
+    Void Initialize() {
+        BitString<G.lambda> seed_0 <- BitString<G.lambda>;
+        BitString<G.lambda> seed_1 <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
+        BitString<G.lambda + G.stretch> seed_full_1 = G.evaluate(seed_1);
+        BitString<NG.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        BitString<NG.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_0));
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_1));
+        collided = ek_T_0 == ek_T_1;
+    }
+
+    Bool Collided() {
+        return collided;
+    }
+}
+
+Game Ideal(KEM KEM_PQ, NominalGroup NG, PRG G) {
+    Bool collided;
+
+    Void Initialize() {
+        BitString<G.lambda> seed_0 <- BitString<G.lambda>;
+        BitString<G.lambda> seed_1 <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
+        BitString<G.lambda + G.stretch> seed_full_1 = G.evaluate(seed_1);
+        BitString<NG.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        BitString<NG.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_0));
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_1));
+        collided = ek_T_0 == ek_T_1;
+    }
+
+    Bool Collided() {
+        return false;
+    }
+}
+
+export as CGSeededTKeyCollisionEvent;

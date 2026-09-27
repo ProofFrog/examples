@@ -1,0 +1,118 @@
+// Bound on the event that two CG_seedbased key generations produce the
+// same traditional (nominal-group) public key, in the standard model.
+//
+// CGSeededTKeyCollisionEvent samples two hybrid seeds, expands each
+// with the PRG G, derives ek_T_i = Exp(g, RandomScalar(seed_T_i)) from
+// the nominal-group halves, and lets the adversary ask whether
+// ek_T_0 == ek_T_1 (Real) or always hears "no" (Ideal). Its advantage
+// is Pr[ek_T_0 == ek_T_1]. Since nothing else is revealed, the seeds
+// are hidden and PRG security applies: the two expansions are replaced
+// by uniform strings, whose nominal-group halves are two independent
+// uniform NG seeds, i.e. two honest NG key generations. The remaining
+// collision probability is the NGKeyCollision assumption on NG.
+//
+// Both sides end with Collided answering false, so the last hop is an
+// equivalence: all of key generation is dead code once the bit is
+// constant.
+//
+// Game sequence (6 entries, 5 hops):
+//   0. CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Real
+//   1. PRGSec(G).Real          compose R_PRG   (equiv)
+//   2. PRGSec(G).Random        compose R_PRG   (assumption; 2 queries)
+//   3. NGKeyCollision(NG).Real  compose R_NG   (equiv)
+//   4. NGKeyCollision(NG).Ideal compose R_NG   (assumption)
+//   5. CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Ideal                  (equiv)
+//
+// Assumptions: PRGSec(G), NGKeyCollision(NG).
+//
+// This bounds the seed-exposed helper CGSeededTKeyCollision too: both
+// advantages equal the same Pr[ek_T_0 == ek_T_1], an event fixed at
+// Initialize by the challenger's own coins.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/PRG.primitive';
+import '../../games/PRG/PRGSec.game';
+import '../../games/Group/NGKeyCollision.game';
+import '../../games/Seeded/CGSeededTKeyCollisionEvent.game';
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int ng_nseed;
+    Int ng_nss;
+    Int ng_nelem;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set NGElementSpace;
+    Set NGScalarSpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    NominalGroup NG = NominalGroup(ng_nseed, ng_nelem, ng_nss,
+                                   NGElementSpace, NGScalarSpace);
+    PRG G = PRG(kem_pq_nseed, ng_nseed);
+
+assume:
+    PRGSec(G);
+    NGKeyCollision(NG);
+
+theorem:
+    CGSeededTKeyCollisionEvent(KEM_PQ, NG, G);
+
+bound:
+      advantage(PRGSec(G) compose R_PRG)
+    + advantage(NGKeyCollision(NG) compose R_NG);
+
+games:
+    CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Real against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary;
+
+    PRGSec(G).Real   compose R_PRG(KEM_PQ, NG, G) against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary;
+    PRGSec(G).Random compose R_PRG(KEM_PQ, NG, G) against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary;
+
+    NGKeyCollision(NG).Real  compose R_NG(KEM_PQ, NG, G) against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary;
+    NGKeyCollision(NG).Ideal compose R_NG(KEM_PQ, NG, G) against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary;
+
+    CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Ideal against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary;
+
+// R_PRG: obtains the two seed expansions from the PRG challenger
+// (under a hidden uniform seed each) and derives the nominal-group
+// public elements from their NG halves.
+Reduction R_PRG(KEM KEM_PQ, NominalGroup NG, PRG G)
+    compose PRGSec(G) against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary {
+
+    Bool collided;
+
+    Void Initialize() {
+        BitString<G.lambda + G.stretch> seed_full_0 = challenger.Query();
+        BitString<G.lambda + G.stretch> seed_full_1 = challenger.Query();
+        BitString<NG.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        BitString<NG.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_0));
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_1));
+        collided = ek_T_0 == ek_T_1;
+    }
+
+    Bool Collided() {
+        return collided;
+    }
+}
+
+// R_NG: after the PRG hop the NG seeds are fresh uniform strings, which
+// is exactly two honest NG key generations; forward the collision
+// question to the NGKeyCollision challenger.
+Reduction R_NG(KEM KEM_PQ, NominalGroup NG, PRG G)
+    compose NGKeyCollision(NG) against CGSeededTKeyCollisionEvent(KEM_PQ, NG, G).Adversary {
+
+    Void Initialize() {
+        challenger.Initialize();
+    }
+
+    Bool Collided() {
+        return challenger.Collided();
+    }
+}

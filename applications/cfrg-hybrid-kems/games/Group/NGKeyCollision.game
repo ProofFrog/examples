@@ -1,0 +1,54 @@
+// Key-collision probability of a nominal group's honest key generation.
+//
+// Two independent honest key generations (draft section 4.2:
+// dk_T = RandomScalar(random(Nseed)), ek_T = Exp(g, dk_T)) produce the
+// same public element only with some small probability eps_NG. For a
+// prime-order group with a near-uniform RandomScalar this is about
+// 1/|Element|; StarFighters (ePrint 2025/1397, Theorem 28) calls the
+// same quantity eps_N.
+//
+// Real:  Collided answers whether the two honestly generated public
+//        elements coincide.
+// Ideal: Collided always answers false.
+//
+// The two games differ only in the one bit, and that bit is fixed at
+// Initialize by the game's own coins, so the distinguishing advantage
+// is exactly Pr[ek_T_0 == ek_T_1] = eps_NG. The abstract NominalGroup
+// primitive does not pin RandomScalar down to a distribution, so the
+// bound is left symbolic rather than declared as an advantage clause.
+
+import '../../primitives/NominalGroup.primitive';
+
+Game Real(NominalGroup NG) {
+    Bool collided;
+
+    Void Initialize() {
+        BitString<NG.Nseed> seed_0 <- BitString<NG.Nseed>;
+        BitString<NG.Nseed> seed_1 <- BitString<NG.Nseed>;
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_0));
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_1));
+        collided = ek_T_0 == ek_T_1;
+    }
+
+    Bool Collided() {
+        return collided;
+    }
+}
+
+Game Ideal(NominalGroup NG) {
+    Bool collided;
+
+    Void Initialize() {
+        BitString<NG.Nseed> seed_0 <- BitString<NG.Nseed>;
+        BitString<NG.Nseed> seed_1 <- BitString<NG.Nseed>;
+        NG.Element ek_T_0 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_0));
+        NG.Element ek_T_1 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_1));
+        collided = ek_T_0 == ek_T_1;
+    }
+
+    Bool Collided() {
+        return false;
+    }
+}
+
+export as NGKeyCollision;
