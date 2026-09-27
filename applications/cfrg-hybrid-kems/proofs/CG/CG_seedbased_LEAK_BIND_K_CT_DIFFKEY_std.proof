@@ -14,21 +14,22 @@
 //   Case ek_T_0 != ek_T_1: the KDF inputs differ in the ek_T slot
 //     whatever the ciphertexts are, so equal outputs are a KDF
 //     collision.
-//   Case ek_T_0 == ek_T_1: an event over honest key generation alone;
-//     its probability is the advantage of CGSeededTKeyCollision,
-//     bounded by PRG security of G plus NG's key-collision probability
+//   Case ek_T_0 == ek_T_1: an event over honest key generation alone.
+//     CGSeededTKeyCollision is identical until that event (its flag
+//     `bad`, raised in Initialize), so the hop costs Pr[bad], bounded by
+//     PRG security of G plus NG's key-collision probability
 //     (CG_seedbased_TKeyCollisionEvent.proof).
 //
 // Game sequence (6 entries, 5 hops):
 //   0. LEAK_BIND_K_CT_DIFFKEY(hybrid).Breakable
 //   1. CGSeededTKeyCollision(KEM_PQ, NG, G).Real  compose R_Coll  (equiv)
-//   2. CGSeededTKeyCollision(KEM_PQ, NG, G).Ideal compose R_Coll  (assumption)
+//   2. CGSeededTKeyCollision(KEM_PQ, NG, G).Ideal compose R_Coll  (up to bad; event lemma)
 //   3. KDFCollisionResistance(H).Breakable   compose R_KDF       (equiv)
 //   4. KDFCollisionResistance(H).Unbreakable compose R_KDF       (assumption)
 //   5. LEAK_BIND_K_CT_DIFFKEY(hybrid).Unbreakable
 //
-// Assumptions: CGSeededTKeyCollision(KEM_PQ, NG, G),
-// KDFCollisionResistance(H).
+// Assumptions: KDFCollisionResistance(H); lemma: event bad of
+// CGSeededTKeyCollision(KEM_PQ, NG, G) at Initialize.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';
@@ -67,14 +68,16 @@ let:
     CG_seedbased hybrid = CG_seedbased(KEM_PQ, NG, G, H, L);
 
 assume:
-    CGSeededTKeyCollision(KEM_PQ, NG, G);
     KDFCollisionResistance(H);
+
+lemma:
+    event bad of CGSeededTKeyCollision(KEM_PQ, NG, G) at Initialize by 'CG_seedbased_TKeyCollisionEvent.proof';
 
 theorem:
     LEAK_BIND_K_CT_DIFFKEY(hybrid);
 
 bound:
-      advantage(CGSeededTKeyCollision(KEM_PQ, NG, G) compose R_Coll)
+      advantage(event bad of CGSeededTKeyCollision(KEM_PQ, NG, G) at Initialize compose R_Coll)
     + advantage(KDFCollisionResistance(H) compose R_KDF);
 
 games:

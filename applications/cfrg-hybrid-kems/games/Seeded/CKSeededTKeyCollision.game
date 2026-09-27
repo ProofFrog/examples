@@ -7,27 +7,28 @@
 // does, and the KEM_T half is turned into the traditional
 // encapsulation key ek_T_i via KEM_T.DeriveKeyPair(seed_T_i).
 //
-// Real:  Collided answers whether ek_T_0 == ek_T_1.
+// Both sides raise the flag `bad` in Initialize exactly when
+// ek_T_0 == ek_T_1, and return the seeds.
+// Real:  Collided reports the flag.
 // Ideal: Collided always answers false.
 //
-// The two games present the same view and differ only in that one bit,
-// which is determined at Initialize by the game's own coins before the
-// adversary does anything. So the distinguishing advantage is exactly
+// The two games are identical until `bad` (an identical-until-bad pair),
+// and `bad` is decided at Initialize by the game's own coins before the
+// adversary does anything, so a hop over the pair costs
 //
-//     Pr[ek_T_0 == ek_T_1]  over honest CK_seedbased key generation,
+//     Pr[bad] = Pr[ek_T_0 == ek_T_1]  (honest CK_seedbased key generation),
 //
-// and it is the same whether or not the seeds are shown. The companion
-// game CKSeededTKeyCollisionEvent.game is the seed-hidden form of the
-// same statement; proofs/CK/CK_seedbased_TKeyCollisionEvent.proof
-// bounds it in ProofFrog by
+// whether or not the seeds are shown.
+// proofs/CK/CK_seedbased_TKeyCollisionEvent.proof proves
+// `event bad of CKSeededTKeyCollision(...) at Initialize`: with the seeds
+// hidden, Pr[bad] <=
 //
 //     Adv^{PRGSec}_G (two queries) + Adv^{KeyGenEquiv}_{KEM_T}
-//                                  + Adv^{KEMKeyCollision}_{KEM_T},
+//                                  + Adv^{KEMKeyCollision}_{KEM_T}.
 //
-// which therefore also bounds this game. This is the standard-model
-// replacement for the LazyROTwoSeeded reprogramming step of the
-// PRG-as-random-oracle proofs. See CGSeededTKeyCollision.game for the
-// nominal-group twin.
+// This is the standard-model replacement for the LazyROTwoSeeded
+// reprogramming step of the PRG-as-random-oracle proofs. See
+// CGSeededTKeyCollision.game for the nominal-group twin.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';
@@ -35,8 +36,10 @@ import '../../primitives/PRG.primitive';
 Game Real(KEM KEM_PQ, KEM KEM_T, PRG G) {
     KEM_T.EncapsKey ek_T_0;
     KEM_T.EncapsKey ek_T_1;
+    Bool bad;
 
     [BitString<G.lambda>, BitString<G.lambda>] Initialize() {
+        bad = false;
         BitString<G.lambda> seed_0 <- BitString<G.lambda>;
         BitString<G.lambda> seed_1 <- BitString<G.lambda>;
         BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
@@ -45,19 +48,24 @@ Game Real(KEM KEM_PQ, KEM KEM_T, PRG G) {
         BitString<KEM_T.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(seed_T_0);
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_1, dk_T_1] = KEM_T.DeriveKeyPair(seed_T_1);
+        if (ek_T_0 == ek_T_1) {
+            bad = true;
+        }
         return [seed_0, seed_1];
     }
 
     Bool Collided() {
-        return ek_T_0 == ek_T_1;
+        return bad;
     }
 }
 
 Game Ideal(KEM KEM_PQ, KEM KEM_T, PRG G) {
     KEM_T.EncapsKey ek_T_0;
     KEM_T.EncapsKey ek_T_1;
+    Bool bad;
 
     [BitString<G.lambda>, BitString<G.lambda>] Initialize() {
+        bad = false;
         BitString<G.lambda> seed_0 <- BitString<G.lambda>;
         BitString<G.lambda> seed_1 <- BitString<G.lambda>;
         BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
@@ -66,6 +74,9 @@ Game Ideal(KEM KEM_PQ, KEM KEM_T, PRG G) {
         BitString<KEM_T.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(seed_T_0);
         [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_1, dk_T_1] = KEM_T.DeriveKeyPair(seed_T_1);
+        if (ek_T_0 == ek_T_1) {
+            bad = true;
+        }
         return [seed_0, seed_1];
     }
 

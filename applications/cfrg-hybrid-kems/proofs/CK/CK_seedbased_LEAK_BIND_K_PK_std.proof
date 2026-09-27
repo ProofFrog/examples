@@ -16,22 +16,22 @@
 //     collision. The reduction generates both seeds itself and hands
 //     them to the adversary; the seeds being public is irrelevant.
 //   Case ek_T_0 == ek_T_1: an event over honest key generation alone,
-//     fixed before the adversary acts. Its probability is the advantage
-//     of the CKSeededTKeyCollision helper, which is bounded (via its
-//     seed-hidden form, CK_seedbased_TKeyCollisionEvent.proof) by PRG
-//     security of G, KeyGenEquiv(KEM_T), and the key-collision
+//     fixed before the adversary acts. CKSeededTKeyCollision is identical
+//     until that event (its flag `bad`, raised in Initialize), so the hop
+//     costs Pr[bad], which CK_seedbased_TKeyCollisionEvent.proof bounds by
+//     PRG security of G, KeyGenEquiv(KEM_T), and the key-collision
 //     probability of KEM_T.
 //
 // Game sequence (6 entries, 5 hops):
 //   0. LEAK_BIND_K_PK(hybrid).Breakable
 //   1. CKSeededTKeyCollision(KEM_PQ, KEM_T, G).Real  compose R_Coll  (equiv)
-//   2. CKSeededTKeyCollision(KEM_PQ, KEM_T, G).Ideal compose R_Coll  (assumption)
+//   2. CKSeededTKeyCollision(KEM_PQ, KEM_T, G).Ideal compose R_Coll  (up to bad; event lemma)
 //   3. KDFCollisionResistance(H).Breakable   compose R_KDF          (equiv)
 //   4. KDFCollisionResistance(H).Unbreakable compose R_KDF          (assumption)
 //   5. LEAK_BIND_K_PK(hybrid).Unbreakable
 //
-// Assumptions: CKSeededTKeyCollision(KEM_PQ, KEM_T, G) (a key-generation
-// event; see games/Seeded/), KDFCollisionResistance(H).
+// Assumptions: KDFCollisionResistance(H); lemma: event bad of
+// CKSeededTKeyCollision(KEM_PQ, KEM_T, G) at Initialize.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/PRG.primitive';
@@ -71,14 +71,16 @@ let:
     CK_seedbased hybrid = CK_seedbased(KEM_PQ, KEM_T, G, H, L);
 
 assume:
-    CKSeededTKeyCollision(KEM_PQ, KEM_T, G);
     KDFCollisionResistance(H);
+
+lemma:
+    event bad of CKSeededTKeyCollision(KEM_PQ, KEM_T, G) at Initialize by 'CK_seedbased_TKeyCollisionEvent.proof';
 
 theorem:
     LEAK_BIND_K_PK(hybrid);
 
 bound:
-      advantage(CKSeededTKeyCollision(KEM_PQ, KEM_T, G) compose R_Coll)
+      advantage(event bad of CKSeededTKeyCollision(KEM_PQ, KEM_T, G) at Initialize compose R_Coll)
     + advantage(KDFCollisionResistance(H) compose R_KDF);
 
 games:

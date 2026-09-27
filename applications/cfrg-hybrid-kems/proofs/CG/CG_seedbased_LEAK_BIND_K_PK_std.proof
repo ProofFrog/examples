@@ -16,21 +16,21 @@
 //     The reduction generates both seeds itself and hands them to the
 //     adversary; the seeds being public is irrelevant.
 //   Case ek_T_0 == ek_T_1: an event over honest key generation alone,
-//     fixed before the adversary acts. Its probability is the advantage
-//     of the CGSeededTKeyCollision helper, which is bounded (via its
-//     seed-hidden form, CG_seedbased_TKeyCollisionEvent.proof) by
+//     fixed before the adversary acts. CGSeededTKeyCollision is identical
+//     until that event (its flag `bad`, raised in Initialize), so the hop
+//     costs Pr[bad], which CG_seedbased_TKeyCollisionEvent.proof bounds by
 //     PRG security of G plus the key-collision probability of NG.
 //
 // Game sequence (6 entries, 5 hops):
 //   0. LEAK_BIND_K_PK(hybrid).Breakable
 //   1. CGSeededTKeyCollision(KEM_PQ, NG, G).Real  compose R_Coll  (equiv)
-//   2. CGSeededTKeyCollision(KEM_PQ, NG, G).Ideal compose R_Coll  (assumption)
+//   2. CGSeededTKeyCollision(KEM_PQ, NG, G).Ideal compose R_Coll  (up to bad; event lemma)
 //   3. KDFCollisionResistance(H).Breakable   compose R_KDF       (equiv)
 //   4. KDFCollisionResistance(H).Unbreakable compose R_KDF       (assumption)
 //   5. LEAK_BIND_K_PK(hybrid).Unbreakable
 //
-// Assumptions: CGSeededTKeyCollision(KEM_PQ, NG, G) (a key-generation
-// event; see games/Seeded/), KDFCollisionResistance(H).
+// Assumptions: KDFCollisionResistance(H); lemma: event bad of
+// CGSeededTKeyCollision(KEM_PQ, NG, G) at Initialize.
 
 import '../../primitives/KEM.primitive';
 import '../../primitives/NominalGroup.primitive';
@@ -69,14 +69,16 @@ let:
     CG_seedbased hybrid = CG_seedbased(KEM_PQ, NG, G, H, L);
 
 assume:
-    CGSeededTKeyCollision(KEM_PQ, NG, G);
     KDFCollisionResistance(H);
+
+lemma:
+    event bad of CGSeededTKeyCollision(KEM_PQ, NG, G) at Initialize by 'CG_seedbased_TKeyCollisionEvent.proof';
 
 theorem:
     LEAK_BIND_K_PK(hybrid);
 
 bound:
-      advantage(CGSeededTKeyCollision(KEM_PQ, NG, G) compose R_Coll)
+      advantage(event bad of CGSeededTKeyCollision(KEM_PQ, NG, G) at Initialize compose R_Coll)
     + advantage(KDFCollisionResistance(H) compose R_KDF);
 
 games:
