@@ -1,0 +1,58 @@
+// Bound on the event that a lazily sampled random function repeats an
+// answer: count_Query(count_Query - 1)/(2|X|), the birthday bound.
+//
+// The chain starts from RFvsRP.Left, the random-function side, where the
+// flag records a collision between a fresh uniform answer and the earlier
+// ones. CollisionFlagSampling takes over the sampling and the collision
+// test; on its Ideal side the report is constantly false, so the flag is
+// never raised and the engine's terminal check closes the chain.
+//
+// Game sequence:
+//   0. RFvsRP(X).Left
+//   1. CollisionFlagSampling(X).Real  compose R_Coll   (interchangeable)
+//   2. CollisionFlagSampling(X).Ideal compose R_Coll   (by CollisionFlagSampling)
+//   terminal: the flag is unreachable in game 2
+
+import '../../Games/PRP/RFvsRP.game';
+import '../../Games/Helpers/Probability/CollisionFlagSampling.game';
+
+proof:
+
+let:
+    Set X;
+
+assume:
+    CollisionFlagSampling(X);
+
+theorem:
+    event bad of RFvsRP(X);
+
+games:
+    RFvsRP(X).Left against RFvsRP(X).Adversary;
+
+    CollisionFlagSampling(X).Real  compose R_Coll(X) against RFvsRP(X).Adversary;
+    CollisionFlagSampling(X).Ideal compose R_Coll(X) against RFvsRP(X).Adversary;
+
+// R_Coll: draws each fresh answer through the challenger, which reports
+// whether it collided with an earlier answer, and raises the flag on a
+// report. The challenger keeps the set of earlier answers.
+Reduction R_Coll(Set X) compose CollisionFlagSampling(X) against RFvsRP(X).Adversary {
+    Map<X, X> table;
+    Bool bad;
+
+    Void Initialize() {
+        bad = false;
+    }
+
+    X Query(X x) {
+        if (x in table) {
+            return table[x];
+        }
+        [X, Bool] [y, hit] = challenger.Samp();
+        if (hit) {
+            bad = true;
+        }
+        table[x] = y;
+        return y;
+    }
+}

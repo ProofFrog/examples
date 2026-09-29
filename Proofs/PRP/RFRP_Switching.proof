@@ -1,0 +1,48 @@
+// The RF/RP switching lemma as a game hop: a lazily sampled random function
+// is indistinguishable from a lazily sampled random permutation up to the
+// birthday bound.
+//
+// Game sequence:
+//   0. RFRPSwitching(X).RandomFunction
+//   1. RFvsRP(X).Left  compose R_Id     (interchangeable: the flag is dead code)
+//   2. RFvsRP(X).Right compose R_Id     (up to bad: event bad of RFvsRP, by lemma)
+//   3. RFRPSwitching(X).RandomPermutation     (interchangeable: the flag is dead code)
+//
+// Bound: Pr[bad of RFvsRP(X)] for the forwarding adversary, which the event
+// lemma bounds by count_Query * (count_Query - 1) / (2 * |X|).
+
+import '../../Games/PRP/RFRPSwitching.game';
+import '../../Games/PRP/RFvsRP.game';
+
+proof:
+
+let:
+    Set X;
+
+lemma:
+    event bad of RFvsRP(X) by 'RFRP_Switching_Event.proof';
+
+theorem:
+    RFRPSwitching(X);
+
+bound:
+    advantage(event bad of RFvsRP(X) compose R_Id);
+
+games:
+    RFRPSwitching(X).RandomFunction against RFRPSwitching(X).Adversary;
+
+    RFvsRP(X).Left  compose R_Id(X) against RFRPSwitching(X).Adversary;
+    RFvsRP(X).Right compose R_Id(X) against RFRPSwitching(X).Adversary;
+
+    RFRPSwitching(X).RandomPermutation against RFRPSwitching(X).Adversary;
+
+// R_Id: forwards every query to the pair.
+Reduction R_Id(Set X) compose RFvsRP(X) against RFRPSwitching(X).Adversary {
+    Void Initialize() {
+        challenger.Initialize();
+    }
+
+    X Query(X x) {
+        return challenger.Query(x);
+    }
+}

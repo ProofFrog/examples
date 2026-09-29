@@ -1,0 +1,51 @@
+// The random function / random permutation switching lemma (Bellare-Rogaway
+// 2006, Lemma 1; Shoup 2004, section 5.1): oracle access to a random
+// function on X is indistinguishable from oracle access to a random
+// permutation on X, except with probability at most q(q - 1)/(2|X|) over
+// q queries. Both oracles are sampled lazily (Shoup's "gnome"), the usual
+// equivalent of sampling the whole function up front.
+//
+// RandomFunction:    a fresh query gets an independent uniform answer.
+// RandomPermutation: a fresh query gets a uniform answer, resampled uniformly
+//                    from the unused values if it collides with an earlier one,
+//                    i.e. a uniform unused value.
+
+Game RandomFunction(Set X) {
+    Map<X, X> table;
+
+    Void Initialize() {
+    }
+
+    X Query(X x) {
+        if (x in table) {
+            return table[x];
+        }
+        X y <- X;
+        table[x] = y;
+        return y;
+    }
+}
+
+Game RandomPermutation(Set X) {
+    Map<X, X> table;
+    Set<X> image;
+
+    Void Initialize() {
+    }
+
+    X Query(X x) {
+        if (x in table) {
+            return table[x];
+        }
+        X y <- X;
+        Bool hit = y in image;
+        image = image union y;
+        if (hit) {
+            y <-uniq[image] X;
+        }
+        table[x] = y;
+        return y;
+    }
+}
+
+export as RFRPSwitching;
