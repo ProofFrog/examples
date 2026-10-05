@@ -16,9 +16,13 @@
 // of DeriveKeyPair. It is implied by CDM24's MAL-BIND-K-CT (Figure 6): an
 // adversary here yields one there that picks mode g = 1, derives the
 // pair from its seed, and submits it twice with the same ciphertexts. It
-// is strictly weaker than that game (neither malformed keys, nor the
-// two-key case, nor the Encaps modes are assumed) and, for uniformly
-// random seeds, it is LEAK-BIND-K-CT in the single-key case. Two
+// asks less than that game (neither malformed keys, nor the two-key
+// case, nor the Encaps modes are assumed) and, when KeyGen is
+// DeriveKeyPair on a uniform seed, it implies LEAK-BIND-K-CT in the
+// single-key case. Both relations are machine-checked:
+// proofs/Generic/MAL_implies_MALSEED_BIND_K_CT_SAMEKEY.proof (from the
+// decapsulation-only mode of MAL-BIND-K-CT, MAL_BIND_K_CT_DECAPS.game)
+// and proofs/Generic/MALSEED_implies_LEAK_BIND_K_CT_SAMEKEY.proof. Two
 // differences of presentation from the paper: Decaps in this directory's
 // KEM primitive takes no separate pk, so the paper's (sk, pk) collapses
 // to dk; and explicit rejection is not modelled, so the paper's check

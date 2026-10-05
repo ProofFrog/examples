@@ -11,8 +11,9 @@ The four frameworks (draft Sections 5.3 to 5.6) each combine a post-quantum KEM
 (`KEM_PQ`) with a traditional component, either another KEM (`KEM_T`) or a
 nominal group (`NG`, draft Section 4), via a key-derivation function (`KDF`).
 This directory contains scheme definitions for all four, together with
-65 proofs of correctness, IND-CCA, LEAK-BIND-K-{CT,PK}, and
-HON-BIND-K-{CT,PK}, and one proof about ML-KEM itself, which discharges
+67 proofs of correctness, IND-CCA, LEAK-BIND-K-{CT,PK},
+HON-BIND-K-{CT,PK}, and relations between binding notions, and one
+proof about ML-KEM itself, which discharges
 the assumption the standard-model seeded SAMEKEY proofs make about the
 PQ KEM.
 
@@ -30,7 +31,7 @@ PQ KEM.
 | Path | Contents |
 |------|----------|
 | [`primitives/`](primitives/) | `KEM`, `NominalGroup`, `KDF`, `PRG`, `Label`, `HashInputPacking`, plus `DetPKE` and `Hash` for the ML-KEM instantiation |
-| [`games/KEM/`](games/KEM/) | `INDCCA`, `INDCCA_ROM`, `Correctness`, `CorrectnessWithDK`, `KeyGenEquiv`, `KEMKeyCollision`, `C2PRI`, plus [`Binding/`](games/KEM/Binding/) (`{LEAK,HON}_BIND_K_*`, their ROM variants, and the seed-keyed malicious `MALSEED_BIND_K_CT_SAMEKEY`) |
+| [`games/KEM/`](games/KEM/) | `INDCCA`, `INDCCA_ROM`, `Correctness`, `CorrectnessWithDK`, `KeyGenEquiv`, `KEMKeyCollision`, `C2PRI`, plus [`Binding/`](games/KEM/Binding/) (`{LEAK,HON}_BIND_K_*`, their ROM variants, the seed-keyed malicious `MALSEED_BIND_K_CT_SAMEKEY`, and `MAL_BIND_K_CT_DECAPS`, the decapsulation-only mode of CDM24's MAL-BIND-K-CT) |
 | [`games/Group/`](games/Group/) | `SDH`, `SDH_SS`, `NGCorrectness`, `RandomScalarDist`, `NGKeyCollision` |
 | [`games/KDF/`](games/KDF/) | `KDFCollisionResistance`, `KDFFirstKeyPRF`, `KDFSecondKeyPRF`, `KDFPRFSec` |
 | [`games/PRG/`](games/PRG/) | `PRGSec` |
@@ -42,7 +43,7 @@ PQ KEM.
 | [`schemes/MLKEM/`](schemes/MLKEM/) | `MLKEM.scheme`: FIPS 203 as a seeded KEM, generic over the K-PKE layer |
 | [`schemes/Helpers/`](schemes/Helpers/) | `SeededKEMWrapper.scheme` |
 | [`proofs/{UG,UK,CG,CK}/`](proofs/) | All correctness, IND-CCA, and binding proofs |
-| [`proofs/Generic/`](proofs/Generic/) | `LEAK_implies_HON_BIND_K_{CT,PK}` |
+| [`proofs/Generic/`](proofs/Generic/) | `LEAK_implies_HON_BIND_K_{CT,PK}`; `MAL_implies_MALSEED_BIND_K_CT_SAMEKEY` and `MALSEED_implies_LEAK_BIND_K_CT_SAMEKEY`, which place the MALSEED notion between LEAK and MAL |
 | [`proofs/MLKEM/`](proofs/MLKEM/) | `MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof`: discharges, for ML-KEM, the PQ assumption of the seeded `_std` SAMEKEY proofs |
 
 ## Naming conventions
@@ -72,8 +73,8 @@ Proof filenames are `<framework>_<form>_<property>.proof`.
   ciphertext-binding break of the PQ KEM), and the `_std` proof instead
   assumes the *seed-keyed malicious* notion `MALSEED_BIND_K_CT_SAMEKEY` of
   the PQ KEM: the adversary chooses the seed the PQ key pair is derived
-  from. It sits between CDM24's LEAK and MAL notions and is implied by
-  MAL-BIND-K-CT. A reduction can then generate the hybrid seed itself and
+  from. It sits between CDM24's LEAK and MAL notions (both directions are
+  proved in `proofs/Generic/`). A reduction can then generate the hybrid seed itself and
   submit the PQ seed it expanded from it, whereas the LEAK notion would
   require embedding a challenge key pair into a seed, which only a
   programmable random oracle allows. Keying the notion by the seed matches
