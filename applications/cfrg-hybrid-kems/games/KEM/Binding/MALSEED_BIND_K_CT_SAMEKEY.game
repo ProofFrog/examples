@@ -1,0 +1,96 @@
+// Seed-keyed malicious ciphertext binding of a KEM, single-key (SAMEKEY)
+// case: the adversary chooses the SEED the key pair is derived from, and
+// must present two distinct ciphertexts that decapsulate to the same
+// shared secret under the derived decapsulation key.
+//
+//   Breakable:   Challenge(seed, ct0, ct1) derives
+//                [ek, dk] = DeriveKeyPair(seed) and returns
+//                Decaps(dk, ct0) == Decaps(dk, ct1) && ct0 != ct1
+//   Unbreakable: Challenge always returns false
+//
+// Relation to CDM24 (Cremers, Dax, Medinger, ePrint 2023/1933). Their
+// X-BIND-K-CT family has X in {HON, LEAK, MAL}: honest keys with a
+// decapsulation oracle, honest keys handed out, or adversary-chosen
+// keys. This notion sits between LEAK and MAL: the adversary controls
+// the key-generation coins but the key is always a well-formed output
+// of DeriveKeyPair. It is implied by CDM24's MAL-BIND-K-CT (Figure 6): an
+// adversary here yields one there that picks mode g = 1, derives the
+// pair from its seed, and submits it twice with the same ciphertexts. It
+// is strictly weaker than that game (neither malformed keys, nor the
+// two-key case, nor the Encaps modes are assumed) and, for uniformly
+// random seeds, it is LEAK-BIND-K-CT in the single-key case. Two
+// differences of presentation from the paper: Decaps in this directory's
+// KEM primitive takes no separate pk, so the paper's (sk, pk) collapses
+// to dk; and explicit rejection is not modelled, so the paper's check
+// that neither key is bot is vacuous, as it is anyway for the implicitly
+// rejecting KEMs the draft targets.
+//
+// Why this notion, and why keyed by the seed. LEAK-BIND-K-CT of a seeded
+// hybrid (CG_seedbased, CK_seedbased) hands the adversary the hybrid
+// seed, and with it every component decapsulation key. A reduction to
+// the LEAK notion of KEM_PQ would have to place the challenger's PQ key
+// pair inside a seed whose PRG expansion yields it, which is possible
+// only with the PRG modelled as a programmable random oracle
+// (proofs/{CG,CK}/*_seedbased_LEAK_BIND_K_CT_SAMEKEY.proof). Under a
+// malicious-key notion the reduction generates the hybrid seed itself
+// and submits what it derived, so nothing has to be embedded and the
+// proof is in the standard model
+// (proofs/{CG,CK}/*_seedbased_LEAK_BIND_K_CT_SAMEKEY_std.proof). The
+// draft's expandDecapsKey always computes dk_PQ as DeriveKeyPair(seed_PQ),
+// so the reduction only ever holds a seed-derived PQ key; keying the
+// assumption by that seed states exactly what is used and rules out
+// malformed keys, which is where the known malicious-key attacks live.
+//
+// What is known for ML-KEM. CDM24 Table 5 lists ML-KEM as LEAK-BIND-K-CT
+// only, because Schmieg (ePrint 2024/523, Algorithm 2) breaks
+// MAL-BIND-K-CT with TWO decapsulation keys: the second is a well-formed
+// key whose cached public-key hash h is replaced by the first key's, so
+// that G(m || h) yields the same (K, r) under both and Encrypt(pk_i, m; r)
+// gives two different accepted ciphertexts. That attack is inherently
+// two-key and does not reach this single-key notion. For one key, even a
+// malformed one, Schmieg's Proposition 1 argument applies verbatim: both
+// decapsulations reject gives K = J(z || ct_i), a J collision; one rejects
+// gives a cross-hash collision between J and G; both accept gives a G
+// collision, hence the same (m, r), and deterministic re-encryption then
+// forces ct0 == ct1. The single-key cases of Fiedler and Guenther's
+// Theorem 3.10 (ePrint 2024/702), which proves ML-KEM LEAK+r-BIND-SS-
+// {CT,PK} with the key-generation randomness revealed, are the same
+// argument and use no randomness of the key. So ML-KEM meets this notion
+// with adversarially chosen seeds, under collision resistance of G and J
+// (a random-oracle-style bound for the cross case).
+//
+// That argument is mechanized in this directory:
+// proofs/MLKEM/MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof proves
+// MALSEED_BIND_K_CT_SAMEKEY(MLKEM) for schemes/MLKEM/MLKEM.scheme --
+// FIPS 203's Fujisaki-Okamoto transform over an abstract deterministic
+// K-PKE (primitives/DetPKE.primitive), with SHA3-256, SHA3-512 and
+// SHAKE256 as standard-model Hash primitives -- with the bound
+//     Adv^CR(J) + Adv^cross(G, J) + Adv^CR(G's key half),
+// one term per case of the argument above, and no assumption on the
+// lattice layer. So a hybrid proof that assumes this notion of KEM_PQ can
+// discharge it for ML-KEM by that lemma.
+//
+// The same is NOT true of a seed-keyed K-PK notion: FIPS 203 takes the
+// rejection value z straight from the 64-byte seed (d || z), so two seeds
+// sharing z give Schmieg's Algorithm 3 attack even for seed-derived keys.
+// The hybrid K-PK proofs need no PQ assumption, so this does not affect
+// them.
+
+import '../../../primitives/KEM.primitive';
+
+Game Breakable(KEM K) {
+    Bool Challenge(BitString<K.Nseed> seed, K.Ciphertext ct0, K.Ciphertext ct1) {
+        [K.EncapsKey, K.DecapsKey] [ek, dk] = K.DeriveKeyPair(seed);
+        K.SharedSecret ss0 = K.Decaps(dk, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk, ct1);
+        return ss0 == ss1 && ct0 != ct1;
+    }
+}
+
+Game Unbreakable(KEM K) {
+    Bool Challenge(BitString<K.Nseed> seed, K.Ciphertext ct0, K.Ciphertext ct1) {
+        return false;
+    }
+}
+
+export as MALSEED_BIND_K_CT_SAMEKEY;

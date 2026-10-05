@@ -1,0 +1,249 @@
+// Main result: ML-KEM (FIPS 203) satisfies MALSEED-BIND-K-CT-SAMEKEY --
+// seed-keyed malicious single-key ciphertext binding. The adversary picks
+// the 64-byte seed d || z that the key pair is derived from, and two
+// ciphertexts, and wins if the two are distinct but decapsulate to the
+// same shared secret under the derived key.
+//
+// This discharges, for ML-KEM, the assumption that the standard-model
+// hybrid proofs proofs/{CG,CK}/*_seedbased_LEAK_BIND_K_CT_SAMEKEY_std
+// make about KEM_PQ.
+//
+// Proof idea (Schmieg, ePrint 2024/523, Proposition 1; equivalently the
+// i = j cases of Fiedler-Guenther, ePrint 2024/702, Theorem 3.10). With
+// ONE key pair and two distinct ciphertexts there are exactly three
+// cases, according to how many of the two ciphertexts fail ML-KEM's
+// re-encryption check and are implicitly rejected:
+//
+//   (a) both reject.  Then ss_i = J(z || ct_i), so ss0 == ss1 with
+//       ct0 != ct1 is a collision on J.
+//   (b) exactly one rejects.  Then one shared secret is G(m || h)[0:32]
+//       and the other is J(z || ct), so ss0 == ss1 is a cross collision
+//       between the key half of G and J -- two different functions.
+//   (c) both accept.  Then ss_i = G(m_i || h)[0:32], so ss0 == ss1 is a
+//       collision on G's key half, PROVIDED the two G inputs differ.
+//       They do: both inputs share the suffix h, and if m0 == m1 then the
+//       two derandomized re-encryptions agree, so acceptance
+//       (ct_i == re-encryption of m_i) would force ct0 == ct1.
+//
+// No randomness of the key is used anywhere, which is why an
+// adversarially chosen seed is harmless, and no lattice structure is
+// used, so K-PKE stays an abstract deterministic PKE (DetPKE). The
+// two-key MAL-BIND-K-CT attack on ML-KEM (Schmieg, Algorithm 2) plants
+// one key's cached hash h in a second key and cannot be mounted against a
+// single key, let alone a single seed-derived one.
+//
+// Game sequence (12 entries, 11 hops):
+//    0. MALSEED_BIND_K_CT_SAMEKEY(ML).Breakable
+//    1. MLKEMDecapsCaseSplit(P, G, J).Left      compose R_Split  equiv
+//    2. MLKEMDecapsCaseSplit(P, G, J).Right     compose R_Split  assumption, 0
+//    3. HashCollisionResistance(J).Breakable    compose R_J      equiv
+//    4. HashCollisionResistance(J).Unbreakable  compose R_J      assumption  (a)
+//    5. CrossCollisionResistance(G, J).Breakable   compose R_X   equiv
+//    6. CrossCollisionResistance(G, J).Unbreakable compose R_X   assumption  (b)
+//    7. FOReEncryptionCongruence(P, G, nss).Left   compose R_Cong  equiv
+//    8. FOReEncryptionCongruence(P, G, nss).Right  compose R_Cong  assumption, 0
+//    9. TruncatedCollisionResistance(G, nss).Breakable   compose R_G  equiv
+//   10. TruncatedCollisionResistance(G, nss).Unbreakable compose R_G  assumption (c)
+//   11. MALSEED_BIND_K_CT_SAMEKEY(ML).Unbreakable
+//
+// Hops 1 and 2 restate the binding predicate as the explicit four-way
+// case analysis on the two acceptance flags; hops 7 and 8 make explicit,
+// in case (c), that distinct ciphertexts come from distinct messages.
+// Both are identities between two ways of writing the same function and
+// carry a declared bound of 0; they are there because the engine derives
+// neither. See the two helper games' headers. Every other equivalence
+// hop just deletes one disjunct of the case analysis.
+//
+// Assumptions with cryptographic content: HashCollisionResistance(J),
+// CrossCollisionResistance(G, J), TruncatedCollisionResistance(G, nss).
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/DetPKE.primitive';
+import '../../primitives/Hash.primitive';
+import '../../schemes/MLKEM/MLKEM.scheme';
+import '../../games/KEM/Binding/MALSEED_BIND_K_CT_SAMEKEY.game';
+import '../../games/Hash/HashCollisionResistance.game';
+import '../../games/Hash/TruncatedCollisionResistance.game';
+import '../../games/Hash/CrossCollisionResistance.game';
+import '../../games/Helpers/MLKEMDecapsCaseSplit.game';
+import '../../games/Helpers/FOReEncryptionCongruence.game';
+
+proof:
+
+let:
+    Int nkseed;
+    Int nmsg;
+    Int nrand;
+    Int nct;
+    Int nek;
+    Int nss;
+    Int nz;
+    Int nh;
+    Set PKEDecKeySpace;
+    DetPKE P = DetPKE(nkseed, nmsg, nrand, nct, nek, PKEDecKeySpace);
+    Hash G = Hash(nmsg + nh, nss + nrand);
+    Hash H = Hash(nek, nh);
+    Hash J = Hash(nz + nct, nss);
+    MLKEM ML = MLKEM(P, nz, G, H, J);
+
+assume:
+    MLKEMDecapsCaseSplit(P, G, J);
+    HashCollisionResistance(J);
+    CrossCollisionResistance(G, J);
+    FOReEncryptionCongruence(P, G, nss);
+    TruncatedCollisionResistance(G, nss);
+
+theorem:
+    MALSEED_BIND_K_CT_SAMEKEY(ML);
+
+bound:
+      advantage(HashCollisionResistance(J) compose R_J)
+    + advantage(CrossCollisionResistance(G, J) compose R_X)
+    + advantage(TruncatedCollisionResistance(G, nss) compose R_G);
+
+games:
+    MALSEED_BIND_K_CT_SAMEKEY(ML).Breakable against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+
+    MLKEMDecapsCaseSplit(P, G, J).Left  compose R_Split(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+    MLKEMDecapsCaseSplit(P, G, J).Right compose R_Split(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+
+    HashCollisionResistance(J).Breakable   compose R_J(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+    HashCollisionResistance(J).Unbreakable compose R_J(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+
+    CrossCollisionResistance(G, J).Breakable   compose R_X(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+    CrossCollisionResistance(G, J).Unbreakable compose R_X(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+
+    FOReEncryptionCongruence(P, G, nss).Left  compose R_Cong(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+    FOReEncryptionCongruence(P, G, nss).Right compose R_Cong(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+
+    TruncatedCollisionResistance(G, nss).Breakable   compose R_G(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+    TruncatedCollisionResistance(G, nss).Unbreakable compose R_G(P, nz, G, H, J, ML) against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+
+    MALSEED_BIND_K_CT_SAMEKEY(ML).Unbreakable against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary;
+
+// R_Split: re-derives the key pair from the submitted seed exactly as
+// MLKEM.DeriveKeyPair does and hands the challenger the four components
+// of the decapsulation key together with the two ciphertexts. Composed
+// with Left it is the binding game verbatim; composed with Right it is
+// the same predicate written as the four-way case analysis that the rest
+// of the proof peels apart.
+Reduction R_Split(DetPKE P, Int nz, Hash G, Hash H, Hash J, MLKEM ML)
+    compose MLKEMDecapsCaseSplit(P, G, J)
+    against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary {
+
+    Bool Challenge(BitString<ML.Nseed> seed, ML.Ciphertext ct0, ML.Ciphertext ct1) {
+        [ML.EncapsKey, ML.DecapsKey] [ek, dk] = ML.DeriveKeyPair(seed);
+        return challenger.Decide(dk[0], dk[1], dk[2], dk[3], ct0, ct1);
+    }
+}
+
+// R_J: case (a). Recomputes the case analysis and forwards the two J
+// inputs z || ct_i to the collision challenger in the both-reject case.
+// The challenger's own "inputs differ" conjunct decomposes term-wise to
+// ct0 != ct1, which the case analysis already carries, so composing with
+// Breakable gives back the previous game; composing with Unbreakable
+// deletes the disjunct.
+Reduction R_J(DetPKE P, Int nz, Hash G, Hash H, Hash J, MLKEM ML)
+    compose HashCollisionResistance(J)
+    against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary {
+
+    Bool Challenge(BitString<ML.Nseed> seed, ML.Ciphertext ct0, ML.Ciphertext ct1) {
+        BitString<nz> z = seed[P.Nkseed : P.Nkseed + nz];
+        [BitString<P.Nek>, P.DecKey] [ek, dk_PKE] = P.KeyGen(seed[0 : P.Nkseed]);
+        BitString<H.Nout> h = H.evaluate(ek);
+        BitString<P.Nmsg> m0 = P.Decrypt(dk_PKE, ct0);
+        BitString<P.Nmsg> m1 = P.Decrypt(dk_PKE, ct1);
+        BitString<G.Nout> Kr0 = G.evaluate(m0 || h);
+        BitString<G.Nout> Kr1 = G.evaluate(m1 || h);
+        Bool acc0 = ct0 == P.Encrypt(ek, m0, Kr0[ML.Nss : ML.Nss + P.Nrand]);
+        Bool acc1 = ct1 == P.Encrypt(ek, m1, Kr1[ML.Nss : ML.Nss + P.Nrand]);
+        Bool jcoll = challenger.Challenge(z || ct0, z || ct1);
+        Bool caseA = !acc0 && !acc1 && jcoll;
+        Bool caseB0 = !acc0 && acc1 && Kr1[0 : ML.Nss] == J.evaluate(z || ct0);
+        Bool caseB1 = acc0 && !acc1 && Kr0[0 : ML.Nss] == J.evaluate(z || ct1);
+        Bool caseC = acc0 && acc1 && Kr0[0 : ML.Nss] == Kr1[0 : ML.Nss];
+        return (caseA || caseB0 || caseB1 || caseC) && ct0 != ct1;
+    }
+}
+
+// R_X: case (b). Case (a) is gone. When exactly one ciphertext is
+// rejected the two shared secrets are G(m || h)[0 : Nss] and J(z || ct),
+// one from each function, so each of the two orientations is forwarded to
+// the cross-collision challenger.
+Reduction R_X(DetPKE P, Int nz, Hash G, Hash H, Hash J, MLKEM ML)
+    compose CrossCollisionResistance(G, J)
+    against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary {
+
+    Bool Challenge(BitString<ML.Nseed> seed, ML.Ciphertext ct0, ML.Ciphertext ct1) {
+        BitString<nz> z = seed[P.Nkseed : P.Nkseed + nz];
+        [BitString<P.Nek>, P.DecKey] [ek, dk_PKE] = P.KeyGen(seed[0 : P.Nkseed]);
+        BitString<H.Nout> h = H.evaluate(ek);
+        BitString<P.Nmsg> m0 = P.Decrypt(dk_PKE, ct0);
+        BitString<P.Nmsg> m1 = P.Decrypt(dk_PKE, ct1);
+        BitString<G.Nout> Kr0 = G.evaluate(m0 || h);
+        BitString<G.Nout> Kr1 = G.evaluate(m1 || h);
+        Bool acc0 = ct0 == P.Encrypt(ek, m0, Kr0[ML.Nss : ML.Nss + P.Nrand]);
+        Bool acc1 = ct1 == P.Encrypt(ek, m1, Kr1[ML.Nss : ML.Nss + P.Nrand]);
+        Bool caseA = false;                      // case (a), removed above
+        Bool xcoll0 = challenger.Challenge(m1 || h, z || ct0);
+        Bool caseB0 = !acc0 && acc1 && xcoll0;
+        Bool xcoll1 = challenger.Challenge(m0 || h, z || ct1);
+        Bool caseB1 = acc0 && !acc1 && xcoll1;
+        Bool caseC = acc0 && acc1 && Kr0[0 : ML.Nss] == Kr1[0 : ML.Nss];
+        return (caseA || caseB0 || caseB1 || caseC) && ct0 != ct1;
+    }
+}
+
+// R_Cong: cases (a) and (b) are gone. The surviving both-accept disjunct
+// is conjoined with the challenger's answer, which on Left is "the
+// ciphertexts differ and each re-encrypts to itself" -- true throughout
+// this disjunct, so nothing changes -- and on Right adds the redundant
+// m0 != m1, which is what lets R_G extract a G collision.
+Reduction R_Cong(DetPKE P, Int nz, Hash G, Hash H, Hash J, MLKEM ML)
+    compose FOReEncryptionCongruence(P, G, ML.Nss)
+    against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary {
+
+    Bool Challenge(BitString<ML.Nseed> seed, ML.Ciphertext ct0, ML.Ciphertext ct1) {
+        [BitString<P.Nek>, P.DecKey] [ek, dk_PKE] = P.KeyGen(seed[0 : P.Nkseed]);
+        BitString<H.Nout> h = H.evaluate(ek);
+        BitString<P.Nmsg> m0 = P.Decrypt(dk_PKE, ct0);
+        BitString<P.Nmsg> m1 = P.Decrypt(dk_PKE, ct1);
+        BitString<G.Nout> Kr0 = G.evaluate(m0 || h);
+        BitString<G.Nout> Kr1 = G.evaluate(m1 || h);
+        Bool acc0 = ct0 == P.Encrypt(ek, m0, Kr0[ML.Nss : ML.Nss + P.Nrand]);
+        Bool acc1 = ct1 == P.Encrypt(ek, m1, Kr1[ML.Nss : ML.Nss + P.Nrand]);
+        Bool caseA = false;                      // case (a), removed above
+        Bool caseB0 = false;                     // case (b), removed above
+        Bool caseB1 = false;                     // case (b), removed above
+        Bool distinct = challenger.BothReEncrypt(ek, h, m0, m1, ct0, ct1);
+        Bool caseC = acc0 && acc1 && Kr0[0 : ML.Nss] == Kr1[0 : ML.Nss] && distinct;
+        return (caseA || caseB0 || caseB1 || caseC) && ct0 != ct1;
+    }
+}
+
+// R_G: case (c). Only the both-accept disjunct is left, and the previous
+// hop has made "the two messages differ" explicit, so the two G inputs
+// m_i || h go to the truncated-collision challenger; its own "inputs
+// differ" conjunct decomposes term-wise to m0 != m1 because the suffix h
+// is shared.
+Reduction R_G(DetPKE P, Int nz, Hash G, Hash H, Hash J, MLKEM ML)
+    compose TruncatedCollisionResistance(G, ML.Nss)
+    against MALSEED_BIND_K_CT_SAMEKEY(ML).Adversary {
+
+    Bool Challenge(BitString<ML.Nseed> seed, ML.Ciphertext ct0, ML.Ciphertext ct1) {
+        [BitString<P.Nek>, P.DecKey] [ek, dk_PKE] = P.KeyGen(seed[0 : P.Nkseed]);
+        BitString<H.Nout> h = H.evaluate(ek);
+        BitString<P.Nmsg> m0 = P.Decrypt(dk_PKE, ct0);
+        BitString<P.Nmsg> m1 = P.Decrypt(dk_PKE, ct1);
+        BitString<G.Nout> Kr0 = G.evaluate(m0 || h);
+        BitString<G.Nout> Kr1 = G.evaluate(m1 || h);
+        Bool acc0 = ct0 == P.Encrypt(ek, m0, Kr0[ML.Nss : ML.Nss + P.Nrand]);
+        Bool acc1 = ct1 == P.Encrypt(ek, m1, Kr1[ML.Nss : ML.Nss + P.Nrand]);
+        Bool caseA = false;                      // case (a), removed above
+        Bool caseB0 = false;                     // case (b), removed above
+        Bool caseB1 = false;                     // case (b), removed above
+        Bool gcoll = challenger.Challenge(m0 || h, m1 || h);
+        Bool caseC = acc0 && acc1 && gcoll;
+        return (caseA || caseB0 || caseB1 || caseC) && ct0 != ct1;
+    }
+}
