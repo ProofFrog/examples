@@ -32,6 +32,10 @@
 // of Games/Helpers/Probability/TDPCorrectness.game: expose an identity
 // the engine cannot derive as an oracle pair with a declared zero bound.
 //
+// The co-located MLKEMDecapsCaseSplit.ec proves in EasyCrypt that the
+// two games are perfectly indistinguishable, with Decrypt, Encrypt, G, J,
+// concatenation and slicing left as uninterpreted functions.
+//
 // Lengths are derived rather than passed, since games cannot state
 // `requires`: the cached public-key hash h is typed by G's domain
 // (BitString<G.Nin - P.Nmsg>) and the rejection secret z by J's

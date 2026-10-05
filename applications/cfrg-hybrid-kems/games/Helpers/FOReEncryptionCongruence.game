@@ -32,6 +32,10 @@
 // ciphertexts are distinct" has to become "the two G inputs are
 // distinct" so that a G collision can be extracted.
 //
+// The co-located FOReEncryptionCongruence.ec proves in EasyCrypt that the
+// two games are perfectly indistinguishable, with Encrypt, G,
+// concatenation and slicing left as uninterpreted functions.
+//
 // ntrunc is where G's output splits: its first ntrunc bytes are the
 // shared secret and the next P.Nrand bytes the encryption randomness.
 // The cached public-key hash h is typed by G's domain, since games
