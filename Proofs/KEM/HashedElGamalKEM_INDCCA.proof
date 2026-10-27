@@ -2,18 +2,26 @@
 //
 // High-level proof idea: first program the random oracle H at the
 // challenge point pk^r so that the shared secret is a fresh independent
-// random value (ROMProgramming hop); then simulate both H and Decaps
-// using only the public (pk, ctStar) pair plus the DDH oracle supplied
-// by GapCDH, at which point the programmed shared secret is already
-// unconditionally uniform and the Random game follows.
+// random value (ROMProgramming hop). Then sample H lazily
+// (LazyROExponentView hop). One table caches Hash answers by input m.
+// The other caches Decaps answers by ciphertext c and stands for H(c^sk).
+// The tables use sk only to test m == c^sk, and the DDH oracle supplied
+// by GapCDH answers that test. So the reduction to GapCDH simulates Hash
+// and Decaps from the public (pk, ctStar) pair alone. On the Right side
+// of GapCDH, Hash no longer returns the programmed value, and the lazy
+// sampling hop runs in reverse to reach the Random game.
 //
-// Game sequence (six games, two reduction hops):
-//   0. KEM_INDCCA_MultiChal_ROM.Real                      -- scheme samples sk from ModInt<G.order> \ {0}
-//   1. ROMProgramming.Natural    compose R_Program        -- interchangeability
-//   2. ROMProgramming.Programmed compose R_Program        -- by ROMProgramming
-//   3. GapCDH_NZ.Left            compose R_Gap            -- interchangeability
-//   4. GapCDH_NZ.Right           compose R_Gap            -- by GapCDH_NZ (lemma: GapCDH => GapCDH_NZ)
-//   5. KEM_INDCCA_MultiChal_ROM.Random                    -- interchangeability
+// Game sequence (ten games, four reduction hops):
+//   0. KEM_INDCCA_MultiChal_ROM.Real                        -- scheme samples sk from ModInt<G.order> \ {0}
+//   1. ROMProgramming.Natural     compose R_Program         -- interchangeability
+//   2. ROMProgramming.Programmed  compose R_Program         -- by ROMProgramming
+//   3. LazyROExponentView.Eager   compose R_ExpView         -- interchangeability
+//   4. LazyROExponentView.Lazy    compose R_ExpView         -- by LazyROExponentView
+//   5. GapCDH_NZ.Left             compose R_Gap             -- interchangeability
+//   6. GapCDH_NZ.Right            compose R_Gap             -- by GapCDH_NZ (lemma: GapCDH => GapCDH_NZ)
+//   7. LazyROExponentView.Lazy    compose R_ExpViewRandom   -- interchangeability
+//   8. LazyROExponentView.Eager   compose R_ExpViewRandom   -- by LazyROExponentView
+//   9. KEM_INDCCA_MultiChal_ROM.Random                      -- interchangeability
 
 import '../../Primitives/KEM.primitive';
 import '../../Schemes/KEM/HashedElGamalKEM.scheme';
@@ -22,6 +30,7 @@ import '../../Games/Group/GapCDH.game';
 import '../../Games/Group/GapCDH_NZ.game';
 import '../../Games/Helpers/Probability/ROMProgramming.game';
 import '../../Games/Helpers/Probability/NonzeroSampling.game';
+import '../../Games/Helpers/Probability/LazyROExponentView.game';
 
 proof:
 
@@ -35,6 +44,7 @@ assume:
     GapCDH(G);
     ROMProgramming(GroupElem<G>, BitString<n>);
     NonzeroSampling(G.order);
+    LazyROExponentView(G, n);
 
 requires:
     G.order is prime;
@@ -51,8 +61,14 @@ games:
     ROMProgramming(GroupElem<G>, BitString<n>).Natural    compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
     ROMProgramming(GroupElem<G>, BitString<n>).Programmed compose R_Program(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
 
+    LazyROExponentView(G, n).Eager compose R_ExpView(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    LazyROExponentView(G, n).Lazy  compose R_ExpView(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
     GapCDH_NZ(G).Left  compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
     GapCDH_NZ(G).Right compose R_Gap(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+
+    LazyROExponentView(G, n).Lazy  compose R_ExpViewRandom(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
+    LazyROExponentView(G, n).Eager compose R_ExpViewRandom(G, n, H) against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
 
     KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Random against KEM_INDCCA_MultiChal_ROM(E, GroupElem<G>, BitString<n>, H).Adversary;
 
@@ -86,17 +102,51 @@ Reduction R_Program(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
     }
 }
 
-// R_Gap: lazy-simulated H + Decaps. Receives (pk, ctStar) from the
-// GapCDH challenger and samples ssStar fresh. HashTable (a lazy-sample
-// cache for Hash, keyed by the group element input) and PendingDecaps
-// (a Decaps cache, keyed by ciphertext) are cross-referenced via
-// challenger.TestOracle (the DDH oracle for the fixed sk). An
-// `if challenger.Solve(z)` guard at the top of Hash returns ssStar
-// when z == ctStar^sk, subsuming the programmed point from the
-// previous hop. The Solve guard sits BEFORE the HashTable cache check:
-// this placement is what lets the engine's canonicalization pipeline
-// (Lazy Map Scan + Map Key Reindex + LocalFunctionFieldToLet) unify
-// both sides of the GapCDH hop with the programmed game.
+// R_ExpView: routes H and Decaps through the LazyROExponentView
+// challenger, which holds sk. Samples b for ctStar = g^b and programs H at
+// target = pk^b = ctStar^sk with a fresh ssStar, as R_Program's challenger
+// does. target is a field, like the programmed point t in game 2, so both
+// games reach the same canonical form.
+Reduction R_ExpView(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
+    compose LazyROExponentView(G, n)
+    against KEM_INDCCA_MultiChal_ROM(HashedElGamalKEM(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    GroupElem<G> pk;
+    GroupElem<G> ctStar;
+    GroupElem<G> target;
+    BitString<n> ssStar;
+
+    [GroupElem<G>, BitString<n>, GroupElem<G>] Initialize() {
+        pk = challenger.Initialize();
+        ModInt<G.order> b <- ModInt<G.order>;
+        ctStar = G.generator ^ b;
+        target = pk ^ b;
+        ssStar <- BitString<n>;
+        return [pk, ssStar, ctStar];
+    }
+
+    BitString<n> Hash(GroupElem<G> m) {
+        if (m == target) {
+            return ssStar;
+        }
+        return challenger.Hash(m);
+    }
+
+    BitString<n>? Decaps(GroupElem<G> c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return challenger.HashExp(c);
+    }
+}
+
+// R_Gap: keeps the two tables of LazyROExponentView.Lazy without sk.
+// Receives (pk, ctStar) from the GapCDH challenger and samples ssStar
+// fresh. HashTable caches Hash answers by input m. PendingDecaps caches
+// Decaps answers by ciphertext c. challenger.TestOracle(c, m) decides
+// m == c^sk, which links the tables. challenger.Solve(m) decides
+// m == ctStar^sk, so Hash returns ssStar exactly at the programmed point.
+// Decaps checks PendingDecaps before it samples, so a repeated query gets
+// the same answer, as H(c^sk) does.
 Reduction R_Gap(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
     compose GapCDH(G)
     against KEM_INDCCA_MultiChal_ROM(HashedElGamalKEM(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
@@ -138,8 +188,40 @@ Reduction R_Gap(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
                 return entry[1];
             }
         }
+        if (c in PendingDecaps) {
+            return PendingDecaps[c];
+        }
         BitString<n> s <- BitString<n>;
         PendingDecaps[c] = s;
         return s;
+    }
+}
+
+// R_ExpViewRandom: R_ExpView without the programmed point. ssStar is
+// independent of H, as in the Random game.
+Reduction R_ExpViewRandom(Group G, Int n, Function<GroupElem<G>, BitString<n>> H)
+    compose LazyROExponentView(G, n)
+    against KEM_INDCCA_MultiChal_ROM(HashedElGamalKEM(G, n, H), GroupElem<G>, BitString<n>, H).Adversary {
+    GroupElem<G> pk;
+    GroupElem<G> ctStar;
+    BitString<n> ssStar;
+
+    [GroupElem<G>, BitString<n>, GroupElem<G>] Initialize() {
+        pk = challenger.Initialize();
+        ModInt<G.order> b <- ModInt<G.order>;
+        ctStar = G.generator ^ b;
+        ssStar <- BitString<n>;
+        return [pk, ssStar, ctStar];
+    }
+
+    BitString<n> Hash(GroupElem<G> m) {
+        return challenger.Hash(m);
+    }
+
+    BitString<n>? Decaps(GroupElem<G> c) {
+        if (c == ctStar) {
+            return None;
+        }
+        return challenger.HashExp(c);
     }
 }

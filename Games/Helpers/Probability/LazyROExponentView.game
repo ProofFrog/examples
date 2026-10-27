@@ -1,0 +1,93 @@
+// Assumption: a random oracle H on a prime-order group, queried directly
+// and through a secret exponent, can be sampled lazily with two tables.
+//
+// Both games sample a secret nonzero exponent sk and return pk = g^sk.
+// Hash(m) answers H(m). HashExp(c) answers H(c^sk).
+//
+// Eager samples H up front.
+// Lazy keeps HashTable, keyed by Hash inputs m, and ExpTable, keyed by
+// HashExp inputs c. Each oracle looks for its point in both tables before
+// it draws a fresh value. Hash(m) finds an ExpTable entry c when c^sk == m.
+// HashExp(c) finds a HashTable entry m when m == c^sk.
+//
+// Justification: under prime order, c |-> c^sk is a bijection for nonzero
+// sk. So each point of H has at most one entry across the two tables, and
+// each entry is drawn uniformly the first time its point is queried. The
+// games are identical, so
+//
+//     advantage <= 0
+//
+// LazyROExponentView.ec, next to this file, proves this equality in
+// EasyCrypt for a group of prime order.
+//
+// The equivalence needs the bijection. In a group of composite order, sk
+// may share a factor with the order. Then two HashExp inputs can share
+// c^sk, and Lazy answers them independently. Use this game only under
+// `requires G.order is prime;`.
+//
+// The tables match what a gap-CDH reduction keeps when it simulates H and
+// a decapsulation oracle with only a DDH oracle for sk; see
+// Proofs/KEM/HashedElGamalKEM_INDCCA.proof.
+
+Game Eager(Group G, Int n) {
+    ModInt<G.order> sk;
+    Function<GroupElem<G>, BitString<n>> H;
+
+    GroupElem<G> Initialize() {
+        sk <- ModInt<G.order> \ {0};
+        H <- Function<GroupElem<G>, BitString<n>>;
+        return G.generator ^ sk;
+    }
+
+    BitString<n> Hash(GroupElem<G> m) {
+        return H(m);
+    }
+
+    BitString<n> HashExp(GroupElem<G> c) {
+        return H(c ^ sk);
+    }
+}
+
+Game Lazy(Group G, Int n) {
+    ModInt<G.order> sk;
+    Map<GroupElem<G>, BitString<n>> HashTable;
+    Map<GroupElem<G>, BitString<n>> ExpTable;
+
+    GroupElem<G> Initialize() {
+        sk <- ModInt<G.order> \ {0};
+        return G.generator ^ sk;
+    }
+
+    BitString<n> Hash(GroupElem<G> m) {
+        if (m in HashTable) {
+            return HashTable[m];
+        }
+        for ([GroupElem<G>, BitString<n>] entry in ExpTable.entries) {
+            if (m == entry[0] ^ sk) {
+                return entry[1];
+            }
+        }
+        BitString<n> h <- BitString<n>;
+        HashTable[m] = h;
+        return h;
+    }
+
+    BitString<n> HashExp(GroupElem<G> c) {
+        for ([GroupElem<G>, BitString<n>] entry in HashTable.entries) {
+            if (entry[0] == c ^ sk) {
+                return entry[1];
+            }
+        }
+        if (c in ExpTable) {
+            return ExpTable[c];
+        }
+        BitString<n> s <- BitString<n>;
+        ExpTable[c] = s;
+        return s;
+    }
+}
+
+// Perfect equivalence under prime order: see the justification above.
+advantage <= 0;
+
+export as LazyROExponentView;
