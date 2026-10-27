@@ -17,6 +17,9 @@
 //
 //     advantage <= 0
 //
+// LazyROExponentView.ec, next to this file, proves this equality in
+// EasyCrypt for a group of prime order.
+//
 // The equivalence needs the bijection. In a group of composite order, sk
 // may share a factor with the order. Then two HashExp inputs can share
 // c^sk, and Lazy answers them independently. Use this game only under
