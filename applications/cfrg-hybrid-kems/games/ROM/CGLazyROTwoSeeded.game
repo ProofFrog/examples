@@ -31,7 +31,11 @@
 // concatenation of independent uniform halves is exactly uniform over
 // the joint length, so that step is loss-free).
 //
-// Used by the seeded-form ROM proofs of LEAK-BIND-K-{CT,PK} on the
+// No longer used by any proof: the seeded-form ROM proofs of
+// LEAK-BIND-K-{CT_DIFFKEY,PK} that used it were retired once the
+// standard-model `_std` proofs replaced them. Kept because it is a
+// verified statistical fact with an EasyCrypt proof (the `.ec` alongside).
+// Those proofs used it on the
 // CG_seedbased hybrid KEM, which program the PRG-as-RO at two seed
 // points to embed a K_PQ binding challenge.
 

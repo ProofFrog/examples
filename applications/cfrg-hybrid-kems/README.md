@@ -11,8 +11,11 @@ The four frameworks (draft Sections 5.3 to 5.6) each combine a post-quantum KEM
 (`KEM_PQ`) with a traditional component, either another KEM (`KEM_T`) or a
 nominal group (`NG`, draft Section 4), via a key-derivation function (`KDF`).
 This directory contains scheme definitions for all four, together with
-57 proofs of correctness, IND-CCA, LEAK-BIND-K-{CT,PK}, and
-HON-BIND-K-{CT,PK}.
+63 proofs of correctness, IND-CCA, LEAK-BIND-K-{CT,PK},
+HON-BIND-K-{CT,PK}, and relations between binding notions, and one
+proof about ML-KEM itself, which discharges
+the assumption the standard-model seeded SAMEKEY proofs make about the
+PQ KEM.
 
 > This README describes what the artifact contains and how to run it.
 > The results, the assumptions they rest on, the modelling choices and
@@ -27,16 +30,21 @@ HON-BIND-K-{CT,PK}.
 
 | Path | Contents |
 |------|----------|
-| [`primitives/`](primitives/) | `KEM`, `NominalGroup`, `KDF`, `PRG`, `Label`, `HashInputPacking` |
-| [`games/KEM/`](games/KEM/) | `INDCCA`, `INDCCA_ROM`, `Correctness`, `CorrectnessWithDK`, `KeyGenEquiv`, `C2PRI`, plus [`Binding/`](games/KEM/Binding/) and its ROM variants |
-| [`games/Group/`](games/Group/) | `SDH`, `SDH_SS`, `NGCorrectness`, `RandomScalarDist` |
+| [`primitives/`](primitives/) | `KEM`, `NominalGroup`, `KDF`, `PRG`, `Label`, `HashInputPacking`, plus `DetPKE` and `Hash` for the ML-KEM instantiation |
+| [`games/KEM/`](games/KEM/) | `INDCCA`, `INDCCA_ROM`, `Correctness`, `CorrectnessWithDK`, `KeyGenEquiv`, `KEMKeyCollision`, `C2PRI`, plus [`Binding/`](games/KEM/Binding/) (`{LEAK,HON}_BIND_K_*`, the ROM variant `LEAK_BIND_K_CT_ROM_SAMEKEY`, the seed-keyed malicious `MALSEED_BIND_K_CT_SAMEKEY`, and `MAL_BIND_K_CT_DECAPS`, the decapsulation-only mode of CDM24's MAL-BIND-K-CT) |
+| [`games/Group/`](games/Group/) | `SDH`, `SDH_SS`, `NGCorrectness`, `RandomScalarDist`, `NGKeyCollision` |
 | [`games/KDF/`](games/KDF/) | `KDFCollisionResistance`, `KDFFirstKeyPRF`, `KDFSecondKeyPRF`, `KDFPRFSec` |
 | [`games/PRG/`](games/PRG/) | `PRGSec` |
-| [`games/ROM/`](games/ROM/) | Statistical helper games: `LazyROTwoViewsExcluded[Programmed]`, `LazyRO{One,Two}Seeded`, `CGLazyRO{One,Two}Seeded`. All six carry an LLM-written EasyCrypt proof of their declared bound (`*.ec` alongside). |
+| [`games/Hash/`](games/Hash/) | `HashCollisionResistance`, `TruncatedCollisionResistance`, `CrossCollisionResistance`: the three hash assumptions the ML-KEM binding proof rests on |
+| [`games/Helpers/`](games/Helpers/) | Zero-advantage identities used by the ML-KEM proof: `MLKEMDecapsCaseSplit` (the binding predicate rewritten as a case analysis) and `FOReEncryptionCongruence` (distinct ciphertexts that both re-encrypt come from distinct messages). Both carry an LLM-written EasyCrypt proof that their two games are perfectly indistinguishable (`*.ec` alongside). |
+| [`games/ROM/`](games/ROM/) | Statistical helper games: `LazyROTwoViewsExcluded[Programmed]`, `LazyRO{One,Two}Seeded`, `CGLazyRO{One,Two}Seeded`. All six carry an LLM-written EasyCrypt proof of their declared bound (`*.ec` alongside). The two `TwoSeeded` games are no longer used by any proof (their random-oracle LEAK-BIND proofs were retired) and are kept for their EasyCrypt proofs. |
+| [`games/Seeded/`](games/Seeded/) | `{CG,CK}SeededTKeyCollision`: identical-until-bad pairs whose flag is raised at Initialize when the traditional public keys of two seeded key pairs collide (seeds exposed). The standard-model LEAK-BIND proofs of seeded CG and CK use the event as a lemma; `proofs/{CG,CK}/*_TKeyCollisionEvent.proof` bound its probability. |
 | [`schemes/{UG,UK,CG,CK}/`](schemes/) | `*_seedbased.scheme`, `*_expanded.scheme`; RO-flavoured PRG/KDF wrapper schemes |
+| [`schemes/MLKEM/`](schemes/MLKEM/) | `MLKEM.scheme`: FIPS 203 as a seeded KEM, generic over the K-PKE layer |
 | [`schemes/Helpers/`](schemes/Helpers/) | `SeededKEMWrapper.scheme` |
 | [`proofs/{UG,UK,CG,CK}/`](proofs/) | All correctness, IND-CCA, and binding proofs |
-| [`proofs/Generic/`](proofs/Generic/) | `LEAK_implies_HON_BIND_K_{CT,PK}` |
+| [`proofs/Generic/`](proofs/Generic/) | `LEAK_implies_HON_BIND_K_{CT,PK}`; `MAL_implies_MALSEED_BIND_K_CT_SAMEKEY` and `MALSEED_implies_LEAK_BIND_K_CT_SAMEKEY`, which place the MALSEED notion between LEAK and MAL |
+| [`proofs/MLKEM/`](proofs/MLKEM/) | `MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof`: discharges, for ML-KEM, the PQ assumption of the seeded `_std` SAMEKEY proofs |
 
 ## Naming conventions
 
@@ -52,6 +60,48 @@ Proof filenames are `<framework>_<form>_<property>.proof`.
   same section permits).
 - **Property.** `Correctness`, `INDCCA_{PQ,T}` for the two complementary
   branches, and `{LEAK,HON}_BIND_K_{PK,CT_DIFFKEY,CT_SAMEKEY}`.
+- **Suffix `_std`.** For seeded CG and CK, the three `LEAK_BIND_K_*`
+  properties are proved in the standard model by the `_std` files.
+  `LEAK_BIND_K_CT_SAMEKEY` also keeps its original proof, which models the
+  seed-expansion PRG as a programmable random oracle and reduces to the PQ
+  KEM's LEAK binding, because it rests on a different assumption from its
+  `_std` counterpart (LEAK rather than MALSEED binding of the PQ KEM); the
+  random-oracle proofs of the other two were retired. For
+  `LEAK_BIND_K_PK` and `LEAK_BIND_K_CT_DIFFKEY` the `_std` proofs follow the route of
+  StarFighters Theorem 28 (ePrint 2025/1397): KDF collision resistance plus
+  the probability that the two traditional public keys collide (the
+  `games/Seeded/` event), with no assumption on the PQ KEM. For
+  `LEAK_BIND_K_CT_SAMEKEY` no such case split exists (the C2PRI KDF input
+  has no `ct_PQ` slot, so a single-key break is a same-key
+  ciphertext-binding break of the PQ KEM), and the `_std` proof instead
+  assumes the *seed-keyed malicious* notion `MALSEED_BIND_K_CT_SAMEKEY` of
+  the PQ KEM: the adversary chooses the seed the PQ key pair is derived
+  from. It sits between CDM24's LEAK and MAL notions (both directions are
+  proved in `proofs/Generic/`). A reduction can then generate the hybrid
+  seed itself and submit the PQ seed it expanded from it, whereas the LEAK notion would
+  require embedding a challenge key pair into a seed, which only a
+  programmable random oracle allows. Keying the notion by the seed matches
+  the draft's `expandDecapsKey`, which always derives `dk_PQ` from
+  `seed_PQ`, and rules out the malformed keys on which the known
+  MAL-BIND attacks on ML-KEM rely (Schmieg, ePrint 2024/523). The game
+  file's header records what is known for the notion.
+
+The one concrete instantiation in this directory is ML-KEM, named for the
+scheme rather than by a framework letter:
+[`schemes/MLKEM/MLKEM.scheme`](schemes/MLKEM/MLKEM.scheme) is FIPS 203's
+Fujisaki-Okamoto transform over an abstract deterministic PKE
+([`primitives/DetPKE.primitive`](primitives/DetPKE.primitive)), with
+SHA3-256, SHA3-512 and SHAKE256 modelled as standard-model
+[`Hash`](primitives/Hash.primitive) primitives, and
+[`proofs/MLKEM/MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof`](proofs/MLKEM/MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof)
+proves it seed-keyed malicious single-key ciphertext binding from the
+collision resistance of its hashes. No lattice structure is modelled and
+no property of K-PKE is assumed; the argument is entirely about the FO
+transform's hashing, so it establishes exactly the assumption the seeded
+CG and CK `_std` SAMEKEY proofs make about `KEM_PQ`, and nothing about
+ML-KEM's IND-CCA security. Two of its steps are identities the engine
+cannot derive, stated as the zero-advantage helper games in
+[`games/Helpers/`](games/Helpers/) and checked in EasyCrypt.
 
 `K-CT` binding is split across two files. Figure 5 of
 [CDM24](REPORT-CFRG-20260722.md#ref-cdm24), the source of the binding notions,
@@ -128,8 +178,11 @@ EasyCrypt expert, are in
 
 ## Out of scope
 
-- Concrete instantiations (ML-KEM, X25519, P-256, and so on). All proofs are
-  generic over the component KEM and nominal group.
+- Concrete instantiations (X25519, P-256, and so on): every hybrid proof is
+  generic over the component KEM and nominal group. The one exception is
+  ML-KEM, and only for one property -- `MALSEED-BIND-K-CT-SAMEKEY`, the
+  assumption the seeded `_std` SAMEKEY proofs make about `KEM_PQ`. Nothing
+  here bears on ML-KEM's IND-CCA security or its lattice layer.
 - Explicitly rejecting KEMs.
 - Quantum-attacker reasoning; ROM results do not lift to the QROM.
 

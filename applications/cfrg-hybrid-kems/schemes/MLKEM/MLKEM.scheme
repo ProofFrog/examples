@@ -1,0 +1,131 @@
+// ML-KEM (FIPS 203, final, August 2024) as an instance of this
+// directory's seeded KEM interface, generic over the K-PKE layer.
+//
+// FIPS 203 builds ML-KEM from the deterministic public-key encryption
+// scheme K-PKE by the Fujisaki-Okamoto transform with implicit
+// rejection. The transform uses nothing about K-PKE beyond the DetPKE
+// interface (KeyGen(d), Encrypt(ek, m, r), Decrypt(dk, c)), so this
+// scheme is parameterized by an abstract DetPKE P and models no lattice
+// structure. Its three hash functions are Hash primitives -- fixed
+// public functions anyone can evaluate, i.e. standard-model, not random
+// oracles:
+//
+//   H : BitString<P.Nek>           -> BitString<H.Nout>           (SHA3-256)
+//   G : BitString<P.Nmsg + H.Nout> -> BitString<J.Nout + P.Nrand> (SHA3-512)
+//   J : BitString<nz + P.Nct>      -> BitString<J.Nout>           (SHAKE256)
+//
+// FIPS 203 section 4.1 fixes those three, so at the concrete parameters
+// H.Nout = J.Nout = nz = P.Nkseed = P.Nmsg = P.Nrand = 32 bytes and G's
+// 64-byte output splits into (K, r). All of that is kept symbolic here;
+// only the splitting structure matters. Hash.primitive's header records
+// why the hashes are primitives rather than Function<D, R> parameters.
+//
+// Algorithm 16 (KeyGen_internal(d, z)):
+//     (ek_PKE, dk_PKE) = K-PKE.KeyGen(d)
+//     ek = ek_PKE
+//     dk = dk_PKE || ek || H(ek) || z
+// Algorithm 17 (Encaps_internal(ek, m)):
+//     (K, r) = G(m || H(ek));  c = K-PKE.Encrypt(ek, m, r)
+// Algorithm 18 (Decaps_internal(dk, c)):
+//     parse dk_PKE, ek_PKE, h, z from dk
+//     m'       = K-PKE.Decrypt(dk_PKE, c)
+//     (K', r') = G(m' || h)
+//     K_bar    = J(z || c)
+//     c'       = K-PKE.Encrypt(ek_PKE, m', r')
+//     if c != c' then K' = K_bar
+//     return K'
+// Note that h and ek_PKE are read out of dk, not recomputed from it; the
+// model reproduces that faithfully (it is what makes the two-key
+// MAL-BIND attacks of Schmieg, ePrint 2024/523, possible), even though
+// for keys produced by DeriveKeyPair the cached h always equals H(ek).
+//
+// Modelling the seed. The CFRG hybrid draft specifies only the generic
+// DeriveKeyPair(seed) interface and KEM_PQ.Nseed; it does not pin down
+// ML-KEM's seed format. FIPS 203 Algorithm 19 samples d and z (32 bytes
+// each) and calls KeyGen_internal(d, z), and section 3.3 treats the pair
+// (d, z) as the storable seed, so DeriveKeyPair(seed) here is
+// KeyGen_internal(seed[0 : P.Nkseed], seed[P.Nkseed : P.Nkseed + nz]),
+// i.e. the 64-byte d || z. KeyGen() samples that seed uniformly, which is
+// exactly Algorithm 19.
+//
+// Ciphertexts, encapsulation keys and shared secrets are byte strings, so
+// the KEM primitive's injective Encode* methods are identities.
+// Decapsulation keys are kept as the 4-tuple (dk_PKE, ek, h, z) rather
+// than a flat concatenation; the tuple carries the same information and
+// is what the FO transform parses out of the flat form.
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/DetPKE.primitive';
+import '../../primitives/Hash.primitive';
+
+Scheme MLKEM(DetPKE P, Int nz, Hash G, Hash H, Hash J) extends KEM {
+    requires H.Nin == P.Nek;
+    requires G.Nin == P.Nmsg + H.Nout;
+    requires G.Nout == J.Nout + P.Nrand;
+    requires J.Nin == nz + P.Nct;
+
+    Int Nseed = P.Nkseed + nz;
+    Int Nss = J.Nout;
+    Int Nct = P.Nct;
+    Int Nek = P.Nek;
+    Set SharedSecret = BitString<J.Nout>;
+    Set Ciphertext = BitString<P.Nct>;
+    Set EncapsKey = BitString<P.Nek>;
+    Set DecapsKey = [P.DecKey, BitString<P.Nek>, BitString<H.Nout>, BitString<nz>];
+
+    // FIPS 203 Algorithm 16, keyed by the storable seed d || z.
+    deterministic [EncapsKey, DecapsKey] DeriveKeyPair(BitString<Nseed> seed) {
+        BitString<P.Nkseed> d = seed[0 : P.Nkseed];
+        BitString<nz> z = seed[P.Nkseed : P.Nkseed + nz];
+        [BitString<P.Nek>, P.DecKey] [ek, dk_PKE] = P.KeyGen(d);
+        return [ek, [dk_PKE, ek, H.evaluate(ek), z]];
+    }
+
+    // FIPS 203 Algorithm 19: sample the 64-byte seed, then Algorithm 16.
+    [EncapsKey, DecapsKey] KeyGen() {
+        BitString<Nseed> seed <- BitString<Nseed>;
+        return this.DeriveKeyPair(seed);
+    }
+
+    // FIPS 203 Algorithms 20 and 17: sample m, derandomize with G.
+    [SharedSecret, Ciphertext] Encaps(EncapsKey ek) {
+        BitString<P.Nmsg> m <- BitString<P.Nmsg>;
+        BitString<G.Nout> Kr = G.evaluate(m || H.evaluate(ek));
+        SharedSecret K = Kr[0 : J.Nout];
+        BitString<P.Nrand> r = Kr[J.Nout : J.Nout + P.Nrand];
+        Ciphertext ct = P.Encrypt(ek, m, r);
+        return [K, ct];
+    }
+
+    // FIPS 203 Algorithm 18: re-encrypt, compare, implicitly reject.
+    deterministic SharedSecret Decaps(DecapsKey dk, Ciphertext ct) {
+        P.DecKey dk_PKE = dk[0];
+        BitString<P.Nek> ek = dk[1];
+        BitString<H.Nout> h = dk[2];
+        BitString<nz> z = dk[3];
+        BitString<P.Nmsg> m = P.Decrypt(dk_PKE, ct);
+        BitString<G.Nout> Kr = G.evaluate(m || h);
+        SharedSecret K = Kr[0 : J.Nout];
+        BitString<P.Nrand> r = Kr[J.Nout : J.Nout + P.Nrand];
+        SharedSecret Kbar = J.evaluate(z || ct);
+        Ciphertext ct2 = P.Encrypt(ek, m, r);
+        SharedSecret ss = K;
+        if (ct != ct2) {
+            ss = Kbar;
+        }
+        return ss;
+    }
+
+    // All three value types are already byte strings.
+    deterministic injective BitString<Nss> EncodeSharedSecret(SharedSecret ss) {
+        return ss;
+    }
+
+    deterministic injective BitString<Nct> EncodeCiphertext(Ciphertext ct) {
+        return ct;
+    }
+
+    deterministic injective BitString<Nek> EncodeEncapsKey(EncapsKey ek) {
+        return ek;
+    }
+}

@@ -1,0 +1,181 @@
+// Proof that the CK_seedbased hybrid KEM (seeded form) satisfies
+// LEAK-BIND-K-CT in the single-key case (SAMEKEY) in the standard model,
+// assuming seed-keyed malicious ciphertext binding of KEM_PQ
+// (MALSEED_BIND_K_CT_SAMEKEY: the adversary chooses the seed the PQ key
+// pair is derived from) and collision resistance of the KDF.
+//
+// SAMEKEY (b=0): both ciphertexts are decapsulated under a single hybrid
+// key pair, and the adversary holds the hybrid seed. The C2PRICombiner
+// input is ss_PQ || ss_T || ct_T || ek_T || label, without a ct_PQ slot,
+// so a break with kdf_in_0 == kdf_in_1 forces ss_PQ_0 == ss_PQ_1 and
+// ct_T_0 == ct_T_1, hence (as ct0 != ct1) ct_PQ_0 != ct_PQ_1: two distinct
+// PQ ciphertexts decapsulating to the same secret under the PQ key derived
+// from the seed. No case split on honest key generation avoids this (the
+// route of the DIFFKEY and K-PK _std proofs), so the proof needs a
+// binding assumption on KEM_PQ. Because the adversary knows the seed, a
+// reduction cannot embed a LEAK_BIND_K_CT_SAMEKEY(KEM_PQ) challenge key
+// pair: that would need a seed whose PRG expansion yields it, which
+// CK_seedbased_LEAK_BIND_K_CT_SAMEKEY.proof achieves only with the PRG as
+// a programmable random oracle. Under the seed-keyed malicious notion the
+// reduction samples the hybrid seed itself and submits the PQ seed it
+// expanded from it, with the two PQ ciphertexts, so nothing has to be
+// embedded. Keying the assumption by the seed rather than by the
+// decapsulation key states exactly what the draft's expandDecapsKey
+// guarantees (dk_PQ is always DeriveKeyPair(seed_PQ)) and keeps the
+// assumption out of reach of malformed-key attacks on MAL-BIND-K-CT such
+// as Schmieg's on ML-KEM; see the game file.
+//
+// Game sequence (6 entries, 5 hops):
+//   0. LEAK_BIND_K_CT_SAMEKEY(hybrid).Breakable
+//   1. MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ).Breakable   compose R_PQ_Bind  (equiv)
+//   2. MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ).Unbreakable compose R_PQ_Bind  (assumption)
+//   3. KDFCollisionResistance(H).Breakable           compose R_KDF      (equiv)
+//   4. KDFCollisionResistance(H).Unbreakable         compose R_KDF      (assumption)
+//   5. LEAK_BIND_K_CT_SAMEKEY(hybrid).Unbreakable
+//
+// Assumptions: MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ), KDFCollisionResistance(H).
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/PRG.primitive';
+import '../../primitives/KDF.primitive';
+import '../../primitives/Label.primitive';
+import '../../schemes/CK/CK_seedbased.scheme';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_SAMEKEY.game';
+import '../../games/KEM/Binding/MALSEED_BIND_K_CT_SAMEKEY.game';
+import '../../games/KDF/KDFCollisionResistance.game';
+
+proof:
+
+let:
+    Int kem_pq_nseed;
+    Int kem_pq_nss;
+    Int kem_pq_nct;
+    Int kem_pq_nek;
+    Int kem_t_nseed;
+    Int kem_t_nss;
+    Int kem_t_nct;
+    Int kem_t_nek;
+    Int kdf_nout;
+    Int nlabel;
+    Set KEMPQCiphertextSpace;
+    Set KEMPQEncapsKeySpace;
+    Set KEMPQDecapsKeySpace;
+    Set KEMTCiphertextSpace;
+    Set KEMTEncapsKeySpace;
+    Set KEMTDecapsKeySpace;
+    KEM KEM_PQ = KEM(kem_pq_nseed, kem_pq_nss, kem_pq_nct, kem_pq_nek,
+                     BitString<kem_pq_nss>, KEMPQCiphertextSpace, KEMPQEncapsKeySpace, KEMPQDecapsKeySpace);
+    KEM KEM_T = KEM(kem_t_nseed, kem_t_nss, kem_t_nct, kem_t_nek,
+                    BitString<kem_t_nss>, KEMTCiphertextSpace, KEMTEncapsKeySpace, KEMTDecapsKeySpace);
+    PRG G = PRG(kem_pq_nseed, kem_t_nseed);
+    KDF H = KDF(kem_pq_nss + kem_t_nss + kem_t_nct + kem_t_nek + nlabel, kdf_nout);
+    Label L = Label(nlabel);
+    CK_seedbased hybrid = CK_seedbased(KEM_PQ, KEM_T, G, H, L);
+
+assume:
+    MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ);
+    KDFCollisionResistance(H);
+
+theorem:
+    LEAK_BIND_K_CT_SAMEKEY(hybrid);
+
+bound:
+      advantage(MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ) compose R_PQ_Bind)
+    + advantage(KDFCollisionResistance(H) compose R_KDF);
+
+games:
+    LEAK_BIND_K_CT_SAMEKEY(hybrid).Breakable against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+
+    MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ).Breakable   compose R_PQ_Bind(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+    MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ).Unbreakable compose R_PQ_Bind(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+
+    KDFCollisionResistance(H).Breakable   compose R_KDF(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+    KDFCollisionResistance(H).Unbreakable compose R_KDF(KEM_PQ, KEM_T, G, H, L, hybrid) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+
+    LEAK_BIND_K_CT_SAMEKEY(hybrid).Unbreakable against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary;
+
+// R_PQ_Bind: generates the seeded key pair itself, exactly as
+// CK_seedbased.DeriveKeyPair does, keeps the PQ seed, and hands the
+// adversary the encapsulation key and the hybrid seed. On Challenge it
+// case-splits on whether the two KDF inputs are equal with distinct PQ
+// ciphertexts; in that case the PQ seed and the two PQ ciphertexts are a
+// same-key binding break on KEM_PQ, which the MALSEED challenger
+// adjudicates (true in Breakable, matching the hybrid predicate, since
+// equal KDF inputs give equal KDF outputs and ct_PQ_0 != ct_PQ_1 gives
+// ct0 != ct1). Otherwise the bare hybrid predicate is returned. In
+// Unbreakable that branch is dead, leaving the KDF-collision case.
+Reduction R_PQ_Bind(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
+    compose MALSEED_BIND_K_CT_SAMEKEY(KEM_PQ) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    BitString<KEM_PQ.Nseed> seed_PQ_0;
+    KEM_T.DecapsKey dk_T_0;
+    KEM_T.EncapsKey ek_T_0;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        BitString<G.lambda> seed_0 <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
+        seed_PQ_0 = seed_full_0[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = KEM_PQ.DeriveKeyPair(seed_PQ_0);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(seed_T_0);
+        return [[ek_PQ_0, ek_T_0], seed_0];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
+        KEM_T.Ciphertext  ct_T_0  = ct0[1];
+        KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
+        KEM_T.Ciphertext  ct_T_1  = ct1[1];
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_0);
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_1);
+        KEM_T.SharedSecret  ss_T_0  = KEM_T.Decaps(dk_T_0, ct_T_0);
+        KEM_T.SharedSecret  ss_T_1  = KEM_T.Decaps(dk_T_0, ct_T_1);
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || KEM_T.EncodeSharedSecret(ss_T_0) || KEM_T.EncodeCiphertext(ct_T_0) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || KEM_T.EncodeSharedSecret(ss_T_1) || KEM_T.EncodeCiphertext(ct_T_1) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+
+        if (kdf_in_0 == kdf_in_1 && ct_PQ_0 != ct_PQ_1) {
+            return challenger.Challenge(seed_PQ_0, ct_PQ_0, ct_PQ_1);
+        }
+        return H.evaluate(kdf_in_0) == H.evaluate(kdf_in_1) && ct0 != ct1;
+    }
+}
+
+// R_KDF: reduction to KDFCollisionResistance(H). Generates the seeded key
+// pair locally, recomputes both KDF inputs on Challenge, and forwards them
+// to the collision challenger when ct0 != ct1.
+Reduction R_KDF(KEM KEM_PQ, KEM KEM_T, PRG G, KDF H, Label L, CK_seedbased hybrid)
+    compose KDFCollisionResistance(H) against LEAK_BIND_K_CT_SAMEKEY(hybrid).Adversary {
+
+    KEM_PQ.DecapsKey dk_PQ_0;
+    KEM_T.DecapsKey dk_T_0;
+    KEM_T.EncapsKey ek_T_0;
+
+    [hybrid.EncapsKey, hybrid.DecapsKey] Initialize() {
+        BitString<G.lambda> seed_0 <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
+        BitString<KEM_PQ.Nseed> seed_PQ_0 = seed_full_0[0 : KEM_PQ.Nseed];
+        BitString<KEM_T.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + KEM_T.Nseed];
+        [KEM_PQ.EncapsKey, KEM_PQ.DecapsKey] [ek_PQ_0, dk_PQ_0] = KEM_PQ.DeriveKeyPair(seed_PQ_0);
+        [KEM_T.EncapsKey, KEM_T.DecapsKey] [ek_T_0, dk_T_0] = KEM_T.DeriveKeyPair(seed_T_0);
+        return [[ek_PQ_0, ek_T_0], seed_0];
+    }
+
+    Bool Challenge(hybrid.Ciphertext ct0, hybrid.Ciphertext ct1) {
+        KEM_PQ.Ciphertext ct_PQ_0 = ct0[0];
+        KEM_T.Ciphertext  ct_T_0  = ct0[1];
+        KEM_PQ.Ciphertext ct_PQ_1 = ct1[0];
+        KEM_T.Ciphertext  ct_T_1  = ct1[1];
+        KEM_PQ.SharedSecret ss_PQ_0 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_0);
+        KEM_PQ.SharedSecret ss_PQ_1 = KEM_PQ.Decaps(dk_PQ_0, ct_PQ_1);
+        KEM_T.SharedSecret  ss_T_0  = KEM_T.Decaps(dk_T_0, ct_T_0);
+        KEM_T.SharedSecret  ss_T_1  = KEM_T.Decaps(dk_T_0, ct_T_1);
+        BitString<H.Nin> kdf_in_0 = KEM_PQ.EncodeSharedSecret(ss_PQ_0) || KEM_T.EncodeSharedSecret(ss_T_0) || KEM_T.EncodeCiphertext(ct_T_0) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+        BitString<H.Nin> kdf_in_1 = KEM_PQ.EncodeSharedSecret(ss_PQ_1) || KEM_T.EncodeSharedSecret(ss_T_1) || KEM_T.EncodeCiphertext(ct_T_1) || KEM_T.EncodeEncapsKey(ek_T_0) || L.get();
+
+        if (ct0 == ct1) {
+            return false;
+        }
+        return challenger.Challenge(kdf_in_0, kdf_in_1);
+    }
+}

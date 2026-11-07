@@ -1,0 +1,117 @@
+// Generic proof that MALSEED-BIND-K-CT-SAMEKEY implies
+// LEAK-BIND-K-CT-SAMEKEY for any KEM whose key generation is
+// DeriveKeyPair on a uniform seed (KeyGenEquiv).
+//
+// The LEAK adversary receives an honestly generated key pair and must
+// find two distinct ciphertexts decapsulating to the same secret under
+// it. Once KeyGen is replaced by DeriveKeyPair on a uniform seed, the
+// reduction samples that seed itself, hands out the derived key pair,
+// and forwards the adversary's two ciphertexts together with the seed to
+// the MALSEED challenger, which re-derives the same key. A uniform seed
+// is one particular choice of seed, so MALSEED, where the adversary picks
+// the seed, is the stronger notion. This is the lower half of the claim
+// in MALSEED_BIND_K_CT_SAMEKEY.game's header that the notion sits between
+// CDM24's LEAK and MAL; the upper half is
+// MAL_implies_MALSEED_BIND_K_CT_SAMEKEY.proof.
+//
+// Game sequence (8 entries, 7 hops):
+//   0. LEAK_BIND_K_CT_SAMEKEY(K).Breakable
+//   1. KeyGenEquiv(K).FromKeyGen        compose R_KG_L
+//   2. KeyGenEquiv(K).FromDeriveKeyPair compose R_KG_L   (assumption)
+//   3. MALSEED_BIND_K_CT_SAMEKEY(K).Breakable   compose R_Bind
+//   4. MALSEED_BIND_K_CT_SAMEKEY(K).Unbreakable compose R_Bind   (assumption)
+//   5. KeyGenEquiv(K).FromDeriveKeyPair compose R_KG_R
+//   6. KeyGenEquiv(K).FromKeyGen        compose R_KG_R   (assumption)
+//   7. LEAK_BIND_K_CT_SAMEKEY(K).Unbreakable
+
+import '../../primitives/KEM.primitive';
+import '../../games/KEM/KeyGenEquiv.game';
+import '../../games/KEM/Binding/LEAK_BIND_K_CT_SAMEKEY.game';
+import '../../games/KEM/Binding/MALSEED_BIND_K_CT_SAMEKEY.game';
+
+proof:
+
+let:
+    Int Nseed;
+    Int Nss;
+    Int Nct;
+    Int Nek;
+    Set SharedSecretSpace;
+    Set CiphertextSpace;
+    Set EncapsKeySpace;
+    Set DecapsKeySpace;
+    KEM K = KEM(Nseed, Nss, Nct, Nek,
+                SharedSecretSpace, CiphertextSpace, EncapsKeySpace, DecapsKeySpace);
+
+assume:
+    KeyGenEquiv(K);
+    MALSEED_BIND_K_CT_SAMEKEY(K);
+
+theorem:
+    LEAK_BIND_K_CT_SAMEKEY(K);
+
+bound:
+      advantage(KeyGenEquiv(K) compose R_KG_L)
+    + advantage(MALSEED_BIND_K_CT_SAMEKEY(K) compose R_Bind)
+    + advantage(KeyGenEquiv(K) compose R_KG_R);
+
+games:
+    LEAK_BIND_K_CT_SAMEKEY(K).Breakable against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    KeyGenEquiv(K).FromKeyGen        compose R_KG_L(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+    KeyGenEquiv(K).FromDeriveKeyPair compose R_KG_L(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    MALSEED_BIND_K_CT_SAMEKEY(K).Breakable   compose R_Bind(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+    MALSEED_BIND_K_CT_SAMEKEY(K).Unbreakable compose R_Bind(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    KeyGenEquiv(K).FromDeriveKeyPair compose R_KG_R(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+    KeyGenEquiv(K).FromKeyGen        compose R_KG_R(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    LEAK_BIND_K_CT_SAMEKEY(K).Unbreakable against LEAK_BIND_K_CT_SAMEKEY(K).Adversary;
+
+// Breakable side: the key pair comes from the KeyGenEquiv challenger.
+Reduction R_KG_L(KEM K) compose KeyGenEquiv(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary {
+    K.DecapsKey dk0;
+
+    [K.EncapsKey, K.DecapsKey] Initialize() {
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = challenger.Generate();
+        return [ek0, dk0];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk0, ct1);
+        return ss0 == ss1 && ct0 != ct1;
+    }
+}
+
+// Sample the seed, hand out the key pair derived from it, and let the
+// MALSEED challenger adjudicate the adversary's ciphertexts under it.
+// The reduction never reads dk0 itself; keeping it as a field lets the
+// engine see the MALSEED challenger's re-derivation DeriveKeyPair(seed)
+// as the key handed out in Initialize.
+Reduction R_Bind(KEM K) compose MALSEED_BIND_K_CT_SAMEKEY(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary {
+    BitString<K.Nseed> seed;
+    K.DecapsKey dk0;
+
+    [K.EncapsKey, K.DecapsKey] Initialize() {
+        seed <- BitString<K.Nseed>;
+        [K.EncapsKey, K.DecapsKey] [ek0, dk0] = K.DeriveKeyPair(seed);
+        return [ek0, dk0];
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        return challenger.Challenge(seed, ct0, ct1);
+    }
+}
+
+// Unbreakable side: the key pair comes from the KeyGenEquiv challenger.
+Reduction R_KG_R(KEM K) compose KeyGenEquiv(K) against LEAK_BIND_K_CT_SAMEKEY(K).Adversary {
+    [K.EncapsKey, K.DecapsKey] Initialize() {
+        return challenger.Generate();
+    }
+
+    Bool Challenge(K.Ciphertext ct0, K.Ciphertext ct1) {
+        return false;
+    }
+}
