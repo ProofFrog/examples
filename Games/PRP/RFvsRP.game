@@ -1,0 +1,65 @@
+// Random function versus random permutation, sampled lazily and written to
+// be identical until bad (Bellare-Rogaway 2006, Figure 2, games S0 and S1;
+// Shoup 2004, section 5.1, Games 1 and 2).
+//
+// A fresh query x gets a uniform answer y, and the flag is raised when y
+// collides with an earlier answer. Left (the random function) keeps the
+// colliding y. Right (the random permutation) resamples y uniformly from
+// the unused values, so its answers are distinct and each fresh answer is
+// uniform on the complement of the earlier ones.
+//
+// The two sides differ only inside the branch that raises bad, so a side
+// flip over this pair is licensed by the fundamental lemma of game playing
+// with loss Pr[bad], which Proofs/PRP/RFRP_Switching_Event.proof bounds by
+// count_Query * (count_Query - 1) / (2 * |X|).
+
+Game Left(Set X) {
+    Map<X, X> table;
+    Set<X> image;
+    Bool bad;
+
+    Void Initialize() {
+        bad = false;
+    }
+
+    X Query(X x) {
+        if (x in table) {
+            return table[x];
+        }
+        X y <- X;
+        Bool hit = y in image;
+        image = image union y;
+        if (hit) {
+            bad = true;
+        }
+        table[x] = y;
+        return y;
+    }
+}
+
+Game Right(Set X) {
+    Map<X, X> table;
+    Set<X> image;
+    Bool bad;
+
+    Void Initialize() {
+        bad = false;
+    }
+
+    X Query(X x) {
+        if (x in table) {
+            return table[x];
+        }
+        X y <- X;
+        Bool hit = y in image;
+        image = image union y;
+        if (hit) {
+            bad = true;
+            y <-uniq[image] X;
+        }
+        table[x] = y;
+        return y;
+    }
+}
+
+export as RFvsRP;

@@ -1,0 +1,92 @@
+// Helper: collision of the traditional public keys of two CG_seedbased
+// key pairs, with the seeds exposed.
+//
+// Two hybrid seeds seed_0, seed_1 are sampled and handed to the
+// adversary (as a LEAK-BIND challenger hands out decapsulation keys).
+// Each is expanded with the PRG G exactly as CG_seedbased.DeriveKeyPair
+// does, and the nominal-group half is turned into the traditional
+// public element ek_T_i = Exp(g, RandomScalar(seed_T_i)).
+//
+// Both sides raise the flag `bad` in Initialize exactly when
+// ek_T_0 == ek_T_1, and return the seeds.
+// Real:  Collided reports the flag.
+// Ideal: Collided always answers false.
+//
+// The two games are identical until `bad` (an identical-until-bad pair),
+// and `bad` is decided at Initialize by the game's own coins before the
+// adversary does anything, so a hop over the pair costs
+//
+//     Pr[bad] = Pr[ek_T_0 == ek_T_1]  (honest CG_seedbased key generation),
+//
+// whether or not the seeds are shown.
+// proofs/CG/CG_seedbased_TKeyCollisionEvent.proof proves
+// `event bad of CGSeededTKeyCollision(...) at Initialize`: with the seeds
+// hidden, Pr[bad] <=
+//
+//     Adv^{PRGSec}_G (two queries) + Adv^{NGKeyCollision}_NG.
+//
+// This is the standard-model replacement for the lazy-RO reprogramming
+// step of the PRG-as-random-oracle proofs: the event is a property of key
+// generation alone, so a seed being public does not get in the way.
+//
+// Used by the standard-model LEAK-BIND-K-PK and LEAK-BIND-K-CT
+// (two-key case) proofs for CG_seedbased, following the route of
+// StarFighters Theorem 28 (ePrint 2025/1397).
+
+import '../../primitives/KEM.primitive';
+import '../../primitives/NominalGroup.primitive';
+import '../../primitives/PRG.primitive';
+
+Game Real(KEM KEM_PQ, NominalGroup NG, PRG G) {
+    NG.Element ek_T_0;
+    NG.Element ek_T_1;
+    Bool bad;
+
+    [BitString<G.lambda>, BitString<G.lambda>] Initialize() {
+        bad = false;
+        BitString<G.lambda> seed_0 <- BitString<G.lambda>;
+        BitString<G.lambda> seed_1 <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
+        BitString<G.lambda + G.stretch> seed_full_1 = G.evaluate(seed_1);
+        BitString<NG.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        BitString<NG.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        ek_T_0 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_0));
+        ek_T_1 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_1));
+        if (ek_T_0 == ek_T_1) {
+            bad = true;
+        }
+        return [seed_0, seed_1];
+    }
+
+    Bool Collided() {
+        return bad;
+    }
+}
+
+Game Ideal(KEM KEM_PQ, NominalGroup NG, PRG G) {
+    NG.Element ek_T_0;
+    NG.Element ek_T_1;
+    Bool bad;
+
+    [BitString<G.lambda>, BitString<G.lambda>] Initialize() {
+        bad = false;
+        BitString<G.lambda> seed_0 <- BitString<G.lambda>;
+        BitString<G.lambda> seed_1 <- BitString<G.lambda>;
+        BitString<G.lambda + G.stretch> seed_full_0 = G.evaluate(seed_0);
+        BitString<G.lambda + G.stretch> seed_full_1 = G.evaluate(seed_1);
+        BitString<NG.Nseed> seed_T_0 = seed_full_0[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        BitString<NG.Nseed> seed_T_1 = seed_full_1[KEM_PQ.Nseed : KEM_PQ.Nseed + NG.Nseed];
+        ek_T_0 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_0));
+        ek_T_1 = NG.Exp(NG.Generator(), NG.RandomScalar(seed_T_1));
+        if (ek_T_0 == ek_T_1) {
+            bad = true;
+        }
+        return [seed_0, seed_1];
+    }
+
+    Bool Collided() {
+        return false;
+    }
+}
+
+export as CGSeededTKeyCollision;
