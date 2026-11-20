@@ -81,12 +81,7 @@ Reduction R2(SymEnc E, MAC M, EncryptThenMAC EtM) compose INDCPA_MultiChal(E) ag
         return [c, t];
     }
     EtM.Message? Decrypt(EtM.Ciphertext c) {
-        if (c in S) {
-            return None;
-        }
-        if (!(c in S)) {
-            return None;
-        }
+        return None;
     }
 }
 
