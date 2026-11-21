@@ -1,0 +1,62 @@
+// MAL-BIND-K-CT of a KEM, restricted to the decapsulation-only mode:
+// the adversary chooses two decapsulation keys, possibly equal and
+// possibly malformed, and two ciphertexts, and wins if the ciphertexts
+// differ but decapsulate (each under its own key) to the same shared
+// secret.
+//
+//   Breakable:   Challenge(dk0, dk1, ct0, ct1) returns
+//                Decaps(dk0, ct0) == Decaps(dk1, ct1) && ct0 != ct1
+//   Unbreakable: Challenge always returns false
+//
+// REVIEW AGAINST THE PAPER BEFORE CITING. This game is meant to be the
+// g = 1 branch of CDM24 Figure 6 (Cremers, Dax, Medinger, "Keeping Up with
+// the KEMs", CCS 2024, ePrint 2023/1933) for P = {k}, Q = {ct}, and it
+// departs from that figure in the following ways:
+//
+//  - Only mode g = 1 (decapsulate twice) is modelled. Modes g = 2 and
+//    g not in {1, 2} run Encaps on adversary-chosen coins, which this
+//    directory's KEM primitive cannot express (Encaps takes no explicit
+//    randomness). Restricting the adversary to one mode gives a game that
+//    full MAL-BIND-K-CT implies: an adversary here is a Figure 6
+//    adversary that always picks g = 1. So results that ASSUME this game
+//    still follow from CDM24's MAL-BIND-K-CT; results that PROVE it are
+//    weaker than CDM24's notion.
+//  - CDM24's Decaps takes the public key as a separate argument
+//    (Decaps(sk, pk, ct)) and the adversary supplies both. Decaps in
+//    KEM.primitive takes only dk, so each (sk_i, pk_i) collapses to dk_i:
+//    whatever public-key material Decaps reads lives inside dk (for
+//    ML-KEM, ek and its hash h), and the adversary controls all of it.
+//  - The guard "if k0 = bot or k1 = bot: return 0" is omitted: Decaps is
+//    total here, as for the implicitly rejecting KEMs the draft targets
+//    (see LEAK_BIND_K_CT_SAMEKEY.game for the same remark).
+//  - CDM24's experiment is single-shot; here Challenge is an oracle the
+//    adversary may call repeatedly, as in every binding game in this
+//    directory. This gives the adversary nothing: it holds both keys and
+//    Decaps is a public deterministic algorithm, so it can evaluate the
+//    winning condition itself and submit a single winning query.
+//
+// There is no SAMEKEY/DIFFKEY split: the adversary chooses both keys, so
+// dk0 == dk1 (the single-key case) and dk0 != dk1 are both covered.
+//
+// Used by proofs/Generic/MAL_implies_MALSEED_BIND_K_CT_SAMEKEY.proof to
+// place MALSEED_BIND_K_CT_SAMEKEY below MAL-BIND-K-CT. ML-KEM does NOT
+// satisfy this game: Schmieg's attack (ePrint 2024/523, Algorithm 2)
+// is a two-key g = 1 attack.
+
+import '../../../primitives/KEM.primitive';
+
+Game Breakable(KEM K) {
+    Bool Challenge(K.DecapsKey dk0, K.DecapsKey dk1, K.Ciphertext ct0, K.Ciphertext ct1) {
+        K.SharedSecret ss0 = K.Decaps(dk0, ct0);
+        K.SharedSecret ss1 = K.Decaps(dk1, ct1);
+        return ss0 == ss1 && ct0 != ct1;
+    }
+}
+
+Game Unbreakable(KEM K) {
+    Bool Challenge(K.DecapsKey dk0, K.DecapsKey dk1, K.Ciphertext ct0, K.Ciphertext ct1) {
+        return false;
+    }
+}
+
+export as MAL_BIND_K_CT_DECAPS;

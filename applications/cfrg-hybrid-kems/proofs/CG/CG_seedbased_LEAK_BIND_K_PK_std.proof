@@ -3,9 +3,9 @@
 //
 // This follows the route of StarFighters Theorem 28 (Connolly,
 // Hovelmanns, Hulsing, Kousidis, Meijers, ePrint 2025/1397) rather than
-// the reduction to the PQ KEM's binding used by
-// CG_seedbased_LEAK_BIND_K_PK.proof (which needs the PRG modelled as a
-// programmable random oracle). No assumption on KEM_PQ is used.
+// a reduction to the PQ KEM's binding, which needs the PRG modelled as
+// a programmable random oracle (the random-oracle proof that did so has
+// been retired in favour of this one). No assumption on KEM_PQ is used.
 //
 // Win condition: Decaps(seed_0, ct0) == Decaps(seed_1, ct1) and
 // ek0 != ek1, where ek_i = [ek_PQ_i, ek_T_i]. The C2PRICombiner input

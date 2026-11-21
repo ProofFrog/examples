@@ -1,0 +1,32 @@
+// An unkeyed hash function: a deterministic map from byte strings of one
+// fixed length to byte strings of another.
+//
+// Used to model ML-KEM's three SHA-3 instances (FIPS 203 section 4.1):
+//   H = SHA3-256,  J = SHAKE256 truncated to 32 bytes,  G = SHA3-512.
+// Each is a fixed public function that anyone, adversary included, can
+// evaluate, so it is a standard-model object rather than a random oracle.
+//
+// Structurally this is the same shape as KDF.primitive; it is a separate
+// primitive only so that "the KDF" keeps meaning the hybrid combiner's
+// key-derivation function throughout this directory.
+//
+// Why a primitive rather than a Function<D, R> parameter. Modelling the
+// three hashes as Function values is the other natural choice, and it is
+// what Schemes/PubKeyEnc/OAEP.scheme does. It does not work here, for two
+// engine reasons. First, a game cannot be parameterized by a Function
+// whose domain or range length is a game parameter: the type checker
+// substitutes Set arguments into a parameter's declared type but not Int
+// arguments, so `Game G(Set D, Int nout, Function<D, BitString<nout>> F)`
+// rejects every instantiation. That rules out stating truncated collision
+// resistance over a Function. Second, the concatenation-equality
+// decomposition that turns `m0 || h != m1 || h` into `m0 != m1` only
+// fires when every term has a statically derivable BitString length, and
+// a Function call is not one of the forms it recognizes (slice, typed
+// BitString variable, primitive method returning BitString<L>) -- so
+// `H(ek)` blocks it while `H.evaluate(ek)` does not.
+Primitive Hash(Int Nin, Int Nout) {
+    Int Nin = Nin;
+    Int Nout = Nout;
+
+    deterministic BitString<Nout> evaluate(BitString<Nin> x);
+}

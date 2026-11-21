@@ -1,0 +1,32 @@
+// Collision resistance of a truncation of a hash function.
+//
+// The adversary submits two inputs and wins if they are distinct but the
+// first ntrunc bytes of their images under F agree.
+//
+//   Breakable:   Challenge(x0, x1) returns
+//                F(x0)[0:ntrunc] == F(x1)[0:ntrunc] && x0 != x1
+//   Unbreakable: Challenge always returns false
+//
+// Standard cryptographic assumption, implied by collision resistance of
+// F itself and hence weaker than it. It is the right form here:
+// proofs/MLKEM/MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof instantiates F with
+// ML-KEM's G (SHA3-512) and ntrunc with the shared-secret length,
+// because the FO transform uses only the first half of G's 64-byte
+// output, K = G(m || h)[0:32], as a shared secret; the second half is
+// the encryption randomness.
+
+import '../../primitives/Hash.primitive';
+
+Game Breakable(Hash F, Int ntrunc) {
+    Bool Challenge(BitString<F.Nin> x0, BitString<F.Nin> x1) {
+        return F.evaluate(x0)[0 : ntrunc] == F.evaluate(x1)[0 : ntrunc] && x0 != x1;
+    }
+}
+
+Game Unbreakable(Hash F, Int ntrunc) {
+    Bool Challenge(BitString<F.Nin> x0, BitString<F.Nin> x1) {
+        return false;
+    }
+}
+
+export as TruncatedCollisionResistance;

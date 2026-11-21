@@ -1,0 +1,31 @@
+// Collision resistance of a hash function.
+//
+// The adversary submits two inputs and wins if they are distinct but
+// collide under F.
+//
+//   Breakable:   Challenge(x0, x1) returns F(x0) == F(x1) && x0 != x1
+//   Unbreakable: Challenge always returns false
+//
+// The distinguishing advantage between the two games is exactly the
+// probability that the adversary finds a collision.
+//
+// Standard cryptographic assumption. This is the Hash-primitive analogue
+// of games/KDF/KDFCollisionResistance.game;
+// proofs/MLKEM/MLKEM_MALSEED_BIND_K_CT_SAMEKEY.proof instantiates F with
+// ML-KEM's J (SHAKE256 truncated to 32 bytes).
+
+import '../../primitives/Hash.primitive';
+
+Game Breakable(Hash F) {
+    Bool Challenge(BitString<F.Nin> x0, BitString<F.Nin> x1) {
+        return F.evaluate(x0) == F.evaluate(x1) && x0 != x1;
+    }
+}
+
+Game Unbreakable(Hash F) {
+    Bool Challenge(BitString<F.Nin> x0, BitString<F.Nin> x1) {
+        return false;
+    }
+}
+
+export as HashCollisionResistance;

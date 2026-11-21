@@ -4,8 +4,8 @@
 // Same route as CG_seedbased_LEAK_BIND_K_PK_std.proof: the two key
 // pairs are generated independently, so the case split is on the
 // traditional public keys, not on the ciphertexts. No assumption on
-// KEM_PQ is used; compare CG_seedbased_LEAK_BIND_K_CT_DIFFKEY.proof,
-// which reduces to KEM_PQ's binding with the PRG as a random oracle.
+// KEM_PQ is used, unlike the retired random-oracle proof, which reduced
+// to KEM_PQ's binding with the PRG as a random oracle.
 //
 // Win condition: Decaps(seed_0, ct0) == Decaps(seed_1, ct1) and
 // ct0 != ct1. The C2PRICombiner input is

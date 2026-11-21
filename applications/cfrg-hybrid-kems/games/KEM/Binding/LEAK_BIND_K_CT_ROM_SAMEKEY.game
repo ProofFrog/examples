@@ -3,9 +3,10 @@
 // ROM analogue of LEAK_BIND_K_CT_SAMEKEY.game (the b=0 slice: both
 // ciphertexts decapsulated under a single key pair -- the single-receiver
 // / re-encapsulation scenario), parameterized over a random oracle
-// Function G_RO (modelling the PRG as an RO). The b=1 slice is
-// LEAK_BIND_K_CT_ROM_DIFFKEY. A KEM is LEAK-BIND-K-CT secure iff it is
-// secure in BOTH.
+// Function G_RO (modelling the PRG as an RO). The b=1 slice had a ROM
+// variant too; it was retired with the random-oracle DIFFKEY proofs once
+// the standard-model `_std` proofs replaced them, so only this slice keeps
+// a random-oracle form.
 //
 // Mirrors INDCCA_ROM.game's shape (generic over Set D, Set R), so the
 // same game serves CK_seedbased and CG_seedbased by varying the codomain

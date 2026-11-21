@@ -1,0 +1,66 @@
+// Generic proof that MAL-BIND-K-CT (decapsulation-only mode) implies
+// MALSEED-BIND-K-CT-SAMEKEY for any KEM.
+//
+// MALSEED lets the adversary choose the seed the key pair is derived
+// from; MAL lets it choose the decapsulation keys outright. A MALSEED
+// adversary is therefore a MAL adversary that happens to submit the same
+// well-formed key twice: the reduction derives dk from the adversary's
+// seed and forwards (dk, dk, ct0, ct1). This is the upper half of the
+// claim in MALSEED_BIND_K_CT_SAMEKEY.game's header that the notion sits
+// between CDM24's LEAK and MAL; the lower half is
+// MALSEED_implies_LEAK_BIND_K_CT_SAMEKEY.proof.
+//
+// REVIEW AGAINST THE PAPER BEFORE CITING: the assumed game models only
+// mode g = 1 of CDM24 Figure 6; see MAL_BIND_K_CT_DECAPS.game. Full
+// MAL-BIND-K-CT implies that game, so the implication from CDM24's
+// notion stands.
+//
+// Game sequence (4 entries, 3 hops):
+//   0. MALSEED_BIND_K_CT_SAMEKEY(K).Breakable
+//   1. MAL_BIND_K_CT_DECAPS(K).Breakable   compose R
+//   2. MAL_BIND_K_CT_DECAPS(K).Unbreakable compose R   (assumption)
+//   3. MALSEED_BIND_K_CT_SAMEKEY(K).Unbreakable
+
+import '../../primitives/KEM.primitive';
+import '../../games/KEM/Binding/MALSEED_BIND_K_CT_SAMEKEY.game';
+import '../../games/KEM/Binding/MAL_BIND_K_CT_DECAPS.game';
+
+proof:
+
+let:
+    Int Nseed;
+    Int Nss;
+    Int Nct;
+    Int Nek;
+    Set SharedSecretSpace;
+    Set CiphertextSpace;
+    Set EncapsKeySpace;
+    Set DecapsKeySpace;
+    KEM K = KEM(Nseed, Nss, Nct, Nek,
+                SharedSecretSpace, CiphertextSpace, EncapsKeySpace, DecapsKeySpace);
+
+assume:
+    MAL_BIND_K_CT_DECAPS(K);
+
+theorem:
+    MALSEED_BIND_K_CT_SAMEKEY(K);
+
+bound:
+    advantage(MAL_BIND_K_CT_DECAPS(K) compose R);
+
+games:
+    MALSEED_BIND_K_CT_SAMEKEY(K).Breakable against MALSEED_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    MAL_BIND_K_CT_DECAPS(K).Breakable   compose R(K) against MALSEED_BIND_K_CT_SAMEKEY(K).Adversary;
+    MAL_BIND_K_CT_DECAPS(K).Unbreakable compose R(K) against MALSEED_BIND_K_CT_SAMEKEY(K).Adversary;
+
+    MALSEED_BIND_K_CT_SAMEKEY(K).Unbreakable against MALSEED_BIND_K_CT_SAMEKEY(K).Adversary;
+
+// Derive the key pair from the adversary's seed and submit the
+// decapsulation key as both of the MAL adversary's keys.
+Reduction R(KEM K) compose MAL_BIND_K_CT_DECAPS(K) against MALSEED_BIND_K_CT_SAMEKEY(K).Adversary {
+    Bool Challenge(BitString<K.Nseed> seed, K.Ciphertext ct0, K.Ciphertext ct1) {
+        [K.EncapsKey, K.DecapsKey] [ek, dk] = K.DeriveKeyPair(seed);
+        return challenger.Challenge(dk, dk, ct0, ct1);
+    }
+}
